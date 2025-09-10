@@ -1,0 +1,26 @@
+# Ignore OS-specific files
+
+.DS_Store
+Thumbs.db
+
+# Ignore bundler files
+
+/.bundle
+/vendor/bundle
+
+# Ignore local environment files
+
+.env
+
+# Ignore log files
+
+/log/*
+!/log/.keep
+
+# Ignore temporary files
+
+/tmp
+
+# Ignore RubyMine files
+
+.idea/
