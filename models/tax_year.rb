@@ -4,20 +4,26 @@ module Foresight
   class TaxYear
   attr_reader :year, :federal_brackets, :standard_deduction, :ltcg_brackets
 
-    MFJ_2025_ORDINARY = [
+    # Ordinary income tax brackets (MFJ, 2025 - simplified/truncated)
+    ORDINARY_BRACKETS_2025_MFJ = [
       [0, 0.10],
       [22_000, 0.12],
       [94_300, 0.22],
       [201_050, 0.24]
     ].freeze # truncated
 
-    MFJ_2025_LTCG = [
+    # Long-term capital gains brackets (MFJ, 2025 - simplified)
+    LTCG_BRACKETS_2025_MFJ = [
       [0, 0.0],
       [94_050, 0.15],
       [583_750, 0.20]
     ].freeze
 
-    def initialize(year:, federal_brackets: MFJ_2025_ORDINARY, standard_deduction: 29_200, ltcg_brackets: MFJ_2025_LTCG)
+  # Backward-compatibility aliases (internal use only)
+  MFJ_2025_ORDINARY = ORDINARY_BRACKETS_2025_MFJ
+  MFJ_2025_LTCG = LTCG_BRACKETS_2025_MFJ
+
+    def initialize(year:, federal_brackets: ORDINARY_BRACKETS_2025_MFJ, standard_deduction: 29_200, ltcg_brackets: LTCG_BRACKETS_2025_MFJ)
       @year = year
       @federal_brackets = federal_brackets
       @standard_deduction = standard_deduction
@@ -25,7 +31,7 @@ module Foresight
     end
 
     # Simplified 2025 IRMAA thresholds for MFJ (MAGI) and monthly Part B surcharges (approx; illustrative)
-    IRMAA_THRESHOLDS_MFJ_2025 = [
+    IRMAA_BRACKETS_2025_MFJ = [
       { limit: 206000, part_b_monthly: 0 },
       { limit: 258000, part_b_monthly: 69.90 },
       { limit: 322000, part_b_monthly: 174.70 },
@@ -34,9 +40,12 @@ module Foresight
       { limit: Float::INFINITY, part_b_monthly: 419.30 }
     ].freeze
 
+  # Backward-compatibility alias
+  IRMAA_THRESHOLDS_MFJ_2025 = IRMAA_BRACKETS_2025_MFJ
+
     # Determine annualized IRMAA surcharge (Part B only) given MAGI
     def irmaa_part_b_surcharge(magi)
-      bracket = IRMAA_THRESHOLDS_MFJ_2025.find { |h| magi <= h[:limit] }
+      bracket = IRMAA_BRACKETS_2025_MFJ.find { |h| magi <= h[:limit] }
       (bracket[:part_b_monthly] * 12).round(2)
     end
 
@@ -62,7 +71,7 @@ module Foresight
     end
 
     # --- NY State (simplified) ---
-    NY_MFJ_2025 = [
+    NY_BRACKETS_2025_MFJ = [
       [0, 0.04],
       [17150, 0.045],
       [23600, 0.0525],
@@ -74,12 +83,15 @@ module Foresight
       [25000000, 0.109]
     ].freeze # approximate breakpoints/rates
 
+  # Backward-compatibility alias
+  NY_MFJ_2025 = NY_BRACKETS_2025_MFJ
+
     def ny_standard_deduction(filing_status)
       filing_status == 'MFJ' ? 16050 : 8000
     end
 
     def ny_tax_on_income(taxable_income, filing_status: 'MFJ')
-      brackets = NY_MFJ_2025
+      brackets = NY_BRACKETS_2025_MFJ
       compute_bracket_tax(taxable_income, brackets)
     end
 

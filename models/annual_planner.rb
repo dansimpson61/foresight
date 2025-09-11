@@ -229,28 +229,42 @@ module Foresight
     end
 
     def build_narration(base:, requested_roth_conv:, actual_conversion:, remaining_need:, withdrawals:, total_tax:, state_tax:, irmaa_part_b:, effective_rate:, ss_taxable_post:, ss_taxable_increase:, conversion_incremental_marginal_rate:)
-      lines = []
-      lines << "Base taxable income: #{format('%.2f', base[:taxable_income])}."
-      if requested_roth_conv.positive?
-        if (requested_roth_conv - actual_conversion).abs > 0.01
-          lines << "Planned conversion #{format('%.2f', requested_roth_conv)}; executed #{format('%.2f', actual_conversion)} (limited by balance)."
-        else
-          lines << "Executed Roth conversion: #{format('%.2f', actual_conversion)} to fill bracket headroom."
-        end
-        if ss_taxable_increase.positive?
-          lines << "Conversion increased taxable Social Security by #{format('%.2f', ss_taxable_increase)} (now #{format('%.2f', ss_taxable_post)})."
-        end
-        lines << "Approx marginal rate on conversion: #{(conversion_incremental_marginal_rate * 100).round(2)}%."
+      [
+        sentence_base_income(base),
+        sentence_conversion(requested_roth_conv, actual_conversion, ss_taxable_increase, ss_taxable_post, conversion_incremental_marginal_rate),
+        sentence_spending_gap(remaining_need, withdrawals),
+        sentence_taxes(total_tax, state_tax, irmaa_part_b, effective_rate)
+      ].compact.join(' ')
+    end
+
+    def sentence_base_income(base)
+      "Base taxable income: #{format('%.2f', base[:taxable_income])}."
+    end
+
+    def sentence_conversion(requested, actual, ss_increase, ss_post, incr_rate)
+      return "No Roth conversion (no bracket headroom)." unless requested.positive?
+      parts = []
+      if (requested - actual).abs > 0.01
+        parts << "Planned conversion #{format('%.2f', requested)}; executed #{format('%.2f', actual)} (limited by balance)."
       else
-        lines << "No Roth conversion (no bracket headroom)."
+        parts << "Executed Roth conversion: #{format('%.2f', actual)} to fill bracket headroom."
       end
+      parts << "Conversion increased taxable Social Security by #{format('%.2f', ss_increase)} (now #{format('%.2f', ss_post)})." if ss_increase.positive?
+      parts << "Approx marginal rate on conversion: #{(incr_rate * 100).round(2)}%."
+      parts.join(' ')
+    end
+
+    def sentence_spending_gap(remaining_need, withdrawals)
       if remaining_need.positive?
-        lines << "Remaining after-tax spending gap: #{format('%.2f', remaining_need)} met via withdrawals: #{withdrawals[:detail].map { |d| "#{d[:source]} #{format('%.2f', d[:amount])}" }.join(', ')}."
+        detail = withdrawals[:detail].map { |d| "#{d[:source]} #{format('%.2f', d[:amount])}" }.join(', ')
+        "Remaining after-tax spending gap: #{format('%.2f', remaining_need)} met via withdrawals: #{detail}."
       else
-        lines << "All spending covered by base income; no discretionary withdrawals required."
+        "All spending covered by base income; no discretionary withdrawals required."
       end
-  lines << "Total federal tax (ordinary + CG): #{format('%.2f', total_tax)}; NY state: #{format('%.2f', state_tax)}; IRMAA Part B: #{format('%.2f', irmaa_part_b)}; effective rate #{(effective_rate * 100).round(2)}%."
-      lines.join(' ')
+    end
+
+    def sentence_taxes(total_tax, state_tax, irmaa_part_b, effective_rate)
+      "Total federal tax (ordinary + CG): #{format('%.2f', total_tax)}; NY state: #{format('%.2f', state_tax)}; IRMAA Part B: #{format('%.2f', irmaa_part_b)}; effective rate #{(effective_rate * 100).round(2)}%."
     end
   end
 end
