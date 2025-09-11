@@ -100,16 +100,7 @@ module Foresight
     end
 
     def apply_growth
-      @household.traditional_iras.each { |a| a.instance_variable_set(:@balance, (a.balance * (1 + @growth_assumptions[:traditional_ira])).round(2)) }
-      @household.roth_iras.each { |a| a.instance_variable_set(:@balance, (a.balance * (1 + @growth_assumptions[:roth_ira])).round(2)) }
-      @household.taxable_brokerage_accounts.each { |a| a.instance_variable_set(:@balance, (a.balance * (1 + @growth_assumptions[:taxable])).round(2)) }
-      adjust_spending_for_inflation
-    end
-
-    def adjust_spending_for_inflation
-      return if @inflation_rate.zero?
-      new_target = (@household.target_spending_after_tax * (1 + @inflation_rate)).round(2)
-      @household.instance_variable_set(:@target_spending_after_tax, new_target)
+      @household.grow_assets(growth_assumptions: @growth_assumptions, inflation_rate: @inflation_rate)
     end
 
     def build_summary(result, year, strategy)

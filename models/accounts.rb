@@ -19,21 +19,21 @@ module Foresight
 
     # Simplified distribution reduces balance and returns taxable income amount
     def withdraw(amount)
-      amt = [amount.to_f, @balance].min
+  amt = [amount.to_f, @balance].min
       @balance -= amt
       { cash: amt, taxable_ordinary: amt }
     end
 
     def convert_to_roth(amount)
-      amt = [amount.to_f, @balance].min
+  amt = [amount.to_f, @balance].min
       @balance -= amt
       { converted: amt, taxable_ordinary: amt }
     end
 
     def calculate_rmd(age)
   return 0.0 unless age >= owner.rmd_start_age
-      divisor = RMD_TABLE.fetch(age, RMD_TABLE.values.last)
-      (@balance / divisor).round(2)
+  divisor = RMD_TABLE.fetch(age, RMD_TABLE.values.last)
+  (@balance / divisor).round(2)
     end
 
     RMD_TABLE = {
@@ -42,6 +42,10 @@ module Foresight
       83 => 17.7, 84 => 16.8, 85 => 16.0, 86 => 15.2, 87 => 14.4,
       88 => 13.7, 89 => 12.9, 90 => 12.2
     }.freeze
+
+    def grow(rate)
+      @balance = (@balance * (1 + rate.to_f)).round(2)
+    end
   end
 
   class RothIRA < Account
@@ -53,13 +57,17 @@ module Foresight
     end
 
     def withdraw(amount)
-      amt = [amount.to_f, @balance].min
+  amt = [amount.to_f, @balance].min
       @balance -= amt
       { cash: amt, taxable_ordinary: 0.0 }
     end
 
     def deposit(amount)
-      @balance += amount.to_f
+  @balance += amount.to_f
+    end
+
+    def grow(rate)
+      @balance = (@balance * (1 + rate.to_f)).round(2)
     end
   end
 
@@ -75,10 +83,14 @@ module Foresight
     end
 
     def withdraw(amount)
-      amt = [amount.to_f, @balance].min
+  amt = [amount.to_f, @balance].min
       @balance -= amt
       gains_portion = (1 - cost_basis_fraction) * amt
       { cash: amt, taxable_capital_gains: gains_portion }
+    end
+
+    def grow(rate)
+      @balance = (@balance * (1 + rate.to_f)).round(2)
     end
   end
 end

@@ -119,34 +119,35 @@ module Foresight
           actual += res[:converted]
         end
       end
-      ss_taxable_post = taxable_social_security(base_income[:ss_total], other_income: base_income[:pre_ss_other_income] + actual)
-      taxable_after_conv = base_income[:pre_ss_other_income] + actual + ss_taxable_post
-      ss_taxable_increase = ss_taxable_post - base_income[:ss_taxable_baseline]
+  ss_taxable_post = taxable_social_security(base_income[:ss_total], other_income: base_income[:pre_ss_other_income] + actual)
+  taxable_after_conv = base_income[:pre_ss_other_income] + actual + ss_taxable_post
+  ss_taxable_increase = ss_taxable_post - base_income[:ss_taxable_baseline]
       after_tax_cash = base_income[:after_tax_cash]
       remaining_need = [@household.target_spending_after_tax - after_tax_cash, 0].max
       withdrawals = allocate_spending_gap(remaining_need, taxable_after_conv)
       total_taxable_ordinary = taxable_after_conv + withdrawals[:added_ordinary_taxable]
       ordinary_taxable_after_std_ded = [total_taxable_ordinary - @tax_year.standard_deduction, 0].max
-      federal_tax = @tax_year.tax_on_ordinary(ordinary_taxable_after_std_ded)
-      cap_gains_tax = @tax_year.tax_on_ltcg(withdrawals[:capital_gains_taxable], ordinary_taxable_income: ordinary_taxable_after_std_ded)
-  total_tax = federal_tax + cap_gains_tax
+  # Use Money (BigDecimal) internally for tax math; expose rounded floats
+  federal_tax_money = Money.new(@tax_year.tax_on_ordinary(ordinary_taxable_after_std_ded))
+  cap_gains_tax_money = Money.new(@tax_year.tax_on_ltcg(withdrawals[:capital_gains_taxable], ordinary_taxable_income: ordinary_taxable_after_std_ded))
+  total_tax_money = federal_tax_money + cap_gains_tax_money
   # NY state taxable: ordinary taxable after std deduction (no LTCG preference), with NY std deduction
   ny_std = @tax_year.respond_to?(:ny_standard_deduction) ? @tax_year.ny_standard_deduction(@household.filing_status) : 0.0
   ny_taxable = [total_taxable_ordinary - ny_std, 0].max
-  state_tax = @tax_year.respond_to?(:ny_tax_on_income) ? @tax_year.ny_tax_on_income(ny_taxable, filing_status: @household.filing_status) : 0.0
+  state_tax_money = Money.new(@tax_year.respond_to?(:ny_tax_on_income) ? @tax_year.ny_tax_on_income(ny_taxable, filing_status: @household.filing_status) : 0.0)
   # MAGI approximation (pre-deduction ordinary components + capital gains). Here: total ordinary taxable before std deduction + capital gains.
   magi = total_taxable_ordinary + withdrawals[:capital_gains_taxable]
-  irmaa_part_b = @tax_year.respond_to?(:irmaa_part_b_surcharge) ? @tax_year.irmaa_part_b_surcharge(magi) : 0.0
+  irmaa_part_b_money = Money.new(@tax_year.respond_to?(:irmaa_part_b_surcharge) ? @tax_year.irmaa_part_b_surcharge(magi) : 0.0)
   # Effective tax rate denominator: economic gross cash inflows this year (base gross + conversion + taxable ordinary add-ons + realized capital gains)
   economic_gross = base_income[:gross_income] + actual + withdrawals[:added_ordinary_taxable] + withdrawals[:capital_gains_taxable]
-  effective_rate = total_tax / [economic_gross, 1].max
-      base_total_taxable_ordinary = base_income[:taxable_income] + withdrawals[:added_ordinary_taxable]
-      base_ordinary_after_std = [base_total_taxable_ordinary - @tax_year.standard_deduction, 0].max
-      base_fed_tax = @tax_year.tax_on_ordinary(base_ordinary_after_std)
-      base_cap_tax = @tax_year.tax_on_ltcg(withdrawals[:capital_gains_taxable], ordinary_taxable_income: base_ordinary_after_std)
-      base_total_tax = base_fed_tax + base_cap_tax
-  incremental_tax = (total_tax - base_total_tax).round(2)
-      incremental_rate = actual.positive? ? (incremental_tax / actual).round(4) : 0.0
+  effective_rate = total_tax_money.to_f / [economic_gross, 1].max
+      incremental_tax, incremental_rate = calculate_conversion_tax_impact(
+        base_income: base_income,
+        taxable_after_conv: taxable_after_conv,
+        withdrawals: withdrawals,
+  total_tax: total_tax_money.to_f,
+        actual_conversion: actual
+      )
       StrategyResult.new(
         strategy_name: strategy.name,
         year: @tax_year.year,
@@ -158,17 +159,29 @@ module Foresight
         after_tax_cash_before_spending_withdrawals: after_tax_cash,
         remaining_spending_need: remaining_need,
         withdrawals: withdrawals,
-        federal_tax: federal_tax.round(2),
-        capital_gains_tax: cap_gains_tax.round(2),
-  state_tax: state_tax.round(2),
-  irmaa_part_b: irmaa_part_b,
+    federal_tax: federal_tax_money.to_f.round(2),
+    capital_gains_tax: cap_gains_tax_money.to_f.round(2),
+  state_tax: state_tax_money.to_f.round(2),
+  irmaa_part_b: irmaa_part_b_money.to_f.round(2),
         effective_tax_rate: effective_rate.round(4),
         ss_taxable_post: ss_taxable_post.round(2),
         ss_taxable_increase: ss_taxable_increase.round(2),
         conversion_incremental_tax: incremental_tax,
         conversion_incremental_marginal_rate: incremental_rate,
-  narration: build_narration(base: base_income, requested_roth_conv: requested, actual_conversion: actual, remaining_need: remaining_need, withdrawals: withdrawals, total_tax: total_tax, state_tax: state_tax, irmaa_part_b: irmaa_part_b, effective_rate: effective_rate, ss_taxable_post: ss_taxable_post, ss_taxable_increase: ss_taxable_increase, conversion_incremental_marginal_rate: incremental_rate)
+  narration: build_narration(base: base_income, requested_roth_conv: requested, actual_conversion: actual, remaining_need: remaining_need, withdrawals: withdrawals, total_tax: total_tax_money.to_f, state_tax: state_tax_money.to_f, irmaa_part_b: irmaa_part_b_money.to_f, effective_rate: effective_rate, ss_taxable_post: ss_taxable_post, ss_taxable_increase: ss_taxable_increase, conversion_incremental_marginal_rate: incremental_rate)
       )
+    end
+
+    # Compute incremental tax attributable to the conversion amount, holding withdrawals constant.
+    def calculate_conversion_tax_impact(base_income:, taxable_after_conv:, withdrawals:, total_tax:, actual_conversion:)
+      base_total_taxable_ordinary = base_income[:taxable_income] + withdrawals[:added_ordinary_taxable]
+      base_ordinary_after_std = [base_total_taxable_ordinary - @tax_year.standard_deduction, 0].max
+      base_fed_tax = @tax_year.tax_on_ordinary(base_ordinary_after_std)
+      base_cap_tax = @tax_year.tax_on_ltcg(withdrawals[:capital_gains_taxable], ordinary_taxable_income: base_ordinary_after_std)
+      base_total_tax = base_fed_tax + base_cap_tax
+      incremental_tax = (total_tax - base_total_tax).round(2)
+      incremental_rate = actual_conversion.positive? ? (incremental_tax / actual_conversion).round(4) : 0.0
+      [incremental_tax, incremental_rate]
     end
 
     def snapshot_accounts
