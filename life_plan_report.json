@@ -1,0 +1,334 @@
+{
+  "inputs": {
+    "start_year": 2025,
+    "years": 5,
+    "inflation_rate": 0.02,
+    "growth_assumptions": {
+      "traditional_ira": 0.04,
+      "roth_ira": 0.05,
+      "taxable": 0.03
+    },
+    "members": [
+      {
+        "name": "Alice",
+        "date_of_birth": "1961-06-15",
+        "age_in_start_year": 64
+      },
+      {
+        "name": "Bob",
+        "date_of_birth": "1967-02-10",
+        "age_in_start_year": 58
+      }
+    ],
+    "accounts": [
+      {
+        "type": "TraditionalIRA",
+        "owner": "Alice",
+        "owners": null,
+        "starting_balance": 1060415.0
+      },
+      {
+        "type": "RothIRA",
+        "owner": "Alice",
+        "owners": null,
+        "starting_balance": 84000.0
+      },
+      {
+        "type": "TraditionalIRA",
+        "owner": "Bob",
+        "owners": null,
+        "starting_balance": 250000.0
+      },
+      {
+        "type": "RothIRA",
+        "owner": "Bob",
+        "owners": null,
+        "starting_balance": 100000.0
+      },
+      {
+        "type": "TaxableBrokerage",
+        "owner": null,
+        "owners": [
+          "Alice",
+          "Bob"
+        ],
+        "starting_balance": 0.0,
+        "cost_basis_fraction": 0.65
+      }
+    ],
+    "income_sources": [
+      {
+        "type": "SocialSecurityBenefit",
+        "recipient": "Alice",
+        "pia_annual": 30000.0,
+        "start_year": 2025,
+        "cola_rate": 0.02
+      },
+      {
+        "type": "SocialSecurityBenefit",
+        "recipient": "Bob",
+        "pia_annual": 24000.0,
+        "start_year": 2029,
+        "cola_rate": 0.02
+      }
+    ],
+    "target_spending_after_tax_start": 100000.0,
+    "desired_tax_bracket_ceiling": 94300.0,
+    "strategies": [
+      "NoConversion",
+      "BracketFill"
+    ]
+  },
+  "results": {
+    "NoConversion": {
+      "aggregate": {
+        "strategy_name": "NoConversion",
+        "years": 5,
+        "cumulative_federal_tax": 25868.85,
+        "cumulative_capital_gains_tax": 0.0,
+        "cumulative_roth_conversions": 0.0,
+        "ending_traditional_balance": 1165659.26,
+        "ending_roth_balance": 234835.82,
+        "ending_taxable_balance": 0.0,
+        "projected_first_rmd_pressure": 0.4062
+      },
+      "yearly": [
+        {
+          "year": 2025,
+          "strategy_name": "NoConversion",
+          "requested_roth_conversion": 0.0,
+          "actual_roth_conversion": 0.0,
+          "federal_tax": 5176.0,
+          "capital_gains_tax": 0.0,
+          "state_tax": 3076.93,
+          "effective_tax_rate": 0.0518,
+          "ending_traditional_balance": 1283791.6,
+          "ending_roth_balance": 193200.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. No Roth conversion (no bracket headroom). Remaining after-tax spending gap: 76000.00 met via withdrawals: traditional_ira 76000.00. Total federal tax (ordinary + CG): 5176.00; NY state: 3076.92; IRMAA Part B: 0.00; effective rate 5.18%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 0.0,
+          "ss_taxable_increase": 0.0,
+          "conversion_incremental_tax": 0.0,
+          "conversion_incremental_marginal_rate": 0.0,
+          "magi": 76000.0,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2026,
+          "strategy_name": "NoConversion",
+          "requested_roth_conversion": 0.0,
+          "actual_roth_conversion": 0.0,
+          "federal_tax": 5358.4,
+          "capital_gains_tax": 0.0,
+          "state_tax": 3165.85,
+          "effective_tax_rate": 0.0525,
+          "ending_traditional_balance": 1254522.46,
+          "ending_roth_balance": 202860.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. No Roth conversion (no bracket headroom). Remaining after-tax spending gap: 77520.00 met via withdrawals: traditional_ira 77520.00. Total federal tax (ordinary + CG): 5358.40; NY state: 3165.84; IRMAA Part B: 0.00; effective rate 5.25%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 0.0,
+          "ss_taxable_increase": 0.0,
+          "conversion_incremental_tax": 0.0,
+          "conversion_incremental_marginal_rate": 0.0,
+          "magi": 77520.0,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2027,
+          "strategy_name": "NoConversion",
+          "requested_roth_conversion": 0.0,
+          "actual_roth_conversion": 0.0,
+          "federal_tax": 5544.45,
+          "capital_gains_tax": 0.0,
+          "state_tax": 3256.54,
+          "effective_tax_rate": 0.0533,
+          "ending_traditional_balance": 1222470.14,
+          "ending_roth_balance": 213003.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. No Roth conversion (no bracket headroom). Remaining after-tax spending gap: 79070.40 met via withdrawals: traditional_ira 79070.40. Total federal tax (ordinary + CG): 5544.45; NY state: 3256.54; IRMAA Part B: 0.00; effective rate 5.33%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 0.0,
+          "ss_taxable_increase": 0.0,
+          "conversion_incremental_tax": 0.0,
+          "conversion_incremental_marginal_rate": 0.0,
+          "magi": 79070.4,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2028,
+          "strategy_name": "NoConversion",
+          "requested_roth_conversion": 0.0,
+          "actual_roth_conversion": 0.0,
+          "federal_tax": 5734.22,
+          "capital_gains_tax": 0.0,
+          "state_tax": 3349.06,
+          "effective_tax_rate": 0.054,
+          "ending_traditional_balance": 1187491.06,
+          "ending_roth_balance": 223653.16,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. No Roth conversion (no bracket headroom). Remaining after-tax spending gap: 80651.81 met via withdrawals: traditional_ira 80651.81. Total federal tax (ordinary + CG): 5734.22; NY state: 3349.06; IRMAA Part B: 0.00; effective rate 5.4%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 0.0,
+          "ss_taxable_increase": 0.0,
+          "conversion_incremental_tax": 0.0,
+          "conversion_incremental_marginal_rate": 0.0,
+          "magi": 80651.81,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2029,
+          "strategy_name": "NoConversion",
+          "requested_roth_conversion": 0.0,
+          "actual_roth_conversion": 0.0,
+          "federal_tax": 4055.78,
+          "capital_gains_tax": 0.0,
+          "state_tax": 2530.82,
+          "effective_tax_rate": 0.0375,
+          "ending_traditional_balance": 1165659.26,
+          "ending_roth_balance": 234835.82,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. No Roth conversion (no bracket headroom). Remaining after-tax spending gap: 66664.85 met via withdrawals: traditional_ira 66664.85. Total federal tax (ordinary + CG): 4055.78; NY state: 2530.82; IRMAA Part B: 0.00; effective rate 3.75%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 0.0,
+          "ss_taxable_increase": 0.0,
+          "conversion_incremental_tax": 0.0,
+          "conversion_incremental_marginal_rate": 0.0,
+          "magi": 66664.85,
+          "irmaa_part_b": 0
+        }
+      ]
+    },
+    "BracketFill": {
+      "aggregate": {
+        "strategy_name": "BracketFill",
+        "years": 5,
+        "cumulative_federal_tax": 48504.36,
+        "cumulative_capital_gains_tax": 0.0,
+        "cumulative_roth_conversions": 447925.0,
+        "ending_traditional_balance": 1089690.11,
+        "ending_roth_balance": 0.0,
+        "ending_taxable_balance": 0.0,
+        "projected_first_rmd_pressure": 0.3815
+      },
+      "yearly": [
+        {
+          "year": 2025,
+          "strategy_name": "BracketFill",
+          "requested_roth_conversion": 89585.0,
+          "actual_roth_conversion": 89585.0,
+          "federal_tax": 9254.2,
+          "capital_gains_tax": 0.0,
+          "state_tax": 5065.05,
+          "effective_tax_rate": 0.0815,
+          "ending_traditional_balance": 1269663.2,
+          "ending_roth_balance": 113400.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. Executed Roth conversion: 89585.00 to fill bracket headroom. Conversion increased taxable Social Security by 20400.00 (now 20400.00). Approx marginal rate on conversion: 10.33%. Remaining after-tax spending gap: 76000.00 met via withdrawals: roth_ira 76000.00. Total federal tax (ordinary + CG): 9254.20; NY state: 5065.05; IRMAA Part B: 0.00; effective rate 8.15%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 20400.0,
+          "ss_taxable_increase": 20400.0,
+          "conversion_incremental_tax": 9254.2,
+          "conversion_incremental_marginal_rate": 0.1033,
+          "magi": 109985.0,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2026,
+          "strategy_name": "BracketFill",
+          "requested_roth_conversion": 89585.0,
+          "actual_roth_conversion": 89585.0,
+          "federal_tax": 9303.16,
+          "capital_gains_tax": 0.0,
+          "state_tax": 5088.92,
+          "effective_tax_rate": 0.0816,
+          "ending_traditional_balance": 1227281.33,
+          "ending_roth_balance": 37674.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. Executed Roth conversion: 89585.00 to fill bracket headroom. Conversion increased taxable Social Security by 20808.00 (now 20808.00). Approx marginal rate on conversion: 10.38%. Remaining after-tax spending gap: 77520.00 met via withdrawals: roth_ira 8400.00, roth_ira 69120.00. Total federal tax (ordinary + CG): 9303.16; NY state: 5088.92; IRMAA Part B: 0.00; effective rate 8.16%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 20808.0,
+          "ss_taxable_increase": 20808.0,
+          "conversion_incremental_tax": 9303.16,
+          "conversion_incremental_marginal_rate": 0.1038,
+          "magi": 110393.0,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2027,
+          "strategy_name": "BracketFill",
+          "requested_roth_conversion": 89585.0,
+          "actual_roth_conversion": 89585.0,
+          "federal_tax": 9353.1,
+          "capital_gains_tax": 0.0,
+          "state_tax": 5113.26,
+          "effective_tax_rate": 0.0816,
+          "ending_traditional_balance": 1183204.18,
+          "ending_roth_balance": 0.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. Executed Roth conversion: 89585.00 to fill bracket headroom. Conversion increased taxable Social Security by 21224.16 (now 21224.16). Approx marginal rate on conversion: 10.44%. Remaining after-tax spending gap: 79070.40 met via withdrawals: roth_ira 37674.00. Total federal tax (ordinary + CG): 9353.10; NY state: 5113.26; IRMAA Part B: 0.00; effective rate 8.16%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 21224.16,
+          "ss_taxable_increase": 21224.16,
+          "conversion_incremental_tax": 9353.1,
+          "conversion_incremental_marginal_rate": 0.1044,
+          "magi": 110809.16,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2028,
+          "strategy_name": "BracketFill",
+          "requested_roth_conversion": 89585.0,
+          "actual_roth_conversion": 89585.0,
+          "federal_tax": 9404.04,
+          "capital_gains_tax": 0.0,
+          "state_tax": 5138.09,
+          "effective_tax_rate": 0.0817,
+          "ending_traditional_balance": 1137363.95,
+          "ending_roth_balance": 0.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. Executed Roth conversion: 89585.00 to fill bracket headroom. Conversion increased taxable Social Security by 21648.64 (now 21648.64). Approx marginal rate on conversion: 10.5%. Remaining after-tax spending gap: 80651.81 met via withdrawals: . Total federal tax (ordinary + CG): 9404.04; NY state: 5138.09; IRMAA Part B: 0.00; effective rate 8.17%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 21648.64,
+          "ss_taxable_increase": 21648.64,
+          "conversion_incremental_tax": 9404.04,
+          "conversion_incremental_marginal_rate": 0.105,
+          "magi": 111233.64,
+          "irmaa_part_b": 0
+        },
+        {
+          "year": 2029,
+          "strategy_name": "BracketFill",
+          "requested_roth_conversion": 89585.0,
+          "actual_roth_conversion": 89585.0,
+          "federal_tax": 11189.86,
+          "capital_gains_tax": 0.0,
+          "state_tax": 5939.13,
+          "effective_tax_rate": 0.0853,
+          "ending_traditional_balance": 1089690.11,
+          "ending_roth_balance": 0.0,
+          "ending_taxable_balance": 0.0,
+          "rmd_taken": 0.0,
+          "narration": "Base taxable income: 0.00. Executed Roth conversion: 89585.00 to fill bracket headroom. Conversion increased taxable Social Security by 35341.61 (now 35341.61). Approx marginal rate on conversion: 12.49%. Remaining after-tax spending gap: 66664.85 met via withdrawals: . Total federal tax (ordinary + CG): 11189.86; NY state: 5939.13; IRMAA Part B: 0.00; effective rate 8.53%.",
+          "future_rmd_pressure": 0.0,
+          "ss_taxable_post": 35341.61,
+          "ss_taxable_increase": 35341.61,
+          "conversion_incremental_tax": 11189.86,
+          "conversion_incremental_marginal_rate": 0.1249,
+          "magi": 124926.61,
+          "irmaa_part_b": 0
+        }
+      ]
+    }
+  }
+}
