@@ -67,11 +67,15 @@ RSpec.describe 'Foresight UI', type: :feature, js: true do
     wait_for_js('document.getElementById("ui-state")?.dataset.state === "example-loaded"', timeout: 10)
 
     # Change growth slider value and dispatch input event
-    page.execute_script("(() => { const el = document.getElementById('growth'); if(!el) return; el.value='7.5'; el.dispatchEvent(new Event('input', { bubbles: true })); })()")
+  page.execute_script("(() => { const el = document.getElementById('growth'); if(!el) return; el.value='7.5'; el.dispatchEvent(new Event('input', { bubbles: true })); })()")
 
     # Wait for plan-ready or visible results
     wait_for_js('(() => { const s=document.getElementById("ui-state"); if(s && s.dataset.state==="plan-ready") return true; if(document.querySelectorAll("#results-table tbody tr").length>0) return true; return false; })()', timeout: 15)
 
     expect(page).to have_selector('#results-table tbody tr', minimum: 1)
+    # Readout should reflect 7.5%
+    expect(page).to have_content('7.5%')
+    # Net worth sparkline should exist
+    expect(page).to have_selector('.sparkline[data-series="networth"] svg', wait: 5)
   end
 end

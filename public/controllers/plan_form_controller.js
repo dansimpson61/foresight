@@ -1,7 +1,7 @@
 import { Controller } from "/vendor/stimulus.js";
 
 export default class extends Controller {
-  static targets = ["input", "strategy", "download", "startYear", "years", "inflation", "growth", "bracket"];
+  static targets = ["input", "strategy", "download", "startYear", "years", "inflation", "growth", "growthOutput", "bracket"];
 
   connect() {
     this.model = null;
@@ -11,6 +11,8 @@ export default class extends Controller {
     }
     // Debounce timer holder
     this._debounce = null;
+    // Initialize growth readout
+    this.updateGrowthOutput();
   }
 
   setState(state) {
@@ -21,6 +23,7 @@ export default class extends Controller {
   onControlsChanged() {
     // Update JSON from form controls, then debounce auto-run
     this.syncJsonFromControls();
+    this.updateGrowthOutput();
     clearTimeout(this._debounce);
     this._debounce = setTimeout(() => this.runPlan(), 400);
   }
@@ -55,6 +58,17 @@ export default class extends Controller {
         assumed_growth_rate: this.hasGrowthTarget ? Number(this.growthTarget.value) / 100.0 : 0.05,
       };
       this.inputTarget.value = JSON.stringify(next, null, 2);
+    }
+  }
+
+  updateGrowthOutput() {
+    if (this.hasGrowthTarget && this.hasGrowthOutputTarget) {
+      const v = Number(this.growthTarget.value);
+      const rounded = Math.round(v * 2) / 2; // nearest 0.5
+      if (!Number.isNaN(rounded)) {
+        this.growthTarget.value = String(rounded);
+        this.growthOutputTarget.textContent = `${rounded.toFixed(1)}%`;
+      }
     }
   }
 

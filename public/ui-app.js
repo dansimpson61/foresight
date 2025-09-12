@@ -64,12 +64,17 @@ function syncJsonFromControlsVanilla(){
   const input = document.getElementById('input'); if(!input) return;
   let current={}; try{ current = input.value.trim() ? JSON.parse(input.value) : {}; }catch(_e){ current = {}; }
   const startYearEl=document.getElementById('start_year'); const yearsEl=document.getElementById('years'); const inflEl=document.getElementById('inflation'); const growthEl=document.getElementById('growth'); const bracketEl=document.getElementById('bracket');
+  // Round growth to nearest 0.5 for display and calculation (false precision)
+  const growthVal = growthEl ? Math.round(Number(growthEl.value) * 2) / 2 : (current.assumed_growth_rate ? current.assumed_growth_rate * 100 : 5.0);
+  if (growthEl) growthEl.value = String(growthVal);
+  const out = document.getElementById('growth_value'); if (out) out.textContent = `${growthVal.toFixed(1)}%`;
+
   const next = Object.assign({}, current, {
     start_year: startYearEl ? Number(startYearEl.value) : current.start_year,
     years: yearsEl ? Number(yearsEl.value) : current.years,
     inflation_rate: inflEl ? Number(inflEl.value)/100.0 : (current.inflation_rate ?? 0.0),
     desired_tax_bracket_ceiling: bracketEl ? Number(bracketEl.value) : (current.desired_tax_bracket_ceiling ?? 0),
-    assumed_growth_rate: growthEl ? Number(growthEl.value)/100.0 : (current.assumed_growth_rate ?? 0.05)
+    assumed_growth_rate: growthEl ? (growthVal/100.0) : (current.assumed_growth_rate ?? 0.05)
   });
   input.value = JSON.stringify(next, null, 2);
 }
