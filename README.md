@@ -61,3 +61,20 @@ JSON contains:
 MVP adds an `all_in_tax` metric (federal + capital gains + NY state + IRMAA Part B) per year and cumulative in aggregates.
 
 Notes: taxes/thresholds simplified; IRMAA Part D not modeled; no inflation of tax parameters yet.
+
+## Minimal Sinatra API
+
+Run a tiny API server to post scenarios and fetch strategies:
+
+```bash
+ruby app.rb -p 4567
+```
+
+Endpoints:
+- `GET /` health
+- `GET /strategies` strategy catalog
+- `POST /plan` body: same shape as `PlanService.run(params)`; returns the JSON report
+
+Yearly rows now include small UI aids:
+- `events`: array of `{ type: 'ss_start'|'medicare'|'rmd_start', person: 'Name' }`
+- `irmaa_lookback_year` and `irmaa_lookback_magi`: for rendering the IRMAA timeline against lookback MAGI

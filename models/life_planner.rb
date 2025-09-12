@@ -27,6 +27,9 @@ module Foresight
   :magi,
   :irmaa_part_b,
   :all_in_tax,
+  :events,
+  :irmaa_lookback_year,
+  :irmaa_lookback_magi,
       keyword_init: true
     )
 
@@ -126,7 +129,10 @@ module Foresight
         ss_taxable_post: result.ss_taxable_post,
         ss_taxable_increase: result.ss_taxable_increase,
         conversion_incremental_tax: result.conversion_incremental_tax,
-        conversion_incremental_marginal_rate: result.conversion_incremental_marginal_rate
+  conversion_incremental_marginal_rate: result.conversion_incremental_marginal_rate,
+  events: events_for(year),
+  irmaa_lookback_year: nil,        # filled in simulate_on when history exists
+  irmaa_lookback_magi: nil         # filled in simulate_on when history exists
       )
     end
 
@@ -240,15 +246,44 @@ module Foresight
     def simulate_on(household, strategy)
       summaries = []
       current_year = @start_year
+      magi_by_year = {}
       @years.times do
         tax_year = TaxYear.new(year: current_year)
         annual_planner = AnnualPlanner.new(household: household, tax_year: tax_year)
         result = annual_planner.generate_strategy(strategy)
         apply_growth
-        summaries << build_summary(result, current_year, strategy)
+        summary = build_summary(result, current_year, strategy)
+        # Attach IRMAA lookback (2-year prior) for UI timeline purposes
+        lookback_year = current_year - 2
+        if magi_by_year.key?(lookback_year)
+          summary.irmaa_lookback_year = lookback_year
+          summary.irmaa_lookback_magi = magi_by_year[lookback_year].round(2)
+        end
+        summaries << summary
+        # Record MAGI after building summary to avoid off-by-one confusion
+        magi_by_year[current_year] = result.magi.to_f
         current_year += 1
       end
       summaries
+    end
+
+    # --- Events for UI annotations (lightweight, derived from domain state) ---
+    # Returns an array of hashes like: { type: 'ss_start'|'medicare'|'rmd_start', person: 'Name' }
+    def events_for(year)
+      evts = []
+      # Social Security claiming starts
+      @household.social_security_benefits.each do |b|
+        evts << { type: 'ss_start', person: b.recipient.name } if b.start_year == year
+      end
+      # Medicare Part B enrollment at age 65 (approx)
+      @household.members.each do |m|
+        evts << { type: 'medicare', person: m.name } if m.age_in(year) >= 65 && m.age_in(year - 1) < 65
+      end
+      # First RMD eligibility (SECURE 2.0 ages handled by Person)
+      @household.members.each do |m|
+        evts <<({ type: 'rmd_start', person: m.name }) if m.rmd_eligible_in?(year) && !m.rmd_eligible_in?(year - 1)
+      end
+      evts
     end
   end
 end
