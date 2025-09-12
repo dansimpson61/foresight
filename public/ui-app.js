@@ -59,7 +59,35 @@ async function runPlanVanilla(evt){ try{ if(evt){ evt.preventDefault(); evt.stop
   renderSummary(bundle.aggregate||{}); renderTable(bundle.yearly||[]); renderAssetsChart(bundle.yearly||[]); renderIRMAA(bundle.yearly||[]); renderEfficiencyGauge(bundle.yearly||[]);
   setState('plan-ready'); window.showToast('Plan calculated ✓','success'); } catch(e){ window.showToast('Plan failed — check JSON','error'); console.error('Run plan failed',e);} }
 
-function wireVanilla(){ if(window.__foresightVanillaWired) return; window.__foresightVanillaWired = true; const btnLoad=document.getElementById('btn-load-example'); const btnRun=document.getElementById('btn-run-plan'); if(btnLoad) btnLoad.addEventListener('click', loadExampleVanilla); if(btnRun) btnRun.addEventListener('click', runPlanVanilla); }
+// Sync JSON from minimal controls
+function syncJsonFromControlsVanilla(){
+  const input = document.getElementById('input'); if(!input) return;
+  let current={}; try{ current = input.value.trim() ? JSON.parse(input.value) : {}; }catch(_e){ current = {}; }
+  const startYearEl=document.getElementById('start_year'); const yearsEl=document.getElementById('years'); const inflEl=document.getElementById('inflation'); const bracketEl=document.getElementById('bracket');
+  const next = Object.assign({}, current, {
+    start_year: startYearEl ? Number(startYearEl.value) : current.start_year,
+    years: yearsEl ? Number(yearsEl.value) : current.years,
+    inflation_rate: inflEl ? Number(inflEl.value)/100.0 : (current.inflation_rate ?? 0.0),
+    desired_tax_bracket_ceiling: bracketEl ? Number(bracketEl.value) : (current.desired_tax_bracket_ceiling ?? 0)
+  });
+  input.value = JSON.stringify(next, null, 2);
+}
+
+let __autoRunDebounce;
+function autoRunFromControlsVanilla(){
+  syncJsonFromControlsVanilla();
+  clearTimeout(__autoRunDebounce);
+  __autoRunDebounce = setTimeout(() => runPlanVanilla(), 450);
+}
+
+function wireVanilla(){
+  if(window.__foresightVanillaWired) return; window.__foresightVanillaWired = true;
+  const btnLoad=document.getElementById('btn-load-example'); const btnRun=document.getElementById('btn-run-plan'); if(btnLoad) btnLoad.addEventListener('click', loadExampleVanilla); if(btnRun) btnRun.addEventListener('click', runPlanVanilla);
+  // Auto-run for minimal controls in vanilla mode too
+  ['start_year','years','inflation','bracket'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.addEventListener('input', autoRunFromControlsVanilla);
+  });
+}
 
 // Try to load Stimulus from CDN; fallback to vanilla wiring if it fails
 (async () => {

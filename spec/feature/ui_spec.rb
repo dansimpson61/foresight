@@ -42,4 +42,21 @@ RSpec.describe 'Foresight UI', type: :feature, js: true do
   expect(page).to have_selector('#eff-gauge', wait: 5)
     wait_for_js('document.querySelectorAll("#results-table tbody tr").length > 0', timeout: 10)
   end
+
+  it 'auto-runs when controls change and shows sparkline' do
+    visit '/ui'
+    # Load example first
+    click_button('Load example')
+    wait_for_js('document.getElementById("ui-state")?.dataset.state === "example-loaded"', timeout: 10)
+
+    # Change a control (bracket ceiling) to trigger debounced auto-run
+    # Ensure an actual 'input' event fires for Stimulus by dispatching it explicitly
+    page.execute_script("(() => { const el = document.getElementById('bracket'); el.value='10000'; el.dispatchEvent(new Event('input', { bubbles: true })); })()")
+
+    # Wait for plan-ready or visible results (debounce + fetch)
+    wait_for_js('(() => { const s=document.getElementById("ui-state"); if(s && s.dataset.state==="plan-ready") return true; if(document.querySelectorAll("#results-table tbody tr").length>0) return true; return false; })()', timeout: 15)
+
+    # Sparkline should be present and have an SVG child
+    expect(page).to have_selector('.sparkline svg', wait: 5)
+  end
 end
