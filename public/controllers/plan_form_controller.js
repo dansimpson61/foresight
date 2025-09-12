@@ -1,7 +1,7 @@
 import { Controller } from "/vendor/stimulus.js";
 
 export default class extends Controller {
-  static targets = ["input", "strategy", "download", "startYear", "years", "inflation", "growth", "growthOutput", "bracket"];
+  static targets = ["input", "strategy", "download", "startYear", "years", "inflation", "inflationOutput", "growth", "growthOutput", "bracket", "bracketOutput"];
 
   connect() {
     this.model = null;
@@ -13,6 +13,8 @@ export default class extends Controller {
     this._debounce = null;
     // Initialize growth readout
     this.updateGrowthOutput();
+    this.updateInflationOutput();
+    this.updateBracketOutput();
   }
 
   setState(state) {
@@ -24,6 +26,8 @@ export default class extends Controller {
     // Update JSON from form controls, then debounce auto-run
     this.syncJsonFromControls();
     this.updateGrowthOutput();
+    this.updateInflationOutput();
+    this.updateBracketOutput();
     clearTimeout(this._debounce);
     this._debounce = setTimeout(() => this.runPlan(), 400);
   }
@@ -68,6 +72,26 @@ export default class extends Controller {
       if (!Number.isNaN(rounded)) {
         this.growthTarget.value = String(rounded);
         this.growthOutputTarget.textContent = `${rounded.toFixed(1)}%`;
+      }
+    }
+  }
+
+  updateInflationOutput() {
+    if (this.hasInflationTarget && this.hasInflationOutputTarget) {
+      const v = Number(this.inflationTarget.value);
+      const x = Number.isNaN(v) ? 0 : v;
+      this.inflationOutputTarget.textContent = `${x.toFixed(1)}%`;
+    }
+  }
+
+  updateBracketOutput() {
+    if (this.hasBracketTarget && this.hasBracketOutputTarget) {
+      const v = Number(this.bracketTarget.value);
+      const n = Number.isNaN(v) ? 0 : v;
+      try {
+        this.bracketOutputTarget.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+      } catch (_e) {
+        this.bracketOutputTarget.textContent = `$${n}`;
       }
     }
   }

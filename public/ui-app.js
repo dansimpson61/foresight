@@ -68,6 +68,11 @@ function syncJsonFromControlsVanilla(){
   const growthVal = growthEl ? Math.round(Number(growthEl.value) * 2) / 2 : (current.assumed_growth_rate ? current.assumed_growth_rate * 100 : 5.0);
   if (growthEl) growthEl.value = String(growthVal);
   const out = document.getElementById('growth_value'); if (out) out.textContent = `${growthVal.toFixed(1)}%`;
+  const inflOut = document.getElementById('inflation_value'); if (inflOut && inflEl) inflOut.textContent = `${Number(inflEl.value||0).toFixed(1)}%`;
+  const bracketOut = document.getElementById('bracket_value'); if (bracketOut && bracketEl) {
+    const n = Number(bracketEl.value||0);
+    bracketOut.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+  }
 
   const next = Object.assign({}, current, {
     start_year: startYearEl ? Number(startYearEl.value) : current.start_year,

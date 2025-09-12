@@ -56,8 +56,8 @@ RSpec.describe 'Foresight UI', type: :feature, js: true do
     # Wait for plan-ready or visible results (debounce + fetch)
     wait_for_js('(() => { const s=document.getElementById("ui-state"); if(s && s.dataset.state==="plan-ready") return true; if(document.querySelectorAll("#results-table tbody tr").length>0) return true; return false; })()', timeout: 15)
 
-    # Sparkline should be present and have an SVG child
-    expect(page).to have_selector('.sparkline svg', wait: 5)
+    # Sparklines should be present and have an SVG child
+    expect(page).to have_selector('.sparkline svg', minimum: 1, wait: 5)
   end
 
   it 'auto-runs when growth slider changes' do
@@ -75,7 +75,9 @@ RSpec.describe 'Foresight UI', type: :feature, js: true do
     expect(page).to have_selector('#results-table tbody tr', minimum: 1)
     # Readout should reflect 7.5%
     expect(page).to have_content('7.5%')
-    # Net worth sparkline should exist
-    expect(page).to have_selector('.sparkline[data-series="networth"] svg', wait: 5)
+  # Net worth sparkline should exist
+  expect(page).to have_selector('.sparkline[data-series="networth"] svg', wait: 5)
+  # All-in tax sparkline should exist when plan ready
+  expect(page).to have_selector('.sparkline[data-series="tax"] svg', wait: 5)
   end
 end

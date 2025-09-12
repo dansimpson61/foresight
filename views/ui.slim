@@ -24,6 +24,7 @@ html
             input#years type="number" min="1" max="80" value="35" data-action="input->plan-form#onControlsChanged" data-plan-form-target="years"
             label for="inflation" Inflation %
             input#inflation type="number" step="0.1" min="0" max="10" value="0.0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="inflation"
+            span#inflation_value aria-live="polite" style="min-width:3ch; text-align:right;" data-plan-form-target="inflationOutput" 0.0%
             label for="growth" Investment growth %
             input#growth type="range" min="0" max="15" step="0.5" value="5.0" aria-label="Investment growth percent" data-action="input->plan-form#onControlsChanged" data-plan-form-target="growth"
             span#growth_value aria-live="polite" style="min-width:3ch; text-align:right;" data-plan-form-target="growthOutput" 5.0%
@@ -32,6 +33,10 @@ html
               svg width="140" height="28" data-sparkline-target="svg"
             label for="bracket" Bracket ceiling ($)
             input#bracket type="number" step="1000" min="0" value="0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="bracket"
+            span#bracket_value aria-live="polite" style="min-width:7ch; text-align:right;" data-plan-form-target="bracketOutput" $0
+            // Tiny sparkline showing All-in Tax trend for current plan
+            .sparkline aria-label="All-in tax sparkline" data-controller="sparkline" data-series="tax" data-action="plan-form:results@document->sparkline#update"
+              svg width="140" height="28" data-sparkline-target="svg"
             // Tiny sparkline showing Roth end-of-year trend for current plan
             .sparkline aria-label="Roth balance sparkline" data-controller="sparkline" data-action="plan-form:results@document->sparkline#update"
               svg width="140" height="28" data-sparkline-target="svg"
