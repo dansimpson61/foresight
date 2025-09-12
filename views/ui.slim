@@ -26,6 +26,9 @@ html
             input#inflation type="number" step="0.1" min="0" max="10" value="0.0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="inflation"
             label for="bracket" Bracket ceiling ($)
             input#bracket type="number" step="1000" min="0" value="0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="bracket"
+            // Tiny sparkline showing Roth end-of-year trend for current plan
+            .sparkline aria-label="Roth balance sparkline" data-controller="sparkline" data-action="plan-form:results@document->sparkline#update"
+              svg width="140" height="28" data-sparkline-target="svg"
         .row
           button#btn-load-example type="button" data-action="plan-form#loadExample" Load example
           button#btn-run-plan type="button" data-action="plan-form#runPlan" Run plan

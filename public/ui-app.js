@@ -80,13 +80,15 @@ function wireVanilla(){ if(window.__foresightVanillaWired) return; window.__fore
     }
     const PlanFormController = (await import('/controllers/plan_form_controller.js')).default;
     const ResultsTableController = (await import('/controllers/results_table_controller.js')).default;
-    const SummaryController = (await import('/controllers/summary_controller.js')).default;
+  const SummaryController = (await import('/controllers/summary_controller.js')).default;
+  const SparklineController = (await import('/controllers/sparkline_controller.js')).default;
     const ChartsController = (await import('/controllers/charts_controller.js')).default;
     window.Stimulus = Application.start();
     Stimulus.register('plan-form', PlanFormController);
     Stimulus.register('results-table', ResultsTableController);
     Stimulus.register('summary', SummaryController);
     Stimulus.register('charts', ChartsController);
+  Stimulus.register('sparkline', SparklineController);
   } catch (e) {
     console.warn('Stimulus failed to load; vanilla wiring in effect.', e);
   }

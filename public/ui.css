@@ -56,6 +56,9 @@ button[disabled] { opacity: .6; cursor: default; }
 /* Space before results table */
 .results-wrap { margin-top: 12px; }
 
+/* Sparkline next to controls */
+.sparkline { display: inline-block; width: 140px; height: 28px; vertical-align: middle; }
+
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums lining-nums; }
 th, td { text-align: right; padding: 6px; border-bottom: 1px solid var(--border); }
 thead th { position: sticky; top: 0; background: #fafafa; color: #222; }
