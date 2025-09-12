@@ -2,7 +2,7 @@
 
 This is a concise, updateable plan to build the joyful, minimal front end for Foresight, aligned with the UX/UI Design Spec and the Ode to Joy philosophy.
 
-Last updated: 2025-09-11
+Last updated: 2025-09-12
 
 ---
 
@@ -39,14 +39,14 @@ M1 — UI Skeleton & Data Table (Done)
 - [x] Toggle between strategies (dropdown)
 - [x] Summary cards (lifetime taxes, total conversions, end balances)
 
-M2 — Primary Visualization (In progress)
+M2 — Primary Visualization (Done)
 - [x] Stacked area chart of end-of-year balances (Taxable, Traditional, Roth)
 - [x] Thin overlay line: all-in tax per year
 - [x] Event annotations using `events` (year ticks)
 - [x] Hover: vertical guideline + compact tooltip
 - [x] Axis ticks/labels and responsive viewBox scaling polish
 
-M3 — IRMAA Timeline & Tax-Efficiency Gauge
+M3 — IRMAA Timeline & Tax-Efficiency Gauge (Done)
 - [x] IRMAA timeline: color-coded yearly segments using `irmaa_part_b`
 - [x] Gauge: end-of-horizon proportions of Roth (tax-free) vs Traditional (tax-deferred)
 
@@ -58,7 +58,7 @@ M4 — Controls & Joyful Feedback
 M5 — Quality, Accessibility, and Polish
 - [ ] WCAG AA contrast, clear focus states, semantic HTML
 - [ ] Keyboard navigation and ARIA labels on controls
-- [ ] “Download JSON” button and print-friendly table view
+- [x] “Download JSON” button and print-friendly table view
 - [ ] Perf check: 35-year run under 150ms on dev machine (target)
 
 M6 — Optional Persistence & Compare
@@ -72,9 +72,10 @@ M6 — Optional Persistence & Compare
 - Server: Sinatra classic app (`app.rb`), `config.ru` for rackup.
 - Views: Slim templates under `views/` (currently `ui.slim`).
 - JS: A few small Stimulus controllers for:
-  - params-form (collect/validate, post, debounce)
-  - results-view (table render, number formatting)
-  - chart-view (uPlot or pure SVG)
+  - plan-form (collect/validate/post, enable JSON download)
+  - results-table (table render, number formatting)
+  - summary (aggregate metrics)
+  - charts (pure SVG: assets, IRMAA, efficiency gauge)
 - CSS: minimal, inline or a tiny stylesheet; no frameworks.
 
 Libraries (lean):
@@ -116,7 +117,7 @@ Contract rules:
 
 - ControlsPanel (Slim): minimal form + JSON editor toggle
 - SummaryCards: lifetime taxes, total conversions, end balances, tax-free %
-- StackedAreaChart (uPlot): assets with overlay tax line; annotations from `events`
+- StackedAreaChart (pure SVG): assets with overlay tax line; annotations from `events`
 - IRMAATimeline: horizontal segments per year (color-coded by tier)
 - EfficiencyGauge: end-horizon bar split (Roth vs Traditional)
 - ResultsTable: sticky header, number formatting, optional inline sparklines
@@ -136,7 +137,7 @@ Contract rules:
 
 - Server smoke tests: endpoints return 200 and valid JSON keys
 - JSON contract checks for `yearly` and `aggregate` keys
-- UI smoke: a minimal Capybara test to load /ui and run example
+- UI feature tests: Capybara + Selenium (headless Chrome), synchronized via hidden `#ui-state` hook; no network dependency thanks to vanilla fallback
 - Perf: run 35-year plan twice; ensure stable timings; report P95 locally
 
 ---
@@ -163,17 +164,16 @@ Contract rules:
 - 2025-09-11: Decided to use Slim + tiny Stimulus, uPlot or pure SVG for charts. Added `events` and `irmaa_lookback_*` to backend.
 - 2025-09-11: Implemented pure SVG stacked area + tax overlay, IRMAA timeline, and hover tooltip.
 - 2025-09-12: Added axis ticks/labels, right-axis tax labels, and a Tax-Efficiency Gauge (pure SVG). Fixed HTML structure in `ui.slim`.
+- 2025-09-12: Refactored to Stimulus controllers (plan-form, results-table, summary, charts) with a vanilla fallback for offline/tests; added toast notifications and a deterministic `#ui-state` test hook; updated specs; removed legacy `public/ui.js` and pushed.
 
 ---
 
 ## 13) Next Actions (short)
 
-- Implement ResultsTable with money formatting and strategy toggle
-- Add SummaryCards using `aggregate`
-- Wire uPlot for stacked area + tax overlay
-- Render IRMAA timeline from lookback MAGI
+- Add lightweight controls form (age, balances, assumptions) and debounce auto-run
+- WCAG polish: focus rings, keyboard navigation, labels for controls
+- Optional: vendor Stimulus locally to remove CDN dependency entirely
 
----
 
 ## 14) How to Run (dev)
 
