@@ -70,7 +70,14 @@ function wireVanilla(){ if(window.__foresightVanillaWired) return; window.__fore
     wireVanilla();
   }
   try {
-    const { Application } = await import('https://unpkg.com/@hotwired/stimulus@3.2.2/dist/stimulus.js');
+    let Application;
+    try {
+      // Prefer local vendored Stimulus when available
+      ({ Application } = await import('/vendor/stimulus.js'));
+    } catch (localErr) {
+      console.warn('Local Stimulus not found, falling back to CDN...', localErr);
+      ({ Application } = await import('https://unpkg.com/@hotwired/stimulus@3.2.2/dist/stimulus.js'));
+    }
     const PlanFormController = (await import('/controllers/plan_form_controller.js')).default;
     const ResultsTableController = (await import('/controllers/results_table_controller.js')).default;
     const SummaryController = (await import('/controllers/summary_controller.js')).default;
