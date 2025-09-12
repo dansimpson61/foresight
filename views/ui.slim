@@ -62,21 +62,21 @@ html
           h3#eff-title Tax-Efficiency Gauge (End)
           svg#eff-gauge width="100%" height="40" viewBox="0 0 800 40" preserveAspectRatio="none" role="img" aria-label="Bar gauge of end-of-horizon asset tax character composition" data-charts-target="gauge"
             rect x="0" y="0" width="800" height="40" fill="#ffffff"
-        .row
+        .row.metrics-row
           .card style="flex:1" data-controller="summary"
             h3 Lifetime Taxes
-            div#metric-lifetime-taxes data-summary-target="lifetimeTaxes" --
+            div#metric-lifetime-taxes.metric data-summary-target="lifetimeTaxes" --
           .card style="flex:1" data-controller="summary"
             h3 Total Conversions
-            div#metric-total-conv data-summary-target="totalConversions" --
+            div#metric-total-conv.metric data-summary-target="totalConversions" --
           .card style="flex:1" data-controller="summary"
             h3 End Net Worth
-            div#metric-end-nw data-summary-target="endNetWorth" --
+            div#metric-end-nw.metric data-summary-target="endNetWorth" --
           .card style="flex:1" data-controller="summary"
             h3 Tax-Free % (End)
-            div#metric-taxfree-pct data-summary-target="taxFreePct" --
+            div#metric-taxfree-pct.metric data-summary-target="taxFreePct" --
         h3 Yearly Details
-        div style="overflow:auto; max-height: 50vh; border: 1px solid #e5e7eb; border-radius: 6px;" data-controller="results-table"
+        div.results-wrap style="overflow:auto; max-height: 50vh; border: 1px solid #e5e7eb; border-radius: 6px;" data-controller="results-table"
           table#results-table style="width:100%; border-collapse: collapse;" role="table" aria-label="Yearly details table" data-results-table-target="table"
             thead
               tr
