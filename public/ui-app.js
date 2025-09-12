@@ -63,12 +63,13 @@ async function runPlanVanilla(evt){ try{ if(evt){ evt.preventDefault(); evt.stop
 function syncJsonFromControlsVanilla(){
   const input = document.getElementById('input'); if(!input) return;
   let current={}; try{ current = input.value.trim() ? JSON.parse(input.value) : {}; }catch(_e){ current = {}; }
-  const startYearEl=document.getElementById('start_year'); const yearsEl=document.getElementById('years'); const inflEl=document.getElementById('inflation'); const bracketEl=document.getElementById('bracket');
+  const startYearEl=document.getElementById('start_year'); const yearsEl=document.getElementById('years'); const inflEl=document.getElementById('inflation'); const growthEl=document.getElementById('growth'); const bracketEl=document.getElementById('bracket');
   const next = Object.assign({}, current, {
     start_year: startYearEl ? Number(startYearEl.value) : current.start_year,
     years: yearsEl ? Number(yearsEl.value) : current.years,
     inflation_rate: inflEl ? Number(inflEl.value)/100.0 : (current.inflation_rate ?? 0.0),
-    desired_tax_bracket_ceiling: bracketEl ? Number(bracketEl.value) : (current.desired_tax_bracket_ceiling ?? 0)
+    desired_tax_bracket_ceiling: bracketEl ? Number(bracketEl.value) : (current.desired_tax_bracket_ceiling ?? 0),
+    assumed_growth_rate: growthEl ? Number(growthEl.value)/100.0 : (current.assumed_growth_rate ?? 0.05)
   });
   input.value = JSON.stringify(next, null, 2);
 }
@@ -84,7 +85,7 @@ function wireVanilla(){
   if(window.__foresightVanillaWired) return; window.__foresightVanillaWired = true;
   const btnLoad=document.getElementById('btn-load-example'); const btnRun=document.getElementById('btn-run-plan'); if(btnLoad) btnLoad.addEventListener('click', loadExampleVanilla); if(btnRun) btnRun.addEventListener('click', runPlanVanilla);
   // Auto-run for minimal controls in vanilla mode too
-  ['start_year','years','inflation','bracket'].forEach(id => {
+  ['start_year','years','inflation','growth','bracket'].forEach(id => {
     const el = document.getElementById(id); if(el) el.addEventListener('input', autoRunFromControlsVanilla);
   });
 }
