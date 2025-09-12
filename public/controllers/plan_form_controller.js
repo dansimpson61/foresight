@@ -1,15 +1,58 @@
 import { Controller } from "/vendor/stimulus.js";
 
 export default class extends Controller {
-  static targets = ["input", "strategy", "download"];
+  static targets = ["input", "strategy", "download", "startYear", "years", "inflation", "bracket"];
 
   connect() {
     this.model = null;
+    // Initialize textarea from controls if empty
+    if (this.hasStartYearTarget && this.inputTarget && !this.inputTarget.value.trim()) {
+      this.syncJsonFromControls();
+    }
+    // Debounce timer holder
+    this._debounce = null;
   }
 
   setState(state) {
     const el = document.getElementById('ui-state');
     if (el) el.setAttribute('data-state', state);
+  }
+
+  onControlsChanged() {
+    // Update JSON from form controls, then debounce auto-run
+    this.syncJsonFromControls();
+    clearTimeout(this._debounce);
+    this._debounce = setTimeout(() => this.runPlan(), 400);
+  }
+
+  syncJsonFromControls() {
+    try {
+      const current = this.inputTarget.value.trim() ? JSON.parse(this.inputTarget.value) : {};
+      const start_year = this.hasStartYearTarget ? Number(this.startYearTarget.value) : current.start_year;
+      const years = this.hasYearsTarget ? Number(this.yearsTarget.value) : current.years;
+      const inflation_rate = this.hasInflationTarget ? Number(this.inflationTarget.value) / 100.0 : (current.inflation_rate ?? 0.0);
+      const desired_tax_bracket_ceiling = this.hasBracketTarget ? Number(this.bracketTarget.value) : (current.desired_tax_bracket_ceiling ?? 0);
+      // Preserve members/accounts/income_sources if present; otherwise keep from example once loaded
+      const next = Object.assign({}, current, {
+        start_year,
+        years,
+        inflation_rate,
+        desired_tax_bracket_ceiling,
+      });
+      this.inputTarget.value = JSON.stringify(next, null, 2);
+    } catch (e) {
+      // If JSON invalid, rebuild a minimal shell from controls
+      const next = {
+        members: [],
+        accounts: [],
+        income_sources: [],
+        start_year: this.hasStartYearTarget ? Number(this.startYearTarget.value) : 2025,
+        years: this.hasYearsTarget ? Number(this.yearsTarget.value) : 35,
+        inflation_rate: this.hasInflationTarget ? Number(this.inflationTarget.value) / 100.0 : 0.0,
+        desired_tax_bracket_ceiling: this.hasBracketTarget ? Number(this.bracketTarget.value) : 0,
+      };
+      this.inputTarget.value = JSON.stringify(next, null, 2);
+    }
   }
 
   async loadExample() {

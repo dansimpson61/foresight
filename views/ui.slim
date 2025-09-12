@@ -15,6 +15,17 @@ html
     main.grid role="main"
       .card data-controller="plan-form"
         h2 Parameters
+        // Minimal controls (will auto-run on change)
+        form#controls(novalidate)
+          .row
+            label for="start_year" Start year
+            input#start_year type="number" min="1900" max="2100" value="2025" data-action="input->plan-form#onControlsChanged" data-plan-form-target="startYear"
+            label for="years" Years
+            input#years type="number" min="1" max="80" value="35" data-action="input->plan-form#onControlsChanged" data-plan-form-target="years"
+            label for="inflation" Inflation %
+            input#inflation type="number" step="0.1" min="0" max="10" value="0.0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="inflation"
+            label for="bracket" Bracket ceiling ($)
+            input#bracket type="number" step="1000" min="0" value="0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="bracket"
         .row
           button#btn-load-example type="button" data-action="plan-form#loadExample" Load example
           button#btn-run-plan type="button" data-action="plan-form#runPlan" Run plan
