@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning (SemVer) as it evolves.
 
 ## [Unreleased]
-- TBD – collected fixes and polish after v0.1.0
+- TBD – collected fixes and polish after v0.1.1
+
+## [0.1.1] - 2025-09-12
+### Fixed
+- UI: Correct Slim boolean attribute for controls form (`novalidate`).
+
+### Added
+- UI: Debounced auto-run when controls change; seed JSON from controls if empty.
+- Docs: Add vendor Stimulus (3.2.1) license file.
+- UI: Stronger summary metric hierarchy and spacing.
+
+### Notes
+- See `comments/comment v.0.1.1.md` for design critique and the path to joy guiding these tweaks.
 
 ## [0.1.0] - 2025-09-12
 ### Added
@@ -40,5 +52,6 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Charts and gauge are implemented with pure SVG to keep dependencies minimal and performance high.
 - Next up: minor polish on responsive scaling, accessibility labels, and a small UI smoke test.
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/dansimpson61/foresight/releases/tag/v0.1.1
 [0.1.0]: https://github.com/dansimpson61/foresight/releases/tag/v0.1.0
