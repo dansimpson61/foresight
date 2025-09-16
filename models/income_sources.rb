@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative './money'
+
 module Foresight
   class IncomeSource
     attr_reader :recipient
@@ -14,13 +16,13 @@ module Foresight
 
     def initialize(recipient:, annual_gross: 0.0)
       super(recipient: recipient)
-      @annual_gross = annual_gross.to_f
+      @annual_gross = Money.new(annual_gross)
     end
 
     def taxable_amount(_state:, recipient_age:)
       # NY exclusion simplified: up to 20k if age >= 59.5
       if recipient_age >= 60
-        [@annual_gross - 20_000, 0].max
+        [@annual_gross - 20_000, Money.new(0)].max
       else
         @annual_gross
       end
@@ -30,22 +32,20 @@ module Foresight
   class SocialSecurityBenefit < IncomeSource
     attr_reader :start_year, :cola_rate
 
-    # Provide either annual_benefit (claimed amount at start year) or pia_annual (FRA benefit)
-    # If pia_annual is provided, claimed benefit is adjusted for early/late claiming relative to FRA.
     def initialize(recipient:, start_year:, annual_benefit: nil, pia_annual: nil, cola_rate: 0.0)
       super(recipient: recipient)
       @start_year = start_year.to_i
       @cola_rate = cola_rate.to_f
-      @given_claimed_amount = annual_benefit && annual_benefit.to_f
-      @pia_annual = pia_annual && pia_annual.to_f
+      @given_claimed_amount = annual_benefit && Money.new(annual_benefit)
+      @pia_annual = pia_annual && Money.new(pia_annual)
       raise ArgumentError, 'Provide annual_benefit or pia_annual' if @given_claimed_amount.nil? && @pia_annual.nil?
     end
 
     def annual_benefit_for(year)
-      return 0.0 if year < @start_year
+      return Money.new(0) if year < @start_year
       base = claimed_amount_at_start
       years_since_start = year - @start_year
-      (base * ((1 + @cola_rate) ** years_since_start)).round(2)
+      base * ((1 + @cola_rate)**years_since_start)
     end
 
     private
@@ -54,7 +54,7 @@ module Foresight
       return @given_claimed_amount if @given_claimed_amount
       # derive from PIA with claiming factor
       factor = claiming_adjustment_factor
-      (@pia_annual * factor).round(2)
+      @pia_annual * factor
     end
 
     def claiming_adjustment_factor

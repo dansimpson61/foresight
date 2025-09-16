@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative './money'
+
 module Foresight
   class Household
     attr_reader :members, :filing_status, :state, :target_spending_after_tax, :desired_tax_bracket_ceiling,
@@ -9,8 +11,8 @@ module Foresight
       @members = members
       @filing_status = filing_status
       @state = state
-      @target_spending_after_tax = target_spending_after_tax.to_f
-      @desired_tax_bracket_ceiling = desired_tax_bracket_ceiling.to_f
+      @target_spending_after_tax = Money.new(target_spending_after_tax)
+      @desired_tax_bracket_ceiling = Money.new(desired_tax_bracket_ceiling)
       @accounts = accounts
       @income_sources = income_sources
     end
@@ -42,9 +44,7 @@ module Foresight
       roth_iras.each { |a| a.grow(g[:roth_ira]) }
       taxable_brokerage_accounts.each { |a| a.grow(g[:taxable]) }
       # Adjust spending for inflation if provided
-      if inflation_rate.to_f != 0.0
-        @target_spending_after_tax = (@target_spending_after_tax * (1 + inflation_rate.to_f)).round(2)
-      end
+      @target_spending_after_tax *= (1 + inflation_rate) if inflation_rate.to_f != 0.0
     end
   end
 end
