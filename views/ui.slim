@@ -158,9 +158,25 @@ html
 
       #results.panel
         div data-controller="charts"
+          section
             h3 Lifetime Asset Progression
             .chart-container
-                canvas data-charts-target="canvas"
+              canvas data-charts-target="netWorthCanvas"
+
+          section
+            h3 Annual Income & Tax Details
+            .chart-container
+              canvas data-charts-target="incomeTaxCanvas"
+
+          section
+            h3 IRMAA Impact Timeline
+            .chart-container
+              canvas data-charts-target="irmaaTimeline"
+
+          section
+            h3 Tax-Efficiency Gauge
+            .chart-container
+              canvas data-charts-target="taxEfficiencyGauge"
 
         div data-controller="summary"
             h3 Summary

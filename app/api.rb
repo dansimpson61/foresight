@@ -31,8 +31,12 @@ module Foresight
     post '/plan' do
       content_type :json
       params = json_params
-      result = Foresight::PlanService.run(params)
-      result.to_json
+      begin
+        result = Foresight::PlanService.run(params)
+        result.to_json
+      rescue => e
+        halt 500, { error: e.message }.to_json
+      end
     end
 
     get '/plan/example' do
@@ -51,13 +55,14 @@ module Foresight
           { type: 'SocialSecurityBenefit', recipient: 'Alice', start_year: 2025, pia_annual: 24_000.0, cola_rate: 0.0 },
           { type: 'SocialSecurityBenefit', recipient: 'Bob',   start_year: 2030, pia_annual: 24_000.0, cola_rate: 0.0 }
         ],
-        target_spending_after_tax: 60_000.0,
+        annual_expenses: 60_000.0,
+        emergency_fund_floor: 20_000.0,
         desired_tax_bracket_ceiling: 94_300.0,
         start_year: 2025,
         years: 5,
         inflation_rate: 0.02,
         growth_assumptions: { traditional_ira: 0.02, roth_ira: 0.03, taxable: 0.01 },
-        strategies: [ { key: 'none' }, { key: 'bracket_fill', params: { cushion_ratio: 0.05 } } ]
+        strategies: [ { key: 'do_nothing' }, { key: 'fill_to_top_of_bracket' } ]
       }
       JSON.pretty_generate(example)
     end

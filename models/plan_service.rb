@@ -31,16 +31,16 @@ module Foresight
       life = LifePlanner.new(
         household: household,
         start_year: params.fetch(:start_year),
-        years: params.fetch(:analysis_horizon), # Corrected key
+        years: params.fetch(:years),
         growth_assumptions: params[:growth_assumptions] || {},
         inflation_rate: params[:inflation_rate] || 0.0
       )
       
-      strategy = instantiate_strategy(params[:roth_conversion_strategy])
+      strategies = params.fetch(:strategies).map { |spec| instantiate_strategy(spec) }
       
-      results = life.run_multi([strategy])
+      results = life.run_multi(strategies)
       
-      json = life.to_json_report(results, strategies: [strategy.name])
+      json = life.to_json_report(results, strategies: strategies.map(&:name))
       wrap(JSON.parse(json))
     end
 
@@ -78,10 +78,10 @@ module Foresight
     end
 
     def instantiate_strategy(spec)
-      key = spec[:type].to_s
+      key = spec[:key].to_s
       desc = @registry.fetch(key) { raise ArgumentError, "Unknown strategy key #{key}" }
       
-      user_params = spec[:parameters] || {}
+      user_params = spec[:params] || {}
       merged_params = desc.default_params.merge(user_params)
       
       desc.klass.new(**merged_params.transform_keys(&:to_sym))
@@ -130,10 +130,10 @@ module Foresight
         accounts: accounts,
         income_sources: income_sources,
         annual_expenses: params.fetch(:annual_expenses).to_f,
-        emergency_fund_floor: params.fetch(:emergency_fund_floor).to_f,
-        withdrawal_hierarchy: params.fetch(:withdrawal_hierarchy).map(&:to_sym),
-        filing_status: params.fetch(:filing_status).to_sym,
-        state: params.fetch(:state)
+        emergency_fund_floor: params.fetch(:emergency_fund_floor, 0.0).to_f,
+        withdrawal_hierarchy: params.fetch(:withdrawal_hierarchy, [:taxable, :traditional, :roth]).map(&:to_sym),
+        filing_status: params.fetch(:filing_status, 'mfj').to_sym,
+        state: params.fetch(:state, 'NY')
       )
     end
   end

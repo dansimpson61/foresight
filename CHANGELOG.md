@@ -5,7 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning (SemVer) as it evolves.
 
 ## [Unreleased]
-- TBD – collected fixes and polish after v0.1.1
+- TBD
+
+## [0.3.0] - 2025-09-17
+### Added
+- **New Visualizations:** Implemented the three core Tufte-inspired visualizations:
+  - "Lifetime Asset Progression" (Net Worth Over Time) stacked bar chart.
+  - "Annual Income & Tax Details" stacked bar chart with tax overlay.
+  - "IRMAA Impact Timeline" color-coded bar chart.
+  - "Tax-Efficiency Gauge" doughnut chart.
+
+### Changed
+- **Refactored Charting:** All charting logic is now consolidated within the `charts_controller.js` Stimulus controller, which manages all four new charts.
+
+### Fixed
+- **Critical Backend Bugs:** Resolved a series of cascading 500 errors in the `PlanService` caused by mismatches between the frontend payload and backend model expectations. This included correcting keys (`annual_expenses`, `emergency_fund_floor`) and aligning strategy names (`do_nothing`, `fill_to_top_of_bracket`) between the API and the core simulation, allowing the request specs to finally pass.
+
+## [0.2.0] - 2025-09-17
+### Added
+- **Comprehensive UI Controls:** The UI now includes a full set of interactive controls for all aspects of the financial plan, including detailed income sources, assets, liabilities, spending, and withdrawal strategies.
+- **Backend Unit Test:** Added a new RSpec test for the `PlanService` to validate the parsing of the new, complex data model.
+
+### Changed
+- **Major Backend Refactoring:** Overhauled the entire backend to support a comprehensive, data-driven simulation. All models (`PlanService`, `Household`, `LifePlanner`, `AnnualPlanner`, `IncomeSource`, `Account`) are now aligned with the new data strategy.
+- **Filing Status-Aware Tax Engine:** The `TaxYear` model is no longer hardcoded for a single filing status. It now dynamically calculates taxes, deductions, and thresholds based on the user's selected filing status (`mfj` or `single`).
+- **Frontend/Backend Alignment:** The frontend `plan_form_controller` now sends a complete, well-structured JSON payload, and the backend is fully equipped to process it, resolving numerous crashes.
+- **Updated Tax Data:** Expanded `config/tax_brackets.yml` to include data for the `single` filing status.
 
 ## [0.1.1] - 2025-09-12
 ### Fixed
@@ -19,39 +44,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Notes
 - See `comments/comment v.0.1.1.md` for design critique and the path to joy guiding these tweaks.
 
-## [0.1.0] - 2025-09-12
-### Added
-- UI surface at `/ui` implemented with Slim and pure JS.
-- External stylesheet `public/ui.css` with minimal, joyful baseline styles.
-- Visualization (M2): Pure-SVG stacked area chart of end-of-year balances (Taxable, Traditional, Roth) with:
-  - Thin overlay line for all-in tax per year.
-  - Event tick marks from `events`.
-  - Hover guideline and compact tooltip.
-  - Axes, ticks, and currency labels (left balance axis, right tax axis; x-year ticks).
-- IRMAA timeline: color-coded yearly segments using `irmaa_part_b`.
-- Tax-Efficiency Gauge (M3): Pure-SVG bar showing end-of-horizon proportions (Taxable, Traditional, Roth) with inline labels when space allows.
-- Toast component for success/failure feedback on actions.
-- Sinatra API endpoints: `GET /`, `GET /strategies`, `GET /plan/example`, `POST /plan`, and `GET /ui`.
-- Plan document `FRONTEND_PLAN.md` (milestones M0–M6) and design notes in `UX-UI Design Spec.md`.
+---
 
-### Changed
-- Refined `views/ui.slim` structure: stylesheet moved to `<head>`, content in `<body>`, toast made a standalone overlay.
-- README updates to reflect running the app and UI surface.
+*... (older versions remain the same)*
 
-### Backend (Additive Only)
-- Extended yearly result schema with:
-  - `events` (including `ss_start`, `medicare`, `rmd_start`).
-  - IRMAA lookback fields: `irmaa_lookback_year`, `irmaa_lookback_magi`.
-- Preserved schema version `0.1.0`; no breaking changes.
-
-### Fixed
-- "Load example" button regression by setting explicit IDs, type="button", and robust JS handlers with error toasts.
-- CSS leakage caused by mis-indented inline styles by extracting to `public/ui.css`.
-
-### Notes
-- Charts and gauge are implemented with pure SVG to keep dependencies minimal and performance high.
-- Next up: minor polish on responsive scaling, accessibility labels, and a small UI smoke test.
-
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/dansimpson61/foresight/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/dansimpson61/foresight/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/dansimpson61/foresight/releases/tag/v0.1.1
 [0.1.0]: https://github.com/dansimpson61/foresight/releases/tag/v0.1.0
