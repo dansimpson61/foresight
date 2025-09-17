@@ -1,80 +1,57 @@
-# Joyful Retirement Planner
+# Foresight: A Joyful Retirement Planner
 
-This project is a Ruby implementation of a retirement income planning model, developed according to the "Ode to Joy" development philosophy. It is an exercise in craftsmanship, aiming to build a tool that is not only functional but also elegant and satisfying to work with.
+Clarity in, clarity out. Foresight is a retirement planning tool designed for insight, not just numbers. It helps visualize and compare the long-term impact of financial strategies, with a focus on Roth conversions, tax efficiency, and portfolio sustainability.
+
+This project is an exercise in craftsmanship, developed according to the "Ode to Joy" development philosophy. It aims to be a tool that is not only functional but also elegant, insightful, and a pleasure to use and maintain.
 
 ## Guiding Principles
 
-Our development is guided by a few core tenets that ensure the final model is robust, understandable, and sustainable.
+Our development is guided by a few core tenets rooted in our [Ode to Joy](Ode%20to%20Joy%20-%20Ruby%20and%20Sinatra.txt):
 
-* **Clarity and Expressiveness:** The code should read like well-written prose. This is especially vital in a domain as complex as tax planning, which is often perceived as opaque. Our goal is for the code itself to serve as a form of documentation, making the underlying financial logic transparent and allowing developers to intuitively grasp how tax rules are applied and strategic decisions are made.
+*   **Clarity and Expressiveness:** The code should read like well-written prose. In a domain as complex as tax planning, the code itself must serve as documentation, making the underlying financial logic transparent.
+*   **Focused Purpose:** Each class and method has a single, well-defined responsibility that directly reflects a real-world financial concept. This solid, object-oriented design makes the system easier to reason about, test, and extend.
+*   **Data as the Hero:** Inspired by the work of Edward Tufte, the interface is minimalist, responsive, and intuitive. We maximize the data-ink ratio, eliminating chartjunk to present complex information with precision and legibility.
 
-* **Focused Purpose:** Each class and method has a single, well-defined responsibility that directly reflects a real-world financial concept. For example, a `Household` object manages the couple's collective assets, while a `Pension` object understands its own specific tax treatment. This approach, rooted in solid object-oriented design, makes the system easier to reason about, test, and extend, as each component's boundaries are clear and logical.
+For a deeper dive into our design philosophy and data model, please see the documents in the [`/docs`](./docs/) folder.
 
-* **Joyful to Use and Maintain:** The model is designed to be a pleasure to work with. For developers, this means a clean architecture, predictable behavior, and the absence of unnecessary friction. For the end-user, this translates to a tool that produces clear, reliable outputs that inspire confidence and demystify the planning process.
+## Features
 
-This planner helps couples nearing retirement to truly "think today and act for all time." It does this by modeling a sophisticated, tax-aware strategy that moves beyond simplistic, myopic goals. Instead of just minimizing the current year's tax bill, it balances immediate spending needs with long-term financial well-being by making strategic decisions—like proactive Roth conversions—designed to reduce lifetime tax liability and preserve wealth for the future.
+Foresight provides a suite of visualizations and data tables to facilitate clear-headed scenario comparison:
 
-## Service API (MVP)
+*   **Lifetime Asset Progression:** A stacked area chart showing the growth and composition of your Taxable, Traditional, and Roth accounts over time.
+*   **Annual Tax Liability Overlay:** A thin line chart overlaid on your assets, clearly showing the annual tax cost of your chosen strategy.
+*   **IRMAA Impact Timeline:** A color-coded timeline that instantly shows whether your income will trigger Medicare premium surcharges in future years.
+*   **Tax-Efficiency Gauge:** A simple bar chart comparing the tax-free (Roth) vs. tax-deferred (Traditional) composition of your portfolio at the end of the plan.
+*   **Detailed Data Table:** A year-by-year breakdown of over 20 key metrics, including income sources, taxes, conversions, withdrawals, and ending balances.
 
-Use `PlanService.run(params)` to get versioned JSON for single- or multi-year runs. Schema version: `0.1.0`.
+## Tech Stack
 
-- Single year: omit `years` or set to 1.
-- Multi year: set `years > 1` and optionally pass multiple strategies.
+Foresight is proudly built with a minimalist, joyful stack:
 
-Minimal example:
+*   **Backend:** Ruby & Sinatra
+*   **Frontend:** Slim templates with a light sprinkling of StimulusJS
+*   **Visualizations:** Pure SVG, no heavy charting libraries
 
-```ruby
-require_relative './foresight'
-include Foresight
+## Getting Started
 
-params = {
-	members: [
-		{ name: 'Alice', date_of_birth: '1961-06-15' },
-		{ name: 'Bob',   date_of_birth: '1967-02-10' }
-	],
-	accounts: [
-		{ type: 'TraditionalIRA', owner: 'Alice', balance: 100_000.0 },
-		{ type: 'RothIRA',        owner: 'Alice', balance: 50_000.0 },
-		{ type: 'TaxableBrokerage', owners: ['Alice','Bob'], balance: 20_000.0, cost_basis_fraction: 0.7 }
-	],
-	income_sources: [
-		{ type: 'SocialSecurityBenefit', recipient: 'Alice', start_year: 2025, pia_annual: 24_000.0, cola_rate: 0.0 },
-		{ type: 'SocialSecurityBenefit', recipient: 'Bob',   start_year: 2030, pia_annual: 24_000.0, cola_rate: 0.0 }
-	],
-	target_spending_after_tax: 60_000.0,
-	desired_tax_bracket_ceiling: 94_300.0,
-	start_year: 2025,
-	years: 5,
-	inflation_rate: 0.02,
-	growth_assumptions: { traditional_ira: 0.02, roth_ira: 0.03, taxable: 0.01 },
-	strategies: [ { key: 'none' }, { key: 'bracket_fill', params: { cushion_ratio: 0.05 } } ]
-}
+1.  **Install dependencies:**
+    ```bash
+    bundle install
+    ```
+2.  **Run the application:**
+    ```bash
+    bundle exec rackup --port 9292
+    ```
+3.  **Open the UI:**
+    Navigate to `http://127.0.0.1:9292/ui` in your browser.
 
-puts PlanService.run(params)
-```
+## Key Endpoints
 
-JSON contains:
-- `inputs`: members, accounts (with starting_balance), income_sources, growth, inflation, strategies
-- `results`: per strategy `aggregate` and `yearly` rows
-- `phases`: planning phases with metrics
+*   `GET /ui`: The primary user interface for running simulations.
+*   `POST /plan`: The API endpoint that runs a plan and returns JSON data.
+*   `GET /plan/example`: Returns a sample JSON payload for testing and demos.
+*   `GET /strategies`: Lists the available Roth conversion strategies.
 
-MVP adds an `all_in_tax` metric (federal + capital gains + NY state + IRMAA Part B) per year and cumulative in aggregates.
+## Project Status
 
-Notes: taxes/thresholds simplified; IRMAA Part D not modeled; no inflation of tax parameters yet.
-
-## Minimal Sinatra API
-
-Run a tiny API server to post scenarios and fetch strategies:
-
-```bash
-ruby app.rb -p 4567
-```
-
-Endpoints:
-- `GET /` health
-- `GET /strategies` strategy catalog
-- `POST /plan` body: same shape as `PlanService.run(params)`; returns the JSON report
-
-Yearly rows now include small UI aids:
-- `events`: array of `{ type: 'ss_start'|'medicare'|'rmd_start', person: 'Name' }`
-- `irmaa_lookback_year` and `irmaa_lookback_magi`: for rendering the IRMAA timeline against lookback MAGI
+The project is under active development. The latest version is **0.1.1**. See the [`CHANGELOG.md`](./CHANGELOG.md) for a detailed history of changes.
