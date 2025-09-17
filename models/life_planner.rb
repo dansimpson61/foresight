@@ -12,8 +12,12 @@ module Foresight
       :actual_roth_conversion,
       :federal_tax,
       :capital_gains_tax,
-  :state_tax,
+      :state_tax,
       :effective_tax_rate,
+      :starting_balance,
+      :starting_net_worth,
+      :ending_balance,
+      :ending_net_worth,
       :ending_traditional_balance,
       :ending_roth_balance,
       :ending_taxable_balance,
@@ -24,12 +28,12 @@ module Foresight
       :ss_taxable_increase,
       :conversion_incremental_tax,
       :conversion_incremental_marginal_rate,
-  :magi,
-  :irmaa_part_b,
-  :all_in_tax,
-  :events,
-  :irmaa_lookback_year,
-  :irmaa_lookback_magi,
+      :magi,
+      :irmaa_part_b,
+      :all_in_tax,
+      :events,
+      :irmaa_lookback_year,
+      :irmaa_lookback_magi,
       keyword_init: true
     )
 
@@ -38,8 +42,9 @@ module Foresight
       :years,
       :cumulative_federal_tax,
       :cumulative_capital_gains_tax,
-  :cumulative_all_in_tax,
+      :cumulative_all_in_tax,
       :cumulative_roth_conversions,
+      :cumulative_irmaa_surcharges,
       :ending_traditional_balance,
       :ending_roth_balance,
       :ending_taxable_balance,
@@ -55,19 +60,12 @@ module Foresight
       @years = years
       @growth_assumptions = default_growths.merge(growth_assumptions)
       @inflation_rate = inflation_rate.to_f
-      # Capture true initial balances once for reporting
       @initial_account_balances = household.accounts.each_with_object({}) do |acct, h|
         h[acct.object_id] = acct.balance
       end
-  @initial_target_spending = household.target_spending_after_tax
+      @initial_target_spending = household.target_spending_after_tax
     end
 
-    def run(strategy: ConversionStrategies::BracketFill.new)
-      simulate_on(@household, strategy)
-    end
-
-    # Run multiple strategies from the SAME starting state (deep-cloned) and return
-    # { per_strategy: { name => { yearly: [...], aggregate: StrategyAggregate } } }
     def run_multi(strategies)
       strategies = Array(strategies)
       baseline = snapshot_household(@household)
@@ -82,7 +80,6 @@ module Foresight
     end
     
     def to_json_report(results_hash, strategies: nil)
-      # Build an input snapshot only once (before mutation side-effects; assumes caller cloned or just finished run_multi)
       inputs = build_inputs_snapshot(strategies || results_hash.keys)
       payload = {
         inputs: inputs,
@@ -106,8 +103,14 @@ module Foresight
       @household.grow_assets(growth_assumptions: @growth_assumptions, inflation_rate: @inflation_rate)
     end
 
-    def build_summary(result, year, strategy)
-      all_in = (result.federal_tax.to_f + result.capital_gains_tax.to_f + result.state_tax.to_f + result.irmaa_part_b.to_f).round(2)
+    def build_summary(result, year, strategy, starting_balances)
+      all_in = (result.federal_tax + result.capital_gains_tax + result.state_tax + result.irmaa_part_b).round(2)
+      ending_balances = {
+        traditional: @household.traditional_iras.sum(&:balance).round(2),
+        roth: @household.roth_iras.sum(&:balance).round(2),
+        taxable: @household.taxable_brokerage_accounts.sum(&:balance).round(2)
+      }
+      
       YearSummary.new(
         year: year,
         strategy_name: strategy.name,
@@ -115,24 +118,31 @@ module Foresight
         actual_roth_conversion: result.actual_roth_conversion,
         federal_tax: result.federal_tax,
         capital_gains_tax: result.capital_gains_tax,
-  state_tax: result.state_tax,
+        state_tax: result.state_tax,
         effective_tax_rate: result.effective_tax_rate,
-  magi: result.magi,
-  irmaa_part_b: result.irmaa_part_b,
+        magi: result.magi,
+        irmaa_part_b: result.irmaa_part_b,
         all_in_tax: all_in,
-        ending_traditional_balance: @household.traditional_iras.sum(&:balance).round(2),
-        ending_roth_balance: @household.roth_iras.sum(&:balance).round(2),
-        ending_taxable_balance: @household.taxable_brokerage_accounts.sum(&:balance).round(2),
+        
+        starting_balance: starting_balances.values.sum.round(2),
+        starting_net_worth: starting_balances.values.sum.round(2),
+        
+        ending_balance: ending_balances.values.sum.round(2),
+        ending_net_worth: ending_balances.values.sum.round(2),
+        ending_traditional_balance: ending_balances[:traditional],
+        ending_roth_balance: ending_balances[:roth],
+        ending_taxable_balance: ending_balances[:taxable],
+        
         rmd_taken: @household.traditional_iras.sum { |acct| acct.calculate_rmd(acct.owner.age_in(year)) }.round(2),
         narration: result.narration,
         future_rmd_pressure: future_rmd_pressure(year + 1),
         ss_taxable_post: result.ss_taxable_post,
         ss_taxable_increase: result.ss_taxable_increase,
         conversion_incremental_tax: result.conversion_incremental_tax,
-  conversion_incremental_marginal_rate: result.conversion_incremental_marginal_rate,
-  events: events_for(year),
-  irmaa_lookback_year: nil,        # filled in simulate_on when history exists
-  irmaa_lookback_magi: nil         # filled in simulate_on when history exists
+        conversion_incremental_marginal_rate: result.conversion_incremental_marginal_rate,
+        events: events_for(year),
+        irmaa_lookback_year: nil,
+        irmaa_lookback_magi: nil
       )
     end
 
@@ -143,24 +153,23 @@ module Foresight
       end
       spending = @household.target_spending_after_tax
       return 0.0 if spending <= 0
-      (projected_rmd / spending.to_f).round(4)
+      (projected_rmd / spending).round(4)
     end
 
-    # Compute pressure at first RMD year (simplified 73) using growth projection forward
     def projected_first_rmd_pressure_for(household)
-  first_rmd_age = @household.members.map(&:rmd_start_age).min
+      first_rmd_age = @household.members.map(&:rmd_start_age).min
       trad_growth = 1 + @growth_assumptions[:traditional_ira]
       projected_trad_total = 0.0
       future_spending = household.target_spending_after_tax
-      # Assume inflation applied each future year
+      
       household.traditional_iras.each do |acct|
-        current_age = acct.owner.age_in(@start_year + @years - 1) # end age after simulation
+        current_age = acct.owner.age_in(@start_year + @years - 1)
         years_until_rmd = [first_rmd_age - current_age, 0].max
         balance = acct.balance * (trad_growth ** years_until_rmd)
         projected_trad_total += balance
         future_spending *= ((1 + @inflation_rate) ** years_until_rmd)
       end
-      # Use divisor at first RMD age for first owner (approx)
+      
       divisor = TraditionalIRA::RMD_TABLE[first_rmd_age] || 26.5
       projected_rmd = projected_trad_total / divisor
       return 0.0 if future_spending <= 0
@@ -174,13 +183,46 @@ module Foresight
         years: yearly.size,
         cumulative_federal_tax: yearly.sum(&:federal_tax).round(2),
         cumulative_capital_gains_tax: yearly.sum(&:capital_gains_tax).round(2),
-  cumulative_all_in_tax: yearly.sum { |y| y.all_in_tax.to_f }.round(2),
-        cumulative_roth_conversions: yearly.sum { |y| y.actual_roth_conversion }.round(2),
+        cumulative_all_in_tax: yearly.sum(&:all_in_tax).round(2),
+        cumulative_roth_conversions: yearly.sum(&:actual_roth_conversion).round(2),
+        cumulative_irmaa_surcharges: yearly.sum(&:irmaa_part_b).round(2),
         ending_traditional_balance: last.ending_traditional_balance,
         ending_roth_balance: last.ending_roth_balance,
         ending_taxable_balance: last.ending_taxable_balance,
         projected_first_rmd_pressure: projected_first_rmd_pressure_for(@household)
       )
+    end
+
+    def simulate_on(household, strategy)
+      summaries = []
+      current_year = @start_year
+      magi_by_year = {}
+      @years.times do
+        starting_balances = {
+          traditional: household.traditional_iras.sum(&:balance),
+          roth: household.roth_iras.sum(&:balance),
+          taxable: household.taxable_brokerage_accounts.sum(&:balance)
+        }
+        
+        tax_year = TaxYear.new(year: current_year)
+        annual_planner = AnnualPlanner.new(household: household, tax_year: tax_year)
+        result = annual_planner.generate_strategy(strategy)
+        
+        apply_growth
+        
+        summary = build_summary(result, current_year, strategy, starting_balances)
+        
+        lookback_year = current_year - 2
+        if magi_by_year.key?(lookback_year)
+          summary.irmaa_lookback_year = lookback_year
+          summary.irmaa_lookback_magi = magi_by_year[lookback_year].round(2)
+        end
+        summaries << summary
+        
+        magi_by_year[current_year] = result.magi
+        current_year += 1
+      end
+      summaries
     end
 
     def snapshot_household(hh)
@@ -230,7 +272,7 @@ module Foresight
           end
           h
         end,
-  target_spending_after_tax_start: @initial_target_spending,
+        target_spending_after_tax_start: @initial_target_spending,
         desired_tax_bracket_ceiling: @household.desired_tax_bracket_ceiling,
         strategies: Array(strategy_names)
       }
@@ -243,43 +285,14 @@ module Foresight
       end
     end
 
-    def simulate_on(household, strategy)
-      summaries = []
-      current_year = @start_year
-      magi_by_year = {}
-      @years.times do
-        tax_year = TaxYear.new(year: current_year)
-        annual_planner = AnnualPlanner.new(household: household, tax_year: tax_year)
-        result = annual_planner.generate_strategy(strategy)
-        apply_growth
-        summary = build_summary(result, current_year, strategy)
-        # Attach IRMAA lookback (2-year prior) for UI timeline purposes
-        lookback_year = current_year - 2
-        if magi_by_year.key?(lookback_year)
-          summary.irmaa_lookback_year = lookback_year
-          summary.irmaa_lookback_magi = magi_by_year[lookback_year].round(2)
-        end
-        summaries << summary
-        # Record MAGI after building summary to avoid off-by-one confusion
-        magi_by_year[current_year] = result.magi.to_f
-        current_year += 1
-      end
-      summaries
-    end
-
-    # --- Events for UI annotations (lightweight, derived from domain state) ---
-    # Returns an array of hashes like: { type: 'ss_start'|'medicare'|'rmd_start', person: 'Name' }
     def events_for(year)
       evts = []
-      # Social Security claiming starts
       @household.social_security_benefits.each do |b|
         evts << { type: 'ss_start', person: b.recipient.name } if b.start_year == year
       end
-      # Medicare Part B enrollment at age 65 (approx)
       @household.members.each do |m|
         evts << { type: 'medicare', person: m.name } if m.age_in(year) >= 65 && m.age_in(year - 1) < 65
       end
-      # First RMD eligibility (SECURE 2.0 ages handled by Person)
       @household.members.each do |m|
         evts <<({ type: 'rmd_start', person: m.name }) if m.rmd_eligible_in?(year) && !m.rmd_eligible_in?(year - 1)
       end

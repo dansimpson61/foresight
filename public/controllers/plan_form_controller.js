@@ -1,167 +1,143 @@
-import { Controller } from "/vendor/stimulus.js";
+import { Controller } from '../vendor/stimulus.js';
+import debounce from 'https://cdn.jsdelivr.net/npm/lodash.debounce@4.0.8/+esm'
 
 export default class extends Controller {
-  static targets = ["input", "strategy", "download", "startYear", "years", "inflation", "inflationOutput", "growth", "growthOutput", "bracket", "bracketOutput"];
+  static targets = [
+    'yourAge', 'yourAgeNumber',
+    'spouseAge', 'spouseAgeNumber',
+    'filingStatus', 'state',
+    'tradIRA', 'tradIRANumber',
+    'rothIRA', 'rothIRANumber',
+    'taxableBrokerage', 'taxableBrokerageNumber',
+    'annualIncome', 'annualIncomeNumber',
+    'investmentGrowth', 'investmentGrowthNumber',
+    'inflationRate', 'inflationRateNumber',
+    'analysisHorizon', 'analysisHorizonNumber',
+    'strategySelector'
+  ];
 
   connect() {
-    this.model = null;
-    // Initialize textarea from controls if empty
-    if (this.hasStartYearTarget && this.inputTarget && !this.inputTarget.value.trim()) {
-      this.syncJsonFromControls();
-    }
-    // Debounce timer holder
-    this._debounce = null;
-    // Initialize growth readout
-    this.updateGrowthOutput();
-    this.updateInflationOutput();
-    this.updateBracketOutput();
+    this.runPlan = debounce(this.runPlan.bind(this), 500);
+    
+    this.syncableTargets = [
+      { slider: this.yourAgeTarget, number: this.yourAgeNumberTarget },
+      { slider: this.spouseAgeTarget, number: this.spouseAgeNumberTarget },
+      { slider: this.tradIRATarget, number: this.tradIRANumberTarget },
+      { slider: this.rothIRATarget, number: this.rothIRANumberTarget },
+      { slider: this.taxableBrokerageTarget, number: this.taxableBrokerageNumberTarget },
+      { slider: this.annualIncomeTarget, number: this.annualIncomeNumberTarget },
+      { slider: this.investmentGrowthTarget, number: this.investmentGrowthNumberTarget },
+      { slider: this.inflationRateTarget, number: this.inflationRateNumberTarget },
+      { slider: this.analysisHorizonTarget, number: this.analysisHorizonNumberTarget },
+    ];
+    
+    this.initializeNumberInputs();
+    this.runPlan();
   }
 
-  setState(state) {
-    const el = document.getElementById('ui-state');
-    if (el) el.setAttribute('data-state', state);
-  }
-
-  onControlsChanged() {
-    // Update JSON from form controls, then debounce auto-run
-    this.syncJsonFromControls();
-    this.updateGrowthOutput();
-    this.updateInflationOutput();
-    this.updateBracketOutput();
-    clearTimeout(this._debounce);
-    this._debounce = setTimeout(() => this.runPlan(), 400);
-  }
-
-  syncJsonFromControls() {
-    try {
-      const current = this.inputTarget.value.trim() ? JSON.parse(this.inputTarget.value) : {};
-      const start_year = this.hasStartYearTarget ? Number(this.startYearTarget.value) : current.start_year;
-      const years = this.hasYearsTarget ? Number(this.yearsTarget.value) : current.years;
-      const inflation_rate = this.hasInflationTarget ? Number(this.inflationTarget.value) / 100.0 : (current.inflation_rate ?? 0.0);
-  const desired_tax_bracket_ceiling = this.hasBracketTarget ? Number(this.bracketTarget.value) : (current.desired_tax_bracket_ceiling ?? 0);
-  const assumed_growth_rate = this.hasGrowthTarget ? Number(this.growthTarget.value) / 100.0 : (current.assumed_growth_rate ?? 0.05);
-      // Preserve members/accounts/income_sources if present; otherwise keep from example once loaded
-      const next = Object.assign({}, current, {
-        start_year,
-        years,
-        inflation_rate,
-        desired_tax_bracket_ceiling,
-        assumed_growth_rate,
-      });
-      this.inputTarget.value = JSON.stringify(next, null, 2);
-    } catch (e) {
-      // If JSON invalid, rebuild a minimal shell from controls
-      const next = {
-        members: [],
-        accounts: [],
-        income_sources: [],
-        start_year: this.hasStartYearTarget ? Number(this.startYearTarget.value) : 2025,
-        years: this.hasYearsTarget ? Number(this.yearsTarget.value) : 35,
-        inflation_rate: this.hasInflationTarget ? Number(this.inflationTarget.value) / 100.0 : 0.0,
-        desired_tax_bracket_ceiling: this.hasBracketTarget ? Number(this.bracketTarget.value) : 0,
-        assumed_growth_rate: this.hasGrowthTarget ? Number(this.growthTarget.value) / 100.0 : 0.05,
-      };
-      this.inputTarget.value = JSON.stringify(next, null, 2);
-    }
-  }
-
-  updateGrowthOutput() {
-    if (this.hasGrowthTarget && this.hasGrowthOutputTarget) {
-      const v = Number(this.growthTarget.value);
-      const rounded = Math.round(v * 2) / 2; // nearest 0.5
-      if (!Number.isNaN(rounded)) {
-        this.growthTarget.value = String(rounded);
-        this.growthOutputTarget.textContent = `${rounded.toFixed(1)}%`;
-      }
-    }
-  }
-
-  updateInflationOutput() {
-    if (this.hasInflationTarget && this.hasInflationOutputTarget) {
-      const v = Number(this.inflationTarget.value);
-      const x = Number.isNaN(v) ? 0 : v;
-      this.inflationOutputTarget.textContent = `${x.toFixed(1)}%`;
-    }
-  }
-
-  updateBracketOutput() {
-    if (this.hasBracketTarget && this.hasBracketOutputTarget) {
-      const v = Number(this.bracketTarget.value);
-      const n = Number.isNaN(v) ? 0 : v;
-      try {
-        this.bracketOutputTarget.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
-      } catch (_e) {
-        this.bracketOutputTarget.textContent = `$${n}`;
-      }
-    }
-  }
-
-  async loadExample() {
-    try {
-      window.showToast('Loading example…', 'info', 900);
-      const r = await fetch('/plan/example', { headers: { Accept: 'application/json' } });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const j = await r.json();
-      this.inputTarget.value = JSON.stringify(j, null, 2);
-      this.setState('example-loaded');
-      window.showToast('Loaded example ✓', 'success');
-    } catch (err) {
-      this.inputTarget.value = `// Failed to load example: ${err}`;
-      window.showToast('Failed to load example', 'error');
-      console.error('Load example failed', err);
-    }
-  }
-
-  async runPlan() {
-    try {
-      const body = JSON.parse(this.inputTarget.value);
-      const r = await fetch('/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const t = await r.text();
-      this.lastJsonText = t;
-      this.model = JSON.parse(t);
-      const keys = Object.keys(this.model.data.results);
-      this.populateStrategy(keys);
-      this.strategyTarget.value = keys[0];
-      this.updateView(keys[0]);
-      this.enableDownload();
-      this.setState('plan-ready');
-      window.showToast('Plan calculated ✓', 'success');
-    } catch (e) {
-      // Avoid blocking alert in tests, prefer toast
-      window.showToast('Plan failed — check JSON', 'error');
-      console.error('Run plan failed', e);
-    }
-  }
-
-  changeStrategy() {
-    this.updateView(this.strategyTarget.value);
-  }
-
-  populateStrategy(keys) {
-    this.strategyTarget.innerHTML = '';
-    keys.forEach((k) => {
-      const opt = document.createElement('option');
-      opt.value = k; opt.textContent = k; this.strategyTarget.appendChild(opt);
+  initializeNumberInputs() {
+    this.syncableTargets.forEach(pair => {
+      pair.number.value = pair.slider.value;
     });
-    this.strategyTarget.disabled = keys.length === 0;
   }
 
-  updateView(strategyKey) {
-    if (!this.model) return;
-    const bundle = this.model.data.results[strategyKey];
-    this.dispatch('results', { detail: bundle });
+  sync(event) {
+    const changedElement = event.target;
+    const pair = this.syncableTargets.find(p => p.slider === changedElement || p.number === changedElement);
+    
+    if (pair) {
+      if (changedElement.type === 'range') {
+        pair.number.value = changedElement.value;
+      } else {
+        pair.slider.value = changedElement.value;
+      }
+    }
+    
+    this.runPlan();
   }
 
-  enableDownload() {
-    if (!this.hasDownloadTarget || !this.lastJsonText) return;
-    const btn = this.downloadTarget;
-    btn.disabled = false;
-    btn.onclick = () => {
-      const blob = new Blob([this.lastJsonText], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'foresight_report.json'; a.click();
-      URL.revokeObjectURL(url);
+  runPlan() {
+    const parameters = this.buildParameters();
+    fetch('/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parameters),
+    })
+      .then(response => response.json())
+      .then(data => {
+        this.results = data.data.results || {};
+        this.populateStrategySelector();
+        this.updateResults();
+      })
+      .catch(error => {
+        console.error('Error fetching or parsing plan data:', error);
+        this.results = {};
+      });
+  }
+
+  buildParameters() {
+    const currentYear = new Date().getFullYear();
+    const yourBirthYear = currentYear - parseInt(this.yourAgeTarget.value, 10);
+    const spouseBirthYear = currentYear - parseInt(this.spouseAgeTarget.value, 10);
+    const growthRate = parseFloat(this.investmentGrowthTarget.value) / 100;
+
+    return {
+      "members": [
+        { "name": "You", "date_of_birth": `${yourBirthYear}-01-01` },
+        { "name": "Spouse", "date_of_birth": `${spouseBirthYear}-01-01` }
+      ],
+      "accounts": [
+        { "type": "TraditionalIRA", "owner": "You", "balance": parseInt(this.tradIRATarget.value, 10) },
+        { "type": "RothIRA", "owner": "You", "balance": parseInt(this.rothIRATarget.value, 10) },
+        { "type": "TaxableBrokerage", "owners": ["You", "Spouse"], "balance": parseInt(this.taxableBrokerageTarget.value, 10), "cost_basis_fraction": 0.7 }
+      ],
+      "income_sources": [
+        { 
+          "type": "Pension", 
+          "recipient": "You", 
+          "start_year": currentYear,
+          "annual_gross": parseInt(this.annualIncomeTarget.value, 10) 
+        }
+      ],
+      "target_spending_after_tax": 80000,
+      "desired_tax_bracket_ceiling": 94300,
+      "start_year": currentYear,
+      "years": parseInt(this.analysisHorizonTarget.value, 10),
+      "inflation_rate": parseFloat(this.inflationRateTarget.value) / 100,
+      "growth_assumptions": {
+        "traditional_ira": growthRate,
+        "roth_ira": growthRate,
+        "taxable": growthRate
+      }
     };
+  }
+
+  populateStrategySelector() {
+    if (!this.results || Object.keys(this.results).length === 0) return;
+    
+    const currentSelection = this.strategySelectorTarget.value;
+    const strategyKeys = Object.keys(this.results);
+    
+    const options = Array.from(this.strategySelectorTarget.options).map(o => o.value);
+    if (JSON.stringify(options) === JSON.stringify(strategyKeys)) return;
+    
+    this.strategySelectorTarget.innerHTML = '';
+    strategyKeys.forEach(key => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      this.strategySelectorTarget.appendChild(option);
+    });
+
+    if (strategyKeys.includes(currentSelection)) {
+      this.strategySelectorTarget.value = currentSelection;
+    }
+  }
+
+  updateResults() {
+    const selectedStrategy = this.strategySelectorTarget.value;
+    const results = this.results[selectedStrategy] || {};
+    const event = new CustomEvent('plan:results', { detail: { results } });
+    document.dispatchEvent(event);
   }
 }

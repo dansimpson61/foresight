@@ -1,7 +1,6 @@
 # Explicitly load model components in dependency-friendly order
 require 'date'
 require_relative 'models/person'
-require_relative 'models/money'
 require_relative 'models/accounts'
 require_relative 'models/income_sources'
 require_relative 'models/household'

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './money'
-
 module Foresight
   class Household
     attr_reader :members, :filing_status, :state, :target_spending_after_tax, :desired_tax_bracket_ceiling,
@@ -11,8 +9,8 @@ module Foresight
       @members = members
       @filing_status = filing_status
       @state = state
-      @target_spending_after_tax = Money.new(target_spending_after_tax)
-      @desired_tax_bracket_ceiling = Money.new(desired_tax_bracket_ceiling)
+      @target_spending_after_tax = target_spending_after_tax
+      @desired_tax_bracket_ceiling = desired_tax_bracket_ceiling
       @accounts = accounts
       @income_sources = income_sources
     end

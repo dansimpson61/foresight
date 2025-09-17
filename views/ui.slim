@@ -1,109 +1,141 @@
 doctype html
 html
   head
-    meta charset="utf-8"
-    title Foresight UI (Minimal)
+    title Foresight
     link rel="stylesheet" href="/ui.css"
-  
+    script src="/vendor/stimulus.js" type="module"
+    script src="/ui-app.js" type="module"
+
   body
-    // Page header
-    h1 Foresight
-    p A minimal, joyful surface to post plans and preview key outputs.
+    header
+      h1 Foresight
+      p A Joyful Retirement Planner
 
-    // Main content
-    #ui-state style="display:none" data-state="idle"
-    main.grid role="main"
-      .card data-controller="plan-form"
+    .container
+      #controls.panel data-controller="plan-form"
         h2 Parameters
-        // Minimal controls (will auto-run on change)
-        form#controls(novalidate)
-          .row
-            label for="start_year" Start year
-            input#start_year type="number" min="1900" max="2100" value="2025" data-action="input->plan-form#onControlsChanged" data-plan-form-target="startYear"
-            label for="years" Years
-            input#years type="number" min="1" max="80" value="35" data-action="input->plan-form#onControlsChanged" data-plan-form-target="years"
-            label for="inflation" Inflation %
-            input#inflation type="number" step="0.1" min="0" max="10" value="0.0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="inflation"
-            span#inflation_value aria-live="polite" style="min-width:3ch; text-align:right;" data-plan-form-target="inflationOutput" 0.0%
-            label for="growth" Investment growth %
-            input#growth type="range" min="0" max="15" step="0.5" value="5.0" aria-label="Investment growth percent" data-action="input->plan-form#onControlsChanged" data-plan-form-target="growth"
-            span#growth_value aria-live="polite" style="min-width:3ch; text-align:right;" data-plan-form-target="growthOutput" 5.0%
-            // Tiny sparkline showing end Net Worth trend for current plan
-            .sparkline aria-label="Net worth sparkline" data-controller="sparkline" data-series="networth" data-action="plan-form:results@document->sparkline#update"
-              svg width="140" height="28" data-sparkline-target="svg"
-            label for="bracket" Bracket ceiling ($)
-            input#bracket type="number" step="1000" min="0" value="0" data-action="input->plan-form#onControlsChanged" data-plan-form-target="bracket"
-            span#bracket_value aria-live="polite" style="min-width:7ch; text-align:right;" data-plan-form-target="bracketOutput" $0
-            // Tiny sparkline showing All-in Tax trend for current plan
-            .sparkline aria-label="All-in tax sparkline" data-controller="sparkline" data-series="tax" data-action="plan-form:results@document->sparkline#update"
-              svg width="140" height="28" data-sparkline-target="svg"
-            // Tiny sparkline showing Roth end-of-year trend for current plan
-            .sparkline aria-label="Roth balance sparkline" data-controller="sparkline" data-action="plan-form:results@document->sparkline#update"
-              svg width="140" height="28" data-sparkline-target="svg"
-        .row
-          button#btn-load-example type="button" data-action="plan-form#loadExample" Load example
-          button#btn-run-plan type="button" data-action="plan-form#runPlan" Run plan
-          button#download disabled=true data-plan-form-target="download" Download JSON
-        textarea#input aria-label="Plan JSON input" spellcheck="false" data-plan-form-target="input"
-      .card
-        h2 Results
-        .row
-          label for="strategy" Strategy
-          select#strategy disabled=true data-plan-form-target="strategy" data-action="change->plan-form#changeStrategy"
-        section.viz aria-labelledby="assets-title" data-controller="charts"
-          h3#assets-title Lifetime Assets & Taxes
-          .legend
-            span
-              i.swatch style="background:#B0BEC5"
-              | Taxable
-            span
-              i.swatch style="background:#42A5F5"
-              | Traditional
-            span
-              i.swatch style="background:#66BB6A"
-              | Roth
-            span
-              i.swatch style="background:#EF5350"
-              | All-in Tax (line)
-          svg#chart-assets width="100%" height="260" viewBox="0 0 800 260" preserveAspectRatio="none" role="img" aria-label="Stacked area chart of asset balances with all-in tax overlay" data-charts-target="assets"
-            rect x="0" y="0" width="800" height="260" fill="#ffffff"
-          div#chart-tooltip.tt
-        section.viz aria-labelledby="irmaa-title" data-controller="charts"
-          h3#irmaa-title IRMAA Timeline
-          svg#timeline-irmaa width="100%" height="36" viewBox="0 0 800 36" preserveAspectRatio="none" role="img" aria-label="Timeline of annual IRMAA Part B amounts" data-charts-target="irmaa"
-            rect x="0" y="0" width="800" height="36" fill="#ffffff"
-        section.viz aria-labelledby="eff-title" data-controller="charts"
-          h3#eff-title Tax-Efficiency Gauge (End)
-          svg#eff-gauge width="100%" height="40" viewBox="0 0 800 40" preserveAspectRatio="none" role="img" aria-label="Bar gauge of end-of-horizon asset tax character composition" data-charts-target="gauge"
-            rect x="0" y="0" width="800" height="40" fill="#ffffff"
-        .row.metrics-row
-          .card style="flex:1" data-controller="summary"
-            h3 Lifetime Taxes
-            div#metric-lifetime-taxes.metric data-summary-target="lifetimeTaxes" --
-          .card style="flex:1" data-controller="summary"
-            h3 Total Conversions
-            div#metric-total-conv.metric data-summary-target="totalConversions" --
-          .card style="flex:1" data-controller="summary"
-            h3 End Net Worth
-            div#metric-end-nw.metric data-summary-target="endNetWorth" --
-          .card style="flex:1" data-controller="summary"
-            h3 Tax-Free % (End)
-            div#metric-taxfree-pct.metric data-summary-target="taxFreePct" --
-        h3 Yearly Details
-        div.results-wrap style="overflow:auto; max-height: 50vh; border: 1px solid #e5e7eb; border-radius: 6px;" data-controller="results-table"
-          table#results-table style="width:100%; border-collapse: collapse;" role="table" aria-label="Yearly details table" data-results-table-target="table"
-            thead
-              tr
-                - ['Year','Conv','Fed Tax','State Tax','CG Tax','All-in Tax','MAGI','IRMAA B','Taxable End','Trad End','Roth End','Events'].each do |h|
-                  th style="position:sticky; top:0; background:#fafafa; border-bottom:1px solid #e5e7eb; text-align:right; padding:6px;"= h
-            tbody
+        
+        section
+          h3 About You
+          .form-group
+            label for="your_age" Your Age
+            .slider-group
+              input type="range" id="your_age" min="20" max="100" value="40" data-action="input->plan-form#sync" data-plan-form-target="yourAge"
+              input type="number" data-action="input->plan-form#sync" data-plan-form-target="yourAgeNumber"
+          .form-group
+            label for="spouse_age" Spouse's Age
+            .slider-group
+              input type="range" id="spouse_age" min="20" max="100" value="42" data-action="input->plan-form#sync" data-plan-form-target="spouseAge"
+              input type="number" data-action="input->plan-form#sync" data-plan-form-target="spouseAgeNumber"
+          .form-group
+            label Filing Status
+            .radio-group
+              label
+                input type="radio" name="filing_status" value="mfj" checked="true" data-action="change->plan-form#runPlan" data-plan-form-target="filingStatus"
+                | Married Filing Jointly
+              label
+                input type="radio" name="filing_status" value="single" data-action="change->plan-form#runPlan" data-plan-form-target="filingStatus"
+                | Single
+          .form-group
+            label for="state" State of Residence
+            select id="state" data-action="change->plan-form#runPlan" data-plan-form-target="state"
+              option value="NY" New York
+              option value="CA" California
 
-    h2 Strategies (API)
-    pre= JSON.pretty_generate(@strategies)
+        section
+          h3 Your Money Now
+          .form-group
+            label for="trad_ira" Traditional IRAs/401ks
+            .slider-group
+              input type="range" id="trad_ira" min="0" max="2000000" step="10000" value="500000" data-action="input->plan-form#sync" data-plan-form-target="tradIRA"
+              input type="number" data-action="input->plan-form#sync" data-plan-form-target="tradIRANumber"
+          .form-group
+            label for="roth_ira" Roth IRAs/401ks
+            .slider-group
+              input type="range" id="roth_ira" min="0" max="2000000" step="10000" value="100000" data-action="input->plan-form#sync" data-plan-form-target="rothIRA"
+              input type="number" data-action="input->plan-form#sync" data-plan-form-target="rothIRANumber"
+          .form-group
+            label for="taxable_ brokerage" Taxable Brokerage
+            .slider-group
+              input type="range" id="taxable_brokerage" min="0" max="2000000" step="10000" value="200000" data-action="input->plan-form#sync" data-plan-form-target="taxableBrokerage"
+              input type="number" data-action="input->plan-form#sync" data-plan-form-target="taxableBrokerageNumber"
 
-    // Toast overlay (empty; filled by JS)
-    #toast.toast role="status" aria-live="polite" data-testid="toast"
+        section
+            h3 Your Future Income
+            .form-group
+                label for="annual_income" Annual Base Income
+                .slider-group
+                  input type="range" id="annual_income" min="0" max="1000000" step="10000" value="150000" data-action="input->plan-form#sync" data-plan-form-target="annualIncome"
+                  input type="number" data-action="input->plan-form#sync" data-plan-form-target="annualIncomeNumber"
+        
+        section
+            h3 Your Assumptions
+            .form-group
+                label for="investment_growth" Investment Growth Rate (%)
+                .slider-group
+                  input type="range" id="investment_growth" min="0" max="10" step="0.5" value="3" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowth"
+                  input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowthNumber"
+            .form-group
+                label for="inflation_rate" Inflation Rate (%)
+                .slider-group
+                  input type="range" id="inflation_rate" min="0" max="10" step="0.5" value="2" data-action="input->plan-form#sync" data-plan-form-target="inflationRate"
+                  input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="inflationRateNumber"
+            .form-group
+                label for="analysis_horizon" Analysis Horizon (Years)
+                .slider-group
+                  input type="range" id="analysis_horizon" min="1" max="50" value="30" data-action="input->plan-form#sync" data-plan-form-target="analysisHorizon"
+                  input type="number" data-action="input->plan-form#sync" data-plan-form-target="analysisHorizonNumber"
 
-  // JS: Stimulus app entry
-  script type="module" src="/ui-app.js"
-  
+        .form-group
+          label for="strategy_selector" Conversion Strategy
+          select data-plan-form-target="strategySelector" data-action="change->plan-form#updateResults"
+
+      #results.panel
+        div data-controller="charts"
+            h3 Lifetime Asset Progression
+            .chart-container
+                canvas data-charts-target="canvas"
+
+        div data-controller="summary"
+            h3 Summary
+            .summary-panel
+                .metric
+                    h4 Net Worth
+                    p data-summary-target="netWorth"
+                .metric
+                    h4 Taxable
+                    p data-summary-target="taxable"
+                .metric
+                    h4 Roth
+                    p data-summary-target="roth"
+                .metric
+                    h4 Pre-tax
+                    p data-summary-target="pretax"
+                .metric
+                    h4 Lifetime IRMAA
+                    p data-summary-target="lifetimeIRMAA"
+
+        div data-controller="results-table"
+            h3 Results
+            .data-table-container
+              table
+                thead
+                  tr
+                    th Year
+                    th Starting Balance
+                    th Ending Balance
+                    th Net Worth
+                    th Tax
+                tbody data-results-table-target="body"
+              template data-results-table-target="rowTemplate"
+                tr
+                  td.year
+                  td.starting-balance
+                  td.ending-balance
+                  td.net-worth
+                  td.tax
+        
+        div data-controller="tax-bracket-slider"
+            h3 Tax Bracket Visualizer
+            .chart-container
+                canvas data-tax-bracket-slider-target="canvas"

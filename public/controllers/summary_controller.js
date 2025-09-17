@@ -1,28 +1,58 @@
-import { Controller } from "/vendor/stimulus.js";
+import { Controller } from '../vendor/stimulus.js';
+
+function formatToUSDCurrency(number) {
+    if (number === null || typeof number === 'undefined' || isNaN(number)) {
+        return 'N/A';
+    }
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(number);
+}
 
 export default class extends Controller {
-  static targets = ["lifetimeTaxes", "totalConversions", "endNetWorth", "taxFreePct"];
+    static targets = ['netWorth', 'taxable', 'roth', 'pretax', 'lifetimeIRMAA'];
 
-  connect() {
-    this.element.addEventListener('plan-form:results', (e) => this.render(e.detail));
-  }
+    connect() {
+        document.addEventListener('plan:results', this.update.bind(this));
+    }
 
-  fmtMoney(n) {
-    if (n == null || isNaN(n)) return '--';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(n));
-  }
-  fmtPct(n) {
-    return n == null || isNaN(n) ? '--' : `${(Number(n) * 100).toFixed(1)}%`;
-  }
+    update(event) {
+        const results = event.detail?.results;
+        const yearlyData = results?.yearly;
+        const aggregateData = results?.aggregate;
 
-  render(bundle) {
-    const agg = bundle.aggregate || {};
-    const lifetime = agg.cumulative_all_in_tax ?? (agg.cumulative_federal_tax + agg.cumulative_capital_gains_tax);
-    this.lifetimeTaxesTarget.textContent = this.fmtMoney(lifetime);
-    this.totalConversionsTarget.textContent = this.fmtMoney(agg.cumulative_roth_conversions);
-    const endNW = (agg.ending_taxable_balance || 0) + (agg.ending_traditional_balance || 0) + (agg.ending_roth_balance || 0);
-    this.endNetWorthTarget.textContent = this.fmtMoney(endNW);
-    const taxFreePct = endNW > 0 ? (agg.ending_roth_balance || 0) / endNW : 0;
-    this.taxFreePctTarget.textContent = this.fmtPct(taxFreePct);
-  }
+        if (!Array.isArray(yearlyData) || yearlyData.length === 0) {
+            console.warn('Yearly results for summary is not an array or is empty.');
+            this.clearSummary();
+            return;
+        }
+
+        const lastYear = yearlyData[yearlyData.length - 1];
+        if (!lastYear) {
+            this.clearSummary();
+            return;
+        }
+
+        this.netWorthTarget.textContent = formatToUSDCurrency(lastYear.ending_net_worth);
+        this.taxableTarget.textContent = formatToUSDCurrency(lastYear.ending_taxable_balance);
+        this.rothTarget.textContent = formatToUSDCurrency(lastYear.ending_roth_balance);
+        this.pretaxTarget.textContent = formatToUSDCurrency(lastYear.ending_traditional_balance);
+        
+        if (aggregateData) {
+            this.lifetimeIRMAATarget.textContent = formatToUSDCurrency(aggregateData.cumulative_irmaa_surcharges);
+        } else {
+            this.lifetimeIRMAATarget.textContent = 'N/A';
+        }
+    }
+
+    clearSummary() {
+        this.netWorthTarget.textContent = 'N/A';
+        this.taxableTarget.textContent = 'N/A';
+        this.rothTarget.textContent = 'N/A';
+        this.pretaxTarget.textContent = 'N/A';
+        this.lifetimeIRMAATarget.textContent = 'N/A';
+    }
 }

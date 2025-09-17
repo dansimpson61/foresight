@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './money'
-
 module Foresight
   class Account
     attr_reader :owner
@@ -16,25 +14,23 @@ module Foresight
 
     def initialize(owner:, balance: 0.0)
       super(owner: owner)
-      @balance = Money.new(balance)
+      @balance = balance
     end
 
     def withdraw(amount)
-      amount = Money.new(amount)
-      amt = [amount.amount, @balance.amount].min
+      amt = [amount, @balance].min
       @balance -= amt
-      { cash: Money.new(amt), taxable_ordinary: Money.new(amt) }
+      { cash: amt, taxable_ordinary: amt }
     end
 
     def convert_to_roth(amount)
-      amount = Money.new(amount)
-      amt = [amount.amount, @balance.amount].min
+      amt = [amount, @balance].min
       @balance -= amt
-      { converted: Money.new(amt), taxable_ordinary: Money.new(amt) }
+      { converted: amt, taxable_ordinary: amt }
     end
 
     def calculate_rmd(age)
-      return Money.new(0) unless age >= owner.rmd_start_age
+      return 0.0 unless age >= owner.rmd_start_age
       divisor = RMD_TABLE.fetch(age, RMD_TABLE.values.last)
       @balance / divisor
     end
@@ -56,14 +52,13 @@ module Foresight
 
     def initialize(owner:, balance: 0.0)
       super(owner: owner)
-      @balance = Money.new(balance)
+      @balance = balance
     end
 
     def withdraw(amount)
-      amount = Money.new(amount)
-      amt = [amount.amount, @balance.amount].min
+      amt = [amount, @balance].min
       @balance -= amt
-      { cash: Money.new(amt), taxable_ordinary: Money.new(0) }
+      { cash: amt, taxable_ordinary: 0.0 }
     end
 
     def deposit(amount)
@@ -82,16 +77,15 @@ module Foresight
 
     def initialize(owners:, balance: 0.0, cost_basis_fraction: 0.7)
       @owners = owners
-      @balance = Money.new(balance)
+      @balance = balance
       @cost_basis_fraction = [[cost_basis_fraction.to_f, 1.0].min, MIN_COST_BASIS_FRACTION].max
     end
 
     def withdraw(amount)
-      amount = Money.new(amount)
-      amt = [amount.amount, @balance.amount].min
+      amt = [amount, @balance].min
       @balance -= amt
-      gains_portion = Money.new(amt) * (1 - cost_basis_fraction)
-      { cash: Money.new(amt), taxable_capital_gains: gains_portion }
+      gains_portion = amt * (1 - cost_basis_fraction)
+      { cash: amt, taxable_capital_gains: gains_portion }
     end
 
     def grow(rate)

@@ -4,7 +4,7 @@ gem 'sinatra', '~> 3.1'
 gem 'puma'
 gem 'bundler'
 gem 'rack'
-gem 'bigdecimal', '~> 3.1'
+gem 'bigdecimal'
 gem 'slim', '~> 5.2'
 
 group :development, :test do

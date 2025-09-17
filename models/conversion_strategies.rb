@@ -33,7 +33,7 @@ module Foresight
         return 0.0 if headroom <= 0
         available = household.traditional_iras.sum(&:balance)
         target = headroom * (1 - @cushion_ratio)
-        [target, available].min.round(2)
+        [target, available].min
       end
     end
 

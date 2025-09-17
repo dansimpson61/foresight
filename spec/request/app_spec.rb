@@ -5,7 +5,7 @@ RSpec.describe 'App endpoints', type: :request do
   it 'serves /ui' do
     get '/ui'
     expect(last_response.status).to eq(200)
-    expect(last_response.body).to include('Foresight UI')
+    expect(last_response.body).to include('Foresight')
   end
 
   it 'serves /plan/example' do

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './money'
-
 module Foresight
   class IncomeSource
     attr_reader :recipient
@@ -16,13 +14,13 @@ module Foresight
 
     def initialize(recipient:, annual_gross: 0.0)
       super(recipient: recipient)
-      @annual_gross = Money.new(annual_gross)
+      @annual_gross = annual_gross
     end
 
     def taxable_amount(_state:, recipient_age:)
       # NY exclusion simplified: up to 20k if age >= 59.5
       if recipient_age >= 60
-        [@annual_gross - 20_000, Money.new(0)].max
+        [@annual_gross - 20_000, 0.0].max
       else
         @annual_gross
       end
@@ -36,13 +34,13 @@ module Foresight
       super(recipient: recipient)
       @start_year = start_year.to_i
       @cola_rate = cola_rate.to_f
-      @given_claimed_amount = annual_benefit && Money.new(annual_benefit)
-      @pia_annual = pia_annual && Money.new(pia_annual)
+      @given_claimed_amount = annual_benefit
+      @pia_annual = pia_annual
       raise ArgumentError, 'Provide annual_benefit or pia_annual' if @given_claimed_amount.nil? && @pia_annual.nil?
     end
 
     def annual_benefit_for(year)
-      return Money.new(0) if year < @start_year
+      return 0.0 if year < @start_year
       base = claimed_amount_at_start
       years_since_start = year - @start_year
       base * ((1 + @cola_rate)**years_since_start)

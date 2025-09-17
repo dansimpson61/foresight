@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './money'
-
 module Foresight
   class AnnualPlanner
     StrategyResult = Struct.new(
@@ -60,8 +58,8 @@ module Foresight
     private
 
     def compute_base_income
-      pension_gross = Money.new(0)
-      pension_taxable = Money.new(0)
+      pension_gross = 0.0
+      pension_taxable = 0.0
       @household.pensions.each do |p|
         pension_gross += p.annual_gross
         pension_taxable += p.annual_gross
@@ -86,19 +84,19 @@ module Foresight
       }
     end
 
-    def taxable_social_security(ss_total, other_income: Money.new(0))
+    def taxable_social_security(ss_total, other_income: 0.0)
       # Provisional income thresholds vary by filing status
       if @household.filing_status == 'MFJ'
-        base_thresh = Money.new(32_000)
-        addl_thresh = Money.new(44_000)
+        base_thresh = 32_000
+        addl_thresh = 44_000
       else
-        base_thresh = Money.new(25_000)
-        addl_thresh = Money.new(34_000)
+        base_thresh = 25_000
+        addl_thresh = 34_000
       end
       provisional = other_income + (ss_total * 0.5)
-      if provisional.amount <= base_thresh.amount
-        Money.new(0)
-      elsif provisional.amount <= addl_thresh.amount
+      if provisional <= base_thresh
+        0.0
+      elsif provisional <= addl_thresh
         (provisional - base_thresh) * 0.5
       else
         base = (addl_thresh - base_thresh) * 0.5
@@ -111,11 +109,11 @@ module Foresight
       baseline_taxable = base_income[:taxable_income]
       requested = strategy.conversion_amount(household: @household, tax_year: @tax_year, base_taxable_income: baseline_taxable)
       remaining = requested
-      actual = Money.new(0)
-      if remaining.positive?
+      actual = 0.0
+      if remaining > 0
         @household.traditional_iras.each do |acct|
-          break if remaining.amount <= 0
-          slice = [acct.balance, remaining.amount].min
+          break if remaining <= 0
+          slice = [acct.balance, remaining].min
           res = acct.convert_to_roth(slice)
           remaining -= res[:converted]
           actual += res[:converted]
@@ -126,52 +124,58 @@ module Foresight
       taxable_after_conv = base_income[:pre_ss_other_income] + actual + ss_taxable_post
       ss_taxable_increase = ss_taxable_post - base_income[:ss_taxable_baseline]
       after_tax_cash = base_income[:after_tax_cash]
-      remaining_need = [@household.target_spending_after_tax - after_tax_cash.amount, 0].max
+      remaining_need = [@household.target_spending_after_tax - after_tax_cash, 0.0].max
       withdrawals = allocate_spending_gap(remaining_need, taxable_after_conv)
       total_taxable_ordinary = taxable_after_conv + withdrawals[:added_ordinary_taxable]
-      ordinary_taxable_after_std_ded = [total_taxable_ordinary.amount - @tax_year.standard_deduction.amount, 0].max
+      ordinary_taxable_after_std_ded = [total_taxable_ordinary - @tax_year.standard_deduction, 0.0].max
 
-      federal_tax_money = @tax_year.tax_on_ordinary(Money.new(ordinary_taxable_after_std_ded))
-      cap_gains_tax_money = @tax_year.tax_on_ltcg(withdrawals[:capital_gains_taxable], ordinary_taxable_income: Money.new(ordinary_taxable_after_std_ded))
-      total_tax_money = federal_tax_money + cap_gains_tax_money
-
-      ny_std = @tax_year.respond_to?(:ny_standard_deduction) ? @tax_year.ny_standard_deduction(@household.filing_status) : Money.new(0)
-      ny_taxable = [total_taxable_ordinary.amount - ny_std.amount, 0].max
-      state_tax_money = @tax_year.respond_to?(:ny_tax_on_income) ? @tax_year.ny_tax_on_income(Money.new(ny_taxable), filing_status: @household.filing_status) : Money.new(0)
+      taxes = @tax_year.calculate(taxable_income: ordinary_taxable_after_std_ded, capital_gains: withdrawals[:capital_gains_taxable])
+      federal_tax = taxes[:federal_tax]
+      state_tax = taxes[:state_tax]
+      total_tax = federal_tax + state_tax
+      cap_gains_tax = 0.0 # Included in federal_tax
 
       magi = total_taxable_ordinary + withdrawals[:capital_gains_taxable]
-      irmaa_part_b_money = @tax_year.respond_to?(:irmaa_part_b_surcharge) ? @tax_year.irmaa_part_b_surcharge(magi) : Money.new(0)
+      irmaa_part_b = @tax_year.irmaa_part_b_surcharge(magi: magi)
 
       economic_gross = base_income[:gross_income] + actual + withdrawals[:added_ordinary_taxable] + withdrawals[:capital_gains_taxable]
-      effective_rate = total_tax_money.to_f / [economic_gross.to_f, 1].max
+      effective_rate = total_tax / [economic_gross, 1].max
 
       incremental_tax, incremental_rate = calculate_conversion_tax_impact(
         base_income: base_income,
-        taxable_after_conv: taxable_after_conv,
         withdrawals: withdrawals,
-        total_tax: total_tax_money,
+        total_tax: total_tax,
         actual_conversion: actual
       )
+
+      withdrawals_for_result = {
+        cash_from_withdrawals: withdrawals[:cash_from_withdrawals],
+        added_ordinary_taxable: withdrawals[:added_ordinary_taxable],
+        capital_gains_taxable: withdrawals[:capital_gains_taxable],
+        detail: withdrawals[:detail].map do |d|
+          { source: d[:source], amount: d[:amount] }
+        end
+      }
 
       StrategyResult.new(
         strategy_name: strategy.name,
         year: @tax_year.year,
-        base_taxable_income: baseline_taxable.to_f,
-        roth_conversion_requested: requested.to_f,
-        actual_roth_conversion: actual.to_f,
-        taxable_income_after_conversion: taxable_after_conv.to_f,
-        magi: magi.to_f,
-        after_tax_cash_before_spending_withdrawals: after_tax_cash.to_f,
+        base_taxable_income: baseline_taxable,
+        roth_conversion_requested: requested,
+        actual_roth_conversion: actual,
+        taxable_income_after_conversion: taxable_after_conv,
+        magi: magi,
+        after_tax_cash_before_spending_withdrawals: after_tax_cash,
         remaining_spending_need: remaining_need,
-        withdrawals: withdrawals.transform_values(&:to_f),
-        federal_tax: federal_tax_money.to_f,
-        capital_gains_tax: cap_gains_tax_money.to_f,
-        state_tax: state_tax_money.to_f,
-        irmaa_part_b: irmaa_part_b_money.to_f,
+        withdrawals: withdrawals_for_result,
+        federal_tax: federal_tax,
+        capital_gains_tax: cap_gains_tax,
+        state_tax: state_tax,
+        irmaa_part_b: irmaa_part_b,
         effective_tax_rate: effective_rate,
-        ss_taxable_post: ss_taxable_post.to_f,
-        ss_taxable_increase: ss_taxable_increase.to_f,
-        conversion_incremental_tax: incremental_tax.to_f,
+        ss_taxable_post: ss_taxable_post,
+        ss_taxable_increase: ss_taxable_increase,
+        conversion_incremental_tax: incremental_tax,
         conversion_incremental_marginal_rate: incremental_rate,
         narration: "..."
       )
@@ -179,12 +183,13 @@ module Foresight
 
     def calculate_conversion_tax_impact(base_income:, withdrawals:, total_tax:, actual_conversion:)
       base_total_taxable_ordinary = base_income[:taxable_income] + withdrawals[:added_ordinary_taxable]
-      base_ordinary_after_std = [base_total_taxable_ordinary.amount - @tax_year.standard_deduction.amount, 0].max
-      base_fed_tax = @tax_year.tax_on_ordinary(Money.new(base_ordinary_after_std))
-      base_cap_tax = @tax_year.tax_on_ltcg(withdrawals[:capital_gains_taxable], ordinary_taxable_income: Money.new(base_ordinary_after_std))
-      base_total_tax = base_fed_tax + base_cap_tax
+      base_ordinary_after_std = [base_total_taxable_ordinary - @tax_year.standard_deduction, 0.0].max
+      
+      base_taxes = @tax_year.calculate(taxable_income: base_ordinary_after_std, capital_gains: withdrawals[:capital_gains_taxable])
+      base_total_tax = base_taxes[:federal_tax] + base_taxes[:state_tax]
+
       incremental_tax = total_tax - base_total_tax
-      incremental_rate = actual_conversion.amount.positive? ? (incremental_tax.to_f / actual_conversion.to_f) : 0.0
+      incremental_rate = actual_conversion > 0 ? (incremental_tax / actual_conversion) : 0.0
       [incremental_tax, incremental_rate]
     end
 
@@ -199,16 +204,16 @@ module Foresight
     end
 
     def allocate_spending_gap(need, taxable_after_conv)
-      return { cash_from_withdrawals: Money.new(0), added_ordinary_taxable: Money.new(0), capital_gains_taxable: Money.new(0), detail: [] } if need <= 0
+      return { cash_from_withdrawals: 0.0, added_ordinary_taxable: 0.0, capital_gains_taxable: 0.0, detail: [] } if need <= 0
 
-      cash = Money.new(0)
-      added_ordinary = Money.new(0)
-      capital_gains_taxable = Money.new(0)
+      cash = 0.0
+      added_ordinary = 0.0
+      capital_gains_taxable = 0.0
       detail = []
 
       @household.taxable_brokerage_accounts.each do |acct|
-        break if cash.amount >= need
-        to_pull = [need - cash.amount, acct.balance].min
+        break if cash >= need
+        to_pull = [need - cash, acct.balance].min
         next if to_pull <= 0
         result = acct.withdraw(to_pull)
         cash += result[:cash]
@@ -218,11 +223,11 @@ module Foresight
 
       desired_ceiling = @household.desired_tax_bracket_ceiling
       @household.traditional_iras.each do |acct|
-        break if cash.amount >= need
+        break if cash >= need
         current_taxable = taxable_after_conv + added_ordinary
-        remaining_headroom = desired_ceiling - current_taxable.amount
+        remaining_headroom = desired_ceiling - current_taxable
         break if remaining_headroom <= 0
-        to_pull = [need - cash.amount, acct.balance, remaining_headroom].min
+        to_pull = [need - cash, acct.balance, remaining_headroom].min
         next if to_pull <= 0
         result = acct.withdraw(to_pull)
         cash += result[:cash]
@@ -231,8 +236,8 @@ module Foresight
       end
 
       @household.roth_iras.each do |acct|
-        break if cash.amount >= need
-        to_pull = [need - cash.amount, acct.balance].min
+        break if cash >= need
+        to_pull = [need - cash, acct.balance].min
         next if to_pull <= 0
         result = acct.withdraw(to_pull)
         cash += result[:cash]

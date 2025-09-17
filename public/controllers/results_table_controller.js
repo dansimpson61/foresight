@@ -1,46 +1,52 @@
-import { Controller } from "/vendor/stimulus.js";
+import { Controller } from '../vendor/stimulus.js';
+
+function formatToUSDCurrency(number) {
+  if (number === null || typeof number === 'undefined' || isNaN(number)) {
+    return 'N/A';
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(number);
+}
 
 export default class extends Controller {
-  static targets = ["table"];
+  static targets = ['body', 'rowTemplate'];
 
   connect() {
-    this.element.addEventListener('plan-form:results', (e) => this.render(e.detail));
+    document.addEventListener('plan:results', this.render.bind(this));
   }
 
-  fmtMoney(n) {
-    if (n == null || isNaN(n)) return '--';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(n));
-  }
+  render(event) {
+    const results = event.detail?.results?.yearly;
+    this.bodyTarget.innerHTML = '';
 
-  render(bundle) {
-    const yearly = bundle.yearly || [];
-    const tbody = this.tableTarget.querySelector('tbody');
-    tbody.innerHTML = '';
-    yearly.forEach((r) => {
-      const tr = document.createElement('tr');
-      const cells = [
-        r.year,
-        this.fmtMoney(r.actual_roth_conversion),
-        this.fmtMoney(r.federal_tax),
-        this.fmtMoney(r.state_tax),
-        this.fmtMoney(r.capital_gains_tax),
-        this.fmtMoney(r.all_in_tax),
-        this.fmtMoney(r.magi),
-        this.fmtMoney(r.irmaa_part_b),
-        this.fmtMoney(r.ending_taxable_balance),
-        this.fmtMoney(r.ending_traditional_balance),
-        this.fmtMoney(r.ending_roth_balance),
-        (r.events && r.events.length) || 0,
-      ];
-      cells.forEach((v) => {
-        const td = document.createElement('td');
-        td.textContent = v;
-        td.style.textAlign = 'right';
-        td.style.borderBottom = '1px solid #eee';
-        td.style.padding = '4px 6px';
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
+    if (!Array.isArray(results)) {
+        console.warn('Yearly results data is not an array or is missing.');
+        this.bodyTarget.innerHTML = '<tr><td colspan="5">No data available to display.</td></tr>';
+        return;
+    }
+
+    results.forEach(yearData => {
+      if (!yearData) return;
+
+      const row = this.rowTemplateTarget.content.cloneNode(true);
+
+      const year = yearData.year ?? 'N/A';
+      const startingBalance = yearData.starting_balance;
+      const endingBalance = yearData.ending_balance;
+      const netWorth = yearData.ending_net_worth;
+      const tax = yearData.federal_tax;
+
+      row.querySelector('.year').textContent = year;
+      row.querySelector('.starting-balance').textContent = formatToUSDCurrency(startingBalance);
+      row.querySelector('.ending-balance').textContent = formatToUSDCurrency(endingBalance);
+      row.querySelector('.net-worth').textContent = formatToUSDCurrency(netWorth);
+      row.querySelector('.tax').textContent = formatToUSDCurrency(tax);
+
+      this.bodyTarget.appendChild(row);
     });
   }
 }

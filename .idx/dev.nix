@@ -1,37 +1,37 @@
 # To learn more about how to use Nix to configure your environment
 # see: https://firebase.google.com/docs/studio/customize-workspace
 { pkgs, ... }: {
-  # Which nixpkgs channel to use.
-  channel = "stable-24.05"; # or "unstable"
+  # Which nixpkgs channel to use
+  channel = "unstable"; # or "unstable"
 
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.ruby_3_3
     pkgs.bundler
     pkgs.foreman
+    pkgs.gcc
+    pkgs.gnumake
+    pkgs.chromium
   ];
 
   # Sets environment variables in the workspace
-  env = {};
+  env = { NIXPKGS_ALLOW_UNFREE = "1"; };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
       "rebornix.ruby"
-      "vlanguage.vscode-v-assoc"
       "kaiwood.endwise"
     ];
 
     # Enable previews
     previews = {
       enable = true;
-      previews = [
-        {
-          # Example: run "npm run dev" with PORT set to IDX's defined port for previews,
-          # and show it in IDX's web preview panel
+      previews = {
+        web = {
           command = ["bundle" "exec" "rackup" "--host" "0.0.0.0" "--port" "$PORT"];
           manager = "web";
-        }
-      ];
+        };
+      };
     };
 
     # Workspace lifecycle hooks

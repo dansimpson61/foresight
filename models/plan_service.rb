@@ -14,24 +14,26 @@ module Foresight
       register_defaults
     end
 
-    # Unified entrypoint: PlanService.run(params) -> JSON (string)
+    # Unified entrypoint: PlanService.run(params) -> Hash
     # Auto-selects single vs multi-year based on :years and :strategies unless :mode provided.
     def self.run(params)
       svc = new
-      mode = params[:mode]
-      result_hash = case mode
-                    when 'single_year'
-                      svc.run_single(params)
-                    when 'multi_year'
-                      svc.run_multi(params)
-                    else
-                      if params[:years].to_i > 1 || params[:strategies]
-                        svc.run_multi(params)
-                      else
-                        svc.run_single(params)
-                      end
-                    end
-      JSON.pretty_generate(result_hash)
+      # If params are nested under :inputs, elevate them. Handles report-style inputs.
+      plan_params = params[:inputs] || params
+      mode = plan_params[:mode]
+      
+      case mode
+      when 'single_year'
+        svc.run_single(plan_params)
+      when 'multi_year'
+        svc.run_multi(plan_params)
+      else
+        if plan_params[:years].to_i > 1 || plan_params[:strategies]
+          svc.run_multi(plan_params)
+        else
+          svc.run_single(plan_params)
+        end
+      end
     end
 
     def list_strategies
@@ -59,9 +61,9 @@ module Foresight
       )
       strategies = (params[:strategies] || default_strategy_specs).map { |spec| instantiate_strategy(spec) }
       results = life.run_multi(strategies)
-  json = life.to_json_report(results, strategies: strategies.map(&:name))
-  enriched = inject_phases(JSON.parse(json), life, results)
-  wrap(JSON.generate(enriched))
+      json = life.to_json_report(results, strategies: strategies.map(&:name))
+      enriched = inject_phases(JSON.parse(json), life, results)
+      wrap(enriched)
     end
 
     def run_single(params)
@@ -79,12 +81,11 @@ module Foresight
 
     private
 
-    def wrap(json_string)
-      parsed = JSON.parse(json_string)
+    def wrap(parsed_data)
       {
         schema_version: SCHEMA_VERSION,
         mode: 'multi_year',
-        data: parsed
+        data: parsed_data
       }
     end
 
@@ -150,12 +151,12 @@ module Foresight
       accounts = (params[:accounts] || []).map do |a|
         case a[:type]
         when 'TraditionalIRA'
-          TraditionalIRA.new(owner: member_index.fetch(a[:owner]), balance: a[:balance])
+          TraditionalIRA.new(owner: member_index.fetch(a[:owner]), balance: a[:balance].to_f)
         when 'RothIRA'
-          RothIRA.new(owner: member_index.fetch(a[:owner]), balance: a[:balance])
+          RothIRA.new(owner: member_index.fetch(a[:owner]), balance: a[:balance].to_f)
         when 'TaxableBrokerage'
           owners = a[:owners].map { |n| member_index.fetch(n) }
-          TaxableBrokerage.new(owners: owners, balance: a[:balance], cost_basis_fraction: a[:cost_basis_fraction] || 0.7)
+          TaxableBrokerage.new(owners: owners, balance: a[:balance].to_f, cost_basis_fraction: a[:cost_basis_fraction].to_f || 0.7)
         else
           raise ArgumentError, "Unknown account type #{a[:type]}"
         end
@@ -163,14 +164,14 @@ module Foresight
       income_sources = (params[:income_sources] || []).map do |s|
         case s[:type]
         when 'Pension'
-          Pension.new(recipient: member_index.fetch(s[:recipient]), annual_gross: s[:annual_gross])
+          Pension.new(recipient: member_index.fetch(s[:recipient]), annual_gross: s[:annual_gross].to_f)
         when 'SocialSecurityBenefit'
           SocialSecurityBenefit.new(
             recipient: member_index.fetch(s[:recipient]),
             start_year: s[:start_year],
-            annual_benefit: s[:annual_benefit],
-            pia_annual: s[:pia_annual],
-            cola_rate: s[:cola_rate] || 0.0
+            annual_benefit: s[:annual_benefit].to_f,
+            pia_annual: s[:pia_annual].to_f,
+            cola_rate: s[:cola_rate].to_f || 0.0
           )
         else
           raise ArgumentError, "Unknown income source type #{s[:type]}"
@@ -178,8 +179,8 @@ module Foresight
       end
       Household.new(
         members: members,
-        target_spending_after_tax: params.fetch(:target_spending_after_tax),
-        desired_tax_bracket_ceiling: params.fetch(:desired_tax_bracket_ceiling),
+        target_spending_after_tax: params.fetch(:target_spending_after_tax).to_f,
+        desired_tax_bracket_ceiling: params.fetch(:desired_tax_bracket_ceiling).to_f,
         accounts: accounts,
         income_sources: income_sources
       )
