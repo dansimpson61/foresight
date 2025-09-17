@@ -16,7 +16,7 @@ html
         h2 Parameters
         
         section
-          h3 About You
+          h3 Household
           .form-group
             label for="your_age" Your Age
             .slider-group
@@ -43,52 +43,118 @@ html
               option value="CA" California
 
         section
-          h3 Your Money Now
+          h3 Financial State
           .form-group
             label for="trad_ira" Traditional IRAs/401ks
             .slider-group
               input type="range" id="trad_ira" min="0" max="2000000" step="10000" value="500000" data-action="input->plan-form#sync" data-plan-form-target="tradIRA"
-              input type="number" data-action="input->plan-form#sync" data-plan-form-target="tradIRANumber"
+              input type="number" step="10000" data-action="input->plan-form#sync" data-plan-form-target="tradIRANumber"
           .form-group
             label for="roth_ira" Roth IRAs/401ks
             .slider-group
               input type="range" id="roth_ira" min="0" max="2000000" step="10000" value="100000" data-action="input->plan-form#sync" data-plan-form-target="rothIRA"
-              input type="number" data-action="input->plan-form#sync" data-plan-form-target="rothIRANumber"
+              input type="number" step="10000" data-action="input->plan-form#sync" data-plan-form-target="rothIRANumber"
           .form-group
-            label for="taxable_ brokerage" Taxable Brokerage
+            label for="taxable_brokerage" Taxable Brokerage
             .slider-group
               input type="range" id="taxable_brokerage" min="0" max="2000000" step="10000" value="200000" data-action="input->plan-form#sync" data-plan-form-target="taxableBrokerage"
-              input type="number" data-action="input->plan-form#sync" data-plan-form-target="taxableBrokerageNumber"
+              input type="number" step="10000" data-action="input->plan-form#sync" data-plan-form-target="taxableBrokerageNumber"
+          .form-group
+            label for="cost_basis" Cost Basis (%)
+            .slider-group
+              input type="range" id="cost_basis" min="0" max="100" step="1" value="70" data-action="input->plan-form#sync" data-plan-form-target="costBasis"
+              input type="number" step="1" data-action="input->plan-form#sync" data-plan-form-target="costBasisNumber"
+          .form-group
+            label for="cash_savings" Cash / Savings
+            .slider-group
+              input type="range" id="cash_savings" min="0" max="500000" step="5000" value="50000" data-action="input->plan-form#sync" data-plan-form-target="cashSavings"
+              input type="number" step="5000" data-action="input->plan-form#sync" data-plan-form-target="cashSavingsNumber"
+          .form-group
+            label for="emergency_fund" Emergency Fund
+            .slider-group
+              input type="range" id="emergency_fund" min="0" max="500000" step="5000" value="25000" data-action="input->plan-form#sync" data-plan-form-target="emergencyFund"
+              input type="number" step="5000" data-action="input->plan-form#sync" data-plan-form-target="emergencyFundNumber"
+          .form-group
+            label for="other_assets" Other Assets
+            input type="number" id="other_assets" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="otherAssets"
+          .form-group
+            label for="liabilities" Liabilities
+            input type="number" id="liabilities" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="liabilities"
 
         section
-            h3 Your Future Income
-            .form-group
-                label for="annual_income" Annual Base Income
-                .slider-group
-                  input type="range" id="annual_income" min="0" max="1000000" step="10000" value="150000" data-action="input->plan-form#sync" data-plan-form-target="annualIncome"
-                  input type="number" data-action="input->plan-form#sync" data-plan-form-target="annualIncomeNumber"
+          h3 Annual Income
+          h4 You
+          .form-group
+            label for="your_income" Base Salary
+            input type="number" id="your_income" step="5000" value="150000" data-action="input->plan-form#runPlan" data-plan-form-target="yourIncome"
+          .form-group
+            label for="your_ss_fra" Social Security (at FRA)
+            input type="number" id="your_ss_fra" step="100" value="2500" data-action="input->plan-form#runPlan" data-plan-form-target="yourSSFRA"
+          .form-group
+            label for="your_ss_claim_age" Claiming Age
+            input type="number" id="your_ss_claim_age" min="62" max="70" value="67" data-action="input->plan-form#runPlan" data-plan-form-target="yourSSClaimAge"
+          .form-group
+            label for="your_pension" Pension
+            input type="number" id="your_pension" step="1000" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="yourPension"
+          h4 Spouse
+          .form-group
+            label for="spouse_income" Base Salary
+            input type="number" id="spouse_income" step="5000" value="75000" data-action="input->plan-form#runPlan" data-plan-form-target="spouseIncome"
+          .form-group
+            label for="spouse_ss_fra" Social Security (at FRA)
+            input type="number" id="spouse_ss_fra" step="100" value="1800" data-action="input->plan-form#runPlan" data-plan-form-target="spouseSSFRA"
+          .form-group
+            label for="spouse_ss_claim_age" Claiming Age
+            input type="number" id="spouse_ss_claim_age" min="62" max="70" value="67" data-action="input->plan-form#runPlan" data-plan-form-target="spouseSSClaimAge"
+          .form-group
+            label for="spouse_pension" Pension
+            input type="number" id="spouse_pension" step="1000" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="spousePension"
+
+        section
+          h3 Spending & Withdrawals
+          .form-group
+            label for="annual_expenses" Annual Expenses
+            .slider-group
+              input type="range" id="annual_expenses" min="0" max="300000" step="5000" value="80000" data-action="input->plan-form#sync" data-plan-form-target="annualExpenses"
+              input type="number" step="5000" data-action="input->plan-form#sync" data-plan-form-target="annualExpensesNumber"
+          .form-group
+            label for="withdrawal_hierarchy" Withdrawal Hierarchy
+            .select-group
+              - (1..4).each do |i|
+                select id="withdrawal_#{i}" data-action="change->plan-form#runPlan" data-plan-form-target="withdrawal#{i}"
+                  option value="cash" Cash
+                  option value="taxable" Taxable
+                  option value="traditional" Traditional
+                  option value="roth" Roth
         
         section
-            h3 Your Assumptions
-            .form-group
-                label for="investment_growth" Investment Growth Rate (%)
-                .slider-group
-                  input type="range" id="investment_growth" min="0" max="10" step="0.5" value="3" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowth"
-                  input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowthNumber"
-            .form-group
-                label for="inflation_rate" Inflation Rate (%)
-                .slider-group
-                  input type="range" id="inflation_rate" min="0" max="10" step="0.5" value="2" data-action="input->plan-form#sync" data-plan-form-target="inflationRate"
-                  input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="inflationRateNumber"
-            .form-group
-                label for="analysis_horizon" Analysis Horizon (Years)
-                .slider-group
-                  input type="range" id="analysis_horizon" min="1" max="50" value="30" data-action="input->plan-form#sync" data-plan-form-target="analysisHorizon"
-                  input type="number" data-action="input->plan-form#sync" data-plan-form-target="analysisHorizonNumber"
+          h3 Assumptions
+          .form-group
+              label for="investment_growth" Investment Growth Rate (%)
+              .slider-group
+                input type="range" id="investment_growth" min="0" max="10" step="0.5" value="3" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowth"
+                input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowthNumber"
+          .form-group
+              label for="inflation_rate" Inflation Rate (%)
+              .slider-group
+                input type="range" id="inflation_rate" min="0" max="10" step="0.5" value="2" data-action="input->plan-form#sync" data-plan-form-target="inflationRate"
+                input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="inflationRateNumber"
+          .form-group
+              label for="analysis_horizon" Analysis Horizon (Years)
+              .slider-group
+                input type="range" id="analysis_horizon" min="1" max="50" value="30" data-action="input->plan-form#sync" data-plan-form-target="analysisHorizon"
+                input type="number" data-action="input->plan-form#sync" data-plan-form-target="analysisHorizonNumber"
 
-        .form-group
-          label for="strategy_selector" Conversion Strategy
-          select data-plan-form-target="strategySelector" data-action="change->plan-form#updateResults"
+        section
+          h3 Strategy
+          .form-group
+            label for="strategy_selector" Conversion Strategy
+            select data-plan-form-target="strategySelector" data-action="change->plan-form#runPlan"
+              option value="do_nothing" Do Nothing
+              option value="fixed_amount" Fixed Amount
+              option value="fill_to_top_of_bracket" Fill to Top of Bracket
+          .form-group data-plan-form-target="strategyControls"
+            / -- Controls for the selected strategy will be injected here --
 
       #results.panel
         div data-controller="charts"

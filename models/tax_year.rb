@@ -8,43 +8,83 @@ module Foresight
 
     def initialize(year:)
       @year = year.to_i
-      # Simplified: using 2023 brackets for all years
       @brackets = YAML.load_file('./config/tax_brackets.yml')
     end
 
-    def standard_deduction
-      @brackets['standard_deduction_mfj_2023']
+    def standard_deduction(filing_status)
+      key = "standard_deduction_#{filing_status}_2023"
+      @brackets.fetch(key)
     end
 
-    def calculate(taxable_income:, capital_gains: 0.0)
-      # Simplified federal tax calculation
+    def calculate(filing_status:, taxable_income:, capital_gains: 0.0)
+      status_key = "#{filing_status}_2023"
       tax = 0.0
       remaining_income = taxable_income
 
-      brackets['mfj_2023']['ordinary'].reverse_each do |bracket|
+      # Calculate ordinary income tax
+      @brackets[status_key]['ordinary'].reverse_each do |bracket|
         next if remaining_income <= bracket['income']
-
         taxable_at_this_rate = remaining_income - bracket['income']
         tax += taxable_at_this_rate * bracket['rate']
         remaining_income = bracket['income']
       end
 
-      # Simplified capital gains tax
-      tax += capital_gains * 0.15 # Assume 15% flat capital gains tax
+      # Add capital gains tax
+      capital_gains_tax = calculate_capital_gains_tax(filing_status: filing_status, taxable_income: taxable_income, capital_gains: capital_gains)
+      tax += capital_gains_tax
+      
+      # Simplified state tax
+      state_tax = taxable_income * 0.04 
 
-      { federal_tax: tax, state_tax: taxable_income * 0.04 } # Simplified 4% state tax
+      { federal_tax: tax, state_tax: state_tax, capital_gains_tax: capital_gains_tax }
     end
 
-    def irmaa_part_b_surcharge(magi: 0.0)
-      magi ||= 0.0 # Ensure magi is not nil
-      found_tier = brackets['mfj_2023']['irmaa_part_b'].find { |tier| magi <= tier['income_threshold'] }
-      found_tier ? found_tier['surcharge_per_person'] : brackets['mfj_2023']['irmaa_part_b'].last['surcharge_per_person']
+    def calculate_capital_gains_tax(filing_status:, taxable_income:, capital_gains:)
+        return 0.0 if capital_gains <= 0
+        
+        status_key = "#{filing_status}_2023"
+        cg_brackets = @brackets[status_key]['capital_gains']
+        
+        tax = 0.0
+        remaining_gains = capital_gains
+        
+        cg_brackets.reverse_each do |bracket|
+            break if remaining_gains <= 0
+            
+            # The income threshold for capital gains includes ordinary income
+            threshold = [bracket['income'] - taxable_income, 0].max
+            
+            taxable_in_this_bracket = [remaining_gains, threshold].min
+            tax += taxable_in_this_bracket * bracket['rate']
+            remaining_gains -= taxable_in_this_bracket
+        end
+        
+        tax
+    end
+    
+    def social_security_taxability_thresholds(filing_status)
+        status_key = "#{filing_status}_2023"
+        @brackets[status_key]['social_security_provisional_income']
     end
 
-    def irmaa_part_d_surcharge(magi: 0.0)
-      magi ||= 0.0 # Ensure magi is not nil
-      found_tier = brackets['mfj_2023']['irmaa_part_d'].find { |tier| magi <= tier['income_threshold'] }
-      found_tier ? found_tier['surcharge_per_person'] : brackets['mfj_2023']['irmaa_part_d'].last['surcharge_per_person']
+    def irmaa_part_b_surcharge(magi: 0.0, status:)
+      magi ||= 0.0
+      status_key = "#{status}_2023"
+      find_irmaa_surcharge(magi, @brackets[status_key]['irmaa_part_b'])
+    end
+
+    def irmaa_part_d_surcharge(magi: 0.0, status:)
+      magi ||= 0.0
+      status_key = "#{status}_2023"
+      find_irmaa_surcharge(magi, @brackets[status_key]['irmaa_part_d'])
+    end
+
+    private
+
+    def find_irmaa_surcharge(magi, tiers)
+      # Tiers are ordered from lowest to highest income threshold in the YAML
+      found_tier = tiers.reverse.find { |tier| magi > tier['income_threshold'] }
+      found_tier ? found_tier['surcharge_per_person'] * 2 : 0.0 # Multiply by 2 for household
     end
   end
 end

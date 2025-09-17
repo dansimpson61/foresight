@@ -1,26 +1,42 @@
 # frozen_string_literal: true
 
 module Foresight
+  # Base account class
   class Account
+    attr_reader :balance
+
+    def initialize(balance: 0.0)
+      @balance = balance.to_f
+    end
+
+    def grow(rate)
+      @balance *= (1 + rate)
+    end
+  end
+
+  # Owned account adds an owner
+  class OwnedAccount < Account
     attr_reader :owner
 
-    def initialize(owner:)
+    def initialize(owner:, balance: 0.0)
+      super(balance: balance)
       @owner = owner
     end
   end
 
-  class TraditionalIRA < Account
-    attr_reader :balance
-
-    def initialize(owner:, balance: 0.0)
-      super(owner: owner)
-      @balance = balance
-    end
-
+  class Cash < Account
     def withdraw(amount)
       amt = [amount, @balance].min
       @balance -= amt
-      { cash: amt, taxable_ordinary: amt }
+      { cash: amt, taxable_ordinary: 0.0, taxable_capital_gains: 0.0 }
+    end
+  end
+
+  class TraditionalIRA < OwnedAccount
+    def withdraw(amount)
+      amt = [amount, @balance].min
+      @balance -= amt
+      { cash: amt, taxable_ordinary: amt, taxable_capital_gains: 0.0 }
     end
 
     def convert_to_roth(amount)
@@ -41,55 +57,36 @@ module Foresight
       83 => 17.7, 84 => 16.8, 85 => 16.0, 86 => 15.2, 87 => 14.4,
       88 => 13.7, 89 => 12.9, 90 => 12.2
     }.freeze
-
-    def grow(rate)
-      @balance *= (1 + rate)
-    end
   end
 
-  class RothIRA < Account
-    attr_reader :balance
-
-    def initialize(owner:, balance: 0.0)
-      super(owner: owner)
-      @balance = balance
-    end
-
+  class RothIRA < OwnedAccount
     def withdraw(amount)
       amt = [amount, @balance].min
       @balance -= amt
-      { cash: amt, taxable_ordinary: 0.0 }
+      { cash: amt, taxable_ordinary: 0.0, taxable_capital_gains: 0.0 }
     end
 
     def deposit(amount)
       @balance += amount
     end
-
-    def grow(rate)
-      @balance *= (1 + rate)
-    end
   end
 
   class TaxableBrokerage < Account
-    attr_reader :owners, :balance, :cost_basis_fraction
+    attr_reader :owners, :cost_basis_fraction
 
     MIN_COST_BASIS_FRACTION = 0.1
 
     def initialize(owners:, balance: 0.0, cost_basis_fraction: 0.7)
+      super(balance: balance)
       @owners = owners
-      @balance = balance
       @cost_basis_fraction = [[cost_basis_fraction.to_f, 1.0].min, MIN_COST_BASIS_FRACTION].max
     end
 
     def withdraw(amount)
       amt = [amount, @balance].min
       @balance -= amt
-      gains_portion = amt * (1 - cost_basis_fraction)
-      { cash: amt, taxable_capital_gains: gains_portion }
-    end
-
-    def grow(rate)
-      @balance *= (1 + rate)
+      gains_portion = amt * (1 - @cost_basis_fraction)
+      { cash: amt, taxable_ordinary: 0.0, taxable_capital_gains: gains_portion }
     end
   end
 end

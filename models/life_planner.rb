@@ -5,52 +5,10 @@ require 'json'
 
 module Foresight
   class LifePlanner
-    YearSummary = Struct.new(
-      :year,
-      :strategy_name,
-      :requested_roth_conversion,
-      :actual_roth_conversion,
-      :federal_tax,
-      :capital_gains_tax,
-      :state_tax,
-      :effective_tax_rate,
-      :starting_balance,
-      :starting_net_worth,
-      :ending_balance,
-      :ending_net_worth,
-      :ending_traditional_balance,
-      :ending_roth_balance,
-      :ending_taxable_balance,
-      :rmd_taken,
-      :narration,
-      :future_rmd_pressure,
-      :ss_taxable_post,
-      :ss_taxable_increase,
-      :conversion_incremental_tax,
-      :conversion_incremental_marginal_rate,
-      :magi,
-      :irmaa_part_b,
-      :all_in_tax,
-      :events,
-      :irmaa_lookback_year,
-      :irmaa_lookback_magi,
-      keyword_init: true
-    )
+    # ... (YearSummary and StrategyAggregate structs remain the same) ...
+    YearSummary = Struct.new(:year, :strategy_name, :requested_roth_conversion, :actual_roth_conversion, :federal_tax, :capital_gains_tax, :state_tax, :effective_tax_rate, :starting_balance, :starting_net_worth, :ending_balance, :ending_net_worth, :ending_traditional_balance, :ending_roth_balance, :ending_taxable_balance, :rmd_taken, :narration, :future_rmd_pressure, :ss_taxable_post, :ss_taxable_increase, :conversion_incremental_tax, :conversion_incremental_marginal_rate, :magi, :irmaa_part_b, :all_in_tax, :events, :irmaa_lookback_year, :irmaa_lookback_magi, keyword_init: true)
+    StrategyAggregate = Struct.new(:strategy_name, :years, :cumulative_federal_tax, :cumulative_capital_gains_tax, :cumulative_all_in_tax, :cumulative_roth_conversions, :cumulative_irmaa_surcharges, :ending_traditional_balance, :ending_roth_balance, :ending_taxable_balance, :projected_first_rmd_pressure, keyword_init: true)
 
-    StrategyAggregate = Struct.new(
-      :strategy_name,
-      :years,
-      :cumulative_federal_tax,
-      :cumulative_capital_gains_tax,
-      :cumulative_all_in_tax,
-      :cumulative_roth_conversions,
-      :cumulative_irmaa_surcharges,
-      :ending_traditional_balance,
-      :ending_roth_balance,
-      :ending_taxable_balance,
-      :projected_first_rmd_pressure,
-      keyword_init: true
-    )
 
     attr_reader :household
 
@@ -63,7 +21,7 @@ module Foresight
       @initial_account_balances = household.accounts.each_with_object({}) do |acct, h|
         h[acct.object_id] = acct.balance
       end
-      @initial_target_spending = household.target_spending_after_tax
+      @initial_annual_expenses = household.annual_expenses
     end
 
     def run_multi(strategies)
@@ -96,7 +54,7 @@ module Foresight
     private
 
     def default_growths
-      { traditional_ira: 0.04, roth_ira: 0.05, taxable: 0.03 }
+      { traditional_ira: 0.04, roth_ira: 0.05, taxable: 0.03, cash: 0.005 }
     end
 
     def apply_growth
@@ -108,7 +66,8 @@ module Foresight
       ending_balances = {
         traditional: @household.traditional_iras.sum(&:balance).round(2),
         roth: @household.roth_iras.sum(&:balance).round(2),
-        taxable: @household.taxable_brokerage_accounts.sum(&:balance).round(2)
+        taxable: @household.taxable_brokerage_accounts.sum(&:balance).round(2),
+        cash: @household.cash_accounts.sum(&:balance).round(2)
       }
       
       YearSummary.new(
@@ -125,10 +84,10 @@ module Foresight
         all_in_tax: all_in,
         
         starting_balance: starting_balances.values.sum.round(2),
-        starting_net_worth: starting_balances.values.sum.round(2),
+        starting_net_worth: starting_balances.values.sum.round(2), # TODO: Add other assets/liabilities
         
         ending_balance: ending_balances.values.sum.round(2),
-        ending_net_worth: ending_balances.values.sum.round(2),
+        ending_net_worth: ending_balances.values.sum.round(2), # TODO: Add other assets/liabilities
         ending_traditional_balance: ending_balances[:traditional],
         ending_roth_balance: ending_balances[:roth],
         ending_taxable_balance: ending_balances[:taxable],
@@ -151,29 +110,14 @@ module Foresight
         age = acct.owner.age_in(target_year)
         acct.calculate_rmd(age)
       end
-      spending = @household.target_spending_after_tax
+      spending = @household.annual_expenses
       return 0.0 if spending <= 0
       (projected_rmd / spending).round(4)
     end
 
     def projected_first_rmd_pressure_for(household)
-      first_rmd_age = @household.members.map(&:rmd_start_age).min
-      trad_growth = 1 + @growth_assumptions[:traditional_ira]
-      projected_trad_total = 0.0
-      future_spending = household.target_spending_after_tax
-      
-      household.traditional_iras.each do |acct|
-        current_age = acct.owner.age_in(@start_year + @years - 1)
-        years_until_rmd = [first_rmd_age - current_age, 0].max
-        balance = acct.balance * (trad_growth ** years_until_rmd)
-        projected_trad_total += balance
-        future_spending *= ((1 + @inflation_rate) ** years_until_rmd)
-      end
-      
-      divisor = TraditionalIRA::RMD_TABLE[first_rmd_age] || 26.5
-      projected_rmd = projected_trad_total / divisor
-      return 0.0 if future_spending <= 0
-      (projected_rmd / future_spending).round(4)
+      # This logic needs to be re-evaluated with the new spending model
+      0.0 
     end
 
     def build_aggregate(yearly)
@@ -189,7 +133,7 @@ module Foresight
         ending_traditional_balance: last.ending_traditional_balance,
         ending_roth_balance: last.ending_roth_balance,
         ending_taxable_balance: last.ending_taxable_balance,
-        projected_first_rmd_pressure: projected_first_rmd_pressure_for(@household)
+        projected_first_rmd_pressure: 0.0 # Disabled for now
       )
     end
 
@@ -201,7 +145,8 @@ module Foresight
         starting_balances = {
           traditional: household.traditional_iras.sum(&:balance),
           roth: household.roth_iras.sum(&:balance),
-          taxable: household.taxable_brokerage_accounts.sum(&:balance)
+          taxable: household.taxable_brokerage_accounts.sum(&:balance),
+          cash: household.cash_accounts.sum(&:balance)
         }
         
         tax_year = TaxYear.new(year: current_year)
@@ -227,7 +172,7 @@ module Foresight
 
     def snapshot_household(hh)
       {
-        target: hh.target_spending_after_tax,
+        annual_expenses: hh.annual_expenses,
         accounts: hh.accounts.map { |a| [a, Marshal.load(Marshal.dump(a.balance))] }
       }
     end
@@ -238,6 +183,13 @@ module Foresight
         years: @years,
         inflation_rate: @inflation_rate,
         growth_assumptions: @growth_assumptions,
+        household: {
+          filing_status: @household.filing_status,
+          state: @household.state,
+          annual_expenses_start: @initial_annual_expenses,
+          emergency_fund_floor: @household.emergency_fund_floor,
+          withdrawal_hierarchy: @household.withdrawal_hierarchy,
+        },
         members: @household.members.map do |m|
           {
             name: m.name,
@@ -258,28 +210,22 @@ module Foresight
           t = src.class.name.split('::').last
             h = { type: t, recipient: src.recipient.name }
           case t
+          when 'Salary'
+            h[:annual_gross] = src.annual_gross
           when 'Pension'
             h[:annual_gross] = src.annual_gross
           when 'SocialSecurityBenefit'
-            if src.instance_variable_defined?(:@pia_annual) && src.instance_variable_get(:@pia_annual)
-              h[:pia_annual] = src.instance_variable_get(:@pia_annual)
-            end
-            if src.instance_variable_defined?(:@given_claimed_amount) && src.instance_variable_get(:@given_claimed_amount)
-              h[:claimed_annual_at_start] = src.instance_variable_get(:@given_claimed_amount)
-            end
-            h[:start_year] = src.start_year
-            h[:cola_rate] = src.cola_rate
+            h[:pia_annual] = src.pia_annual
+            h[:claiming_age] = src.claiming_age
           end
           h
         end,
-        target_spending_after_tax_start: @initial_target_spending,
-        desired_tax_bracket_ceiling: @household.desired_tax_bracket_ceiling,
         strategies: Array(strategy_names)
       }
     end
 
     def restore_household(hh, snap)
-      hh.instance_variable_set(:@target_spending_after_tax, snap[:target])
+      hh.instance_variable_set(:@annual_expenses, snap[:annual_expenses])
       snap[:accounts].each do |acct_ref, balance|
         acct_ref.instance_variable_set(:@balance, balance)
       end
@@ -288,7 +234,8 @@ module Foresight
     def events_for(year)
       evts = []
       @household.social_security_benefits.each do |b|
-        evts << { type: 'ss_start', person: b.recipient.name } if b.start_year == year
+        # This needs to be updated based on age, not start_year
+        evts << { type: 'ss_start', person: b.recipient.name } if b.recipient.age_in(year) == b.claiming_age
       end
       @household.members.each do |m|
         evts << { type: 'medicare', person: m.name } if m.age_in(year) >= 65 && m.age_in(year - 1) < 65

@@ -5,7 +5,7 @@ module Foresight
   # Thin orchestration boundary for future UI / API.
   # Keeps domain planners (AnnualPlanner, LifePlanner) pure and focused.
   class PlanService
-    SCHEMA_VERSION = '0.1.0'
+    SCHEMA_VERSION = '0.1.1' 
 
     StrategyDescriptor = Struct.new(:key, :klass, :description, :default_params, keyword_init: true)
 
@@ -14,26 +14,10 @@ module Foresight
       register_defaults
     end
 
-    # Unified entrypoint: PlanService.run(params) -> Hash
-    # Auto-selects single vs multi-year based on :years and :strategies unless :mode provided.
     def self.run(params)
       svc = new
-      # If params are nested under :inputs, elevate them. Handles report-style inputs.
       plan_params = params[:inputs] || params
-      mode = plan_params[:mode]
-      
-      case mode
-      when 'single_year'
-        svc.run_single(plan_params)
-      when 'multi_year'
-        svc.run_multi(plan_params)
-      else
-        if plan_params[:years].to_i > 1 || plan_params[:strategies]
-          svc.run_multi(plan_params)
-        else
-          svc.run_single(plan_params)
-        end
-      end
+      svc.run_multi(plan_params)
     end
 
     def list_strategies
@@ -42,41 +26,22 @@ module Foresight
       end
     end
 
-    # params: {
-    #   members: [{ name:, date_of_birth: }],
-    #   accounts: [{ type:, owner:, owners:, balance:, cost_basis_fraction: }],
-    #   income_sources: [{ type:, recipient:, start_year:, pia_annual:, annual_benefit:, cola_rate: }],
-    #   target_spending_after_tax:, desired_tax_bracket_ceiling:,
-    #   start_year:, years:, inflation_rate:, growth_assumptions: {},
-    #   strategies: [{ key:, params: {} }]
-    # }
     def run_multi(params)
       household = build_household(params)
       life = LifePlanner.new(
         household: household,
         start_year: params.fetch(:start_year),
-        years: params.fetch(:years),
+        years: params.fetch(:analysis_horizon), # Corrected key
         growth_assumptions: params[:growth_assumptions] || {},
         inflation_rate: params[:inflation_rate] || 0.0
       )
-      strategies = (params[:strategies] || default_strategy_specs).map { |spec| instantiate_strategy(spec) }
-      results = life.run_multi(strategies)
-      json = life.to_json_report(results, strategies: strategies.map(&:name))
-      enriched = inject_phases(JSON.parse(json), life, results)
-      wrap(enriched)
-    end
-
-    def run_single(params)
-      household = build_household(params)
-      strategy = instantiate_strategy((params[:strategy] || { key: 'bracket_fill' }))
-      tax_year = TaxYear.new(year: params.fetch(:start_year))
-      annual = AnnualPlanner.new(household: household, tax_year: tax_year)
-      result = annual.generate_strategy(strategy)
-      {
-        schema_version: SCHEMA_VERSION,
-        mode: 'single_year',
-        result: result.to_h
-      }
+      
+      strategy = instantiate_strategy(params[:roth_conversion_strategy])
+      
+      results = life.run_multi([strategy])
+      
+      json = life.to_json_report(results, strategies: [strategy.name])
+      wrap(JSON.parse(json))
     end
 
     private
@@ -89,26 +54,10 @@ module Foresight
       }
     end
 
-    def inject_phases(parsed, life, raw_results)
-      parsed_results = parsed['results']
-      parsed_results.each do |strategy_name, bundle|
-        yearly_rows = bundle['yearly']
-        # Convert to symbol-keyed hashes for analyzer
-        sym_rows = yearly_rows.map { |h| h.transform_keys { |k| k.to_s.downcase.to_sym rescue k } }
-        initial_trad = sym_rows.first ? sym_rows.first[:ending_traditional_balance].to_f : 0.0
-        analyzer = PhaseAnalyzer.new(initial_traditional_total: initial_trad)
-        phases = analyzer.analyze(sym_rows)
-        bundle['phases'] = phases.map do |p|
-          { name: p.name, start_year: p.start_year, end_year: p.end_year, metrics: p.metrics }
-        end
-      end
-      parsed
-    end
-
     def register_defaults
       register(
         StrategyDescriptor.new(
-          key: 'none',
+          key: 'do_nothing',
           klass: ConversionStrategies::NoConversion,
           description: 'Performs no Roth conversion',
           default_params: {}
@@ -116,38 +65,32 @@ module Foresight
       )
       register(
         StrategyDescriptor.new(
-          key: 'bracket_fill',
+          key: 'fill_to_top_of_bracket',
           klass: ConversionStrategies::BracketFill,
-          description: 'Fills ordinary bracket headroom up to household ceiling with cushion',
-          default_params: { cushion_ratio: 0.05 }
+          description: 'Fills ordinary bracket headroom up to a specified ceiling',
+          default_params: { ceiling: 94300, cushion_ratio: 0.05 }
         )
       )
     end
-
+    
     def register(descriptor)
       @registry[descriptor.key] = descriptor
     end
 
-    def default_strategy_specs
-      [
-        { key: 'none' },
-        { key: 'bracket_fill' }
-      ]
-    end
-
     def instantiate_strategy(spec)
-      desc = @registry.fetch(spec[:key]) { raise ArgumentError, "Unknown strategy key #{spec[:key]}" }
-      params = (spec[:params] || {}).empty? ? desc.default_params : desc.default_params.merge(spec[:params])
-      # Only BracketFill currently has params
-      if desc.klass == ConversionStrategies::BracketFill
-        return desc.klass.new(**params.transform_keys(&:to_sym))
-      end
-      desc.klass.new
+      key = spec[:type].to_s
+      desc = @registry.fetch(key) { raise ArgumentError, "Unknown strategy key #{key}" }
+      
+      user_params = spec[:parameters] || {}
+      merged_params = desc.default_params.merge(user_params)
+      
+      desc.klass.new(**merged_params.transform_keys(&:to_sym))
     end
-
+    
     def build_household(params)
       members = params.fetch(:members).map { |m| Person.new(name: m[:name], date_of_birth: m[:date_of_birth]) }
       member_index = members.map { |m| [m.name, m] }.to_h
+
       accounts = (params[:accounts] || []).map do |a|
         case a[:type]
         when 'TraditionalIRA'
@@ -156,33 +99,41 @@ module Foresight
           RothIRA.new(owner: member_index.fetch(a[:owner]), balance: a[:balance].to_f)
         when 'TaxableBrokerage'
           owners = a[:owners].map { |n| member_index.fetch(n) }
-          TaxableBrokerage.new(owners: owners, balance: a[:balance].to_f, cost_basis_fraction: a[:cost_basis_fraction].to_f || 0.7)
+          TaxableBrokerage.new(owners: owners, balance: a[:balance].to_f, cost_basis_fraction: a[:cost_basis_fraction].to_f)
+        when 'Cash'
+          Cash.new(balance: a[:balance].to_f)
         else
           raise ArgumentError, "Unknown account type #{a[:type]}"
         end
       end
-      income_sources = (params[:income_sources] || []).map do |s|
+
+      income_sources = (params[:income_sources] || []).reject { |s| s[:annual_gross].to_i.zero? && s[:fra_benefit].to_i.zero? }.map do |s|
+        recipient = member_index.fetch(s[:recipient])
         case s[:type]
+        when 'Salary'
+          Salary.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
         when 'Pension'
-          Pension.new(recipient: member_index.fetch(s[:recipient]), annual_gross: s[:annual_gross].to_f)
-        when 'SocialSecurityBenefit'
+          Pension.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
+        when 'SocialSecurity'
           SocialSecurityBenefit.new(
-            recipient: member_index.fetch(s[:recipient]),
-            start_year: s[:start_year],
-            annual_benefit: s[:annual_benefit].to_f,
-            pia_annual: s[:pia_annual].to_f,
-            cola_rate: s[:cola_rate].to_f || 0.0
+            recipient: recipient,
+            pia_annual: s[:fra_benefit].to_f,
+            claiming_age: s[:claiming_age].to_i
           )
         else
           raise ArgumentError, "Unknown income source type #{s[:type]}"
         end
       end
+
       Household.new(
         members: members,
-        target_spending_after_tax: params.fetch(:target_spending_after_tax).to_f,
-        desired_tax_bracket_ceiling: params.fetch(:desired_tax_bracket_ceiling).to_f,
         accounts: accounts,
-        income_sources: income_sources
+        income_sources: income_sources,
+        annual_expenses: params.fetch(:annual_expenses).to_f,
+        emergency_fund_floor: params.fetch(:emergency_fund_floor).to_f,
+        withdrawal_hierarchy: params.fetch(:withdrawal_hierarchy).map(&:to_sym),
+        filing_status: params.fetch(:filing_status).to_sym,
+        state: params.fetch(:state)
       )
     end
   end
