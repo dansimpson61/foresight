@@ -69,8 +69,7 @@ module Foresight
       end
 
       begin
-        result_json_string = Foresight::PlanService.run(params)
-        result_hash = JSON.parse(result_json_string, symbolize_names: true)
+        result_hash = Foresight::PlanService.run(params)
 
         response_validation = Foresight::ContractValidator.validate_response(result_hash)
         unless response_validation[:valid]
@@ -84,8 +83,6 @@ module Foresight
           })
         end
 
-        # The result_hash is already validated, so we can wrap and send it.
-        # We re-encode to JSON as the final step.
         wrap_response(result_hash)
       rescue => e
         logger.error "PlanService execution error: #{e.message}\n#{e.backtrace.join("\n")}"

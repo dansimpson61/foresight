@@ -1,81 +1,74 @@
 # frozen_string_literal: true
 
 module Foresight
-  # This module is the single source of truth for data contracts. It defines
-  # the expected structure of payloads using robust, self-validating Rule objects.
   module ContractValidator
-    # --- Schema Rule Definition ---
     Rule = Struct.new(:required, :type, :allowed_values, :schema, :desc, keyword_init: true)
 
-    # --- Schema Definitions ---
+    # --- Schemas now use STRING KEYS exclusively for consistency with JSON ---
 
     ACCOUNT_SCHEMA = {
-      type: Rule.new(required: true, type: String, allowed_values: ['TraditionalIRA', 'RothIRA', 'TaxableBrokerage', 'Cash']),
-      balance: Rule.new(required: true, type: Numeric),
+      'type' => Rule.new(required: true, type: String, allowed_values: ['TraditionalIRA', 'RothIRA', 'TaxableBrokerage', 'Cash']),
+      'balance' => Rule.new(required: true, type: Numeric),
     }.freeze
 
     INCOME_SOURCE_SCHEMA = {
-      type: Rule.new(required: true, type: String, allowed_values: ['Salary', 'Pension', 'SocialSecurity', 'SocialSecurityBenefit']),
+      'type' => Rule.new(required: true, type: String, allowed_values: ['Salary', 'Pension', 'SocialSecurity', 'SocialSecurityBenefit']),
     }.freeze
 
     GROWTH_ASSUMPTIONS_SCHEMA = {
-      traditional_ira: Rule.new(required: true, type: Numeric),
-      roth_ira: Rule.new(required: true, type: Numeric),
-      taxable: Rule.new(required: true, type: Numeric),
-      cash: Rule.new(required: true, type: Numeric),
+      'traditional_ira' => Rule.new(required: true, type: Numeric),
+      'roth_ira' => Rule.new(required: true, type: Numeric),
+      'taxable' => Rule.new(required: true, type: Numeric),
+      'cash' => Rule.new(required: true, type: Numeric),
     }.freeze
 
     REQUEST_SCHEMA = {
-      members: Rule.new(required: true, type: Array, desc: "A list of household members."),
-      filing_status: Rule.new(required: true, type: String, allowed_values: ['mfj', 'single'], desc: "The tax filing status."),
-      state: Rule.new(required: true, type: String, desc: "The state of residence (e.g., 'NY')."),
-      years: Rule.new(required: true, type: Integer, desc: "The number of years to simulate."),
-      start_year: Rule.new(required: true, type: Integer, desc: "The first year of the simulation."),
-      accounts: Rule.new(required: true, type: Array, schema: ACCOUNT_SCHEMA, desc: "A list of financial accounts."),
-      emergency_fund_floor: Rule.new(required: true, type: Numeric, desc: "The minimum cash balance to maintain."),
-      income_sources: Rule.new(required: true, type: Array, schema: INCOME_SOURCE_SCHEMA, desc: "A list of income sources."),
-      annual_expenses: Rule.new(required: true, type: Numeric, desc: "The estimated total annual spending."),
-      strategies: Rule.new(required: true, type: Array, desc: "The list of strategies to simulate."),
-      withdrawal_hierarchy: Rule.new(required: true, type: Array, desc: "The order of accounts for withdrawals."),
-      inflation_rate: Rule.new(required: true, type: Numeric, desc: "The assumed annual inflation rate."),
-      growth_assumptions: Rule.new(required: true, type: Hash, schema: GROWTH_ASSUMPTIONS_SCHEMA, desc: "A hash of growth rates for different account types.")
+      'members' => Rule.new(required: true, type: Array),
+      'filing_status' => Rule.new(required: true, type: String, allowed_values: ['mfj', 'single']),
+      'accounts' => Rule.new(required: true, type: Array, schema: ACCOUNT_SCHEMA),
+      'income_sources' => Rule.new(required: true, type: Array, schema: INCOME_SOURCE_SCHEMA),
+      'growth_assumptions' => Rule.new(required: true, type: Hash, schema: GROWTH_ASSUMPTIONS_SCHEMA)
     }.freeze
 
-    # A fully explicit schema for the data returned by the API.
     RESPONSE_SCHEMA = {
-      schema_version: Rule.new(required: true, type: String),
-      mode: Rule.new(required: true, type: String),
-      data: Rule.new(required: true, type: Hash, schema: {
-        inputs: Rule.new(required: true, type: Hash),
-        results: Rule.new(required: true, type: Hash, schema: {
-          # This now validates the structure of *each* strategy's results
-          '*': Rule.new(required: true, type: Hash, schema: {
-            aggregate: Rule.new(required: true, type: Hash),
-            yearly: Rule.new(required: true, type: Array)
+      'schema_version' => Rule.new(required: true, type: String),
+      'mode' => Rule.new(required: true, type: String),
+      'data' => Rule.new(required: true, type: Hash, schema: {
+        'inputs' => Rule.new(required: true, type: Hash),
+        'results' => Rule.new(required: true, type: Hash, schema: {
+          '*' => Rule.new(required: true, type: Hash, schema: {
+            'aggregate' => Rule.new(required: true, type: Hash),
+            'yearly' => Rule.new(required: true, type: Array)
           })
         })
       })
     }.freeze
 
+    # --- Public Methods ---
     def self.validate_request(params)
-      validate(params, REQUEST_SCHEMA)
+      # First, ensure all keys from the JSON payload are strings.
+      string_keyed_params = JSON.parse(params.to_json)
+      errors = validate_hash(string_keyed_params, REQUEST_SCHEMA)
+      { valid: errors.empty?, errors: errors }
     end
 
     def self.validate_response(response_hash)
-      validate(response_hash, RESPONSE_SCHEMA)
+      # Ensure keys are strings for consistent validation.
+      string_keyed_hash = JSON.parse(response_hash.to_json)
+      errors = validate_hash(string_keyed_hash, RESPONSE_SCHEMA)
+      { valid: errors.empty?, errors: errors }
     end
 
     def self.generate_error_message(errors, payload)
       error_messages = errors.map do |error|
         field = error[:field]
-        rule = error[:rule]
         case error[:issue]
         when :missing
-          "The required field '#{field}' is missing. #{rule.desc}"
+          "The required field '#{field}' is missing."
         when :invalid_type
-          "The field '#{field}' has the wrong type. Expected #{rule.type}, but received #{error[:value].class}."
+          "The field '#{field}' has the wrong type. Expected #{error[:expected]}, but received #{error[:actual]}."
         when :invalid_value
-          "The field '#{field}' has an invalid value ('#{error[:value]}'). It must be one of: #{rule.allowed_values.join(', ')}."
+          "The field '#{field}' has an invalid value. Allowed values are: #{error[:allowed].join(', ')}."
         else
           "An unknown error occurred with the field '#{field}'."
         end
@@ -83,53 +76,56 @@ module Foresight
       "API Contract Error: #{error_messages.join(' ')}\nOffending Payload: #{payload.to_json}"
     end
 
+    # --- Private Validation Logic ---
     private
 
-    def self.validate(data, schema, path = [])
+    def self.validate_hash(data, schema, path = [])
       errors = []
 
-      # Handle wildcard schemas (for validating each key in a hash)
-      if (wildcard_rule = schema['*'])
-        data.each do |key, value|
-          errors.concat(validate(value, wildcard_rule.schema, path + [key])[:errors])
+      # Check for required keys defined in the schema
+      schema.each do |key, rule|
+        next if key == '*' # Handle wildcard separately
+        current_path = path + [key]
+        if rule.required && !data.key?(key)
+          errors << { field: current_path.join('.'), issue: :missing }
         end
-        return { valid: errors.empty?, errors: errors }
       end
 
-      schema.each do |field, rule|
-        current_path = path + [field]
-        
-        if rule.required && !data.key?(field)
-          errors << { field: current_path.join('.'), issue: :missing, rule: rule }
-          next
-        end
-        
-        next unless data.key?(field)
-        
-        value = data[field]
+      # Validate each key present in the data
+      data.each do |key, value|
+        rule = schema[key] || schema['*']
+        next unless rule # Skip validation if no rule is defined for this key
 
+        current_path = path + [key]
+
+        # Type validation
         if rule.type && !value.is_a?(rule.type)
-          errors << { field: current_path.join('.'), issue: :invalid_type, value: value, rule: rule }
-          next
-        end
-
-        if rule.allowed_values && !rule.allowed_values.include?(value)
-          errors << { field: current_path.join('.'), issue: :invalid_value, value: value, rule: rule }
+          errors << { field: current_path.join('.'), issue: :invalid_type, expected: rule.type, actual: value.class }
         end
         
+        # Allowed values validation
+        if rule.allowed_values && !rule.allowed_values.include?(value)
+            errors << { field: current_path.join('.'), issue: :invalid_value, allowed: rule.allowed_values }
+        end
+
+        # Recursive validation for nested schemas
         if rule.schema
-          case value
-          when Hash
-            errors.concat(validate(value, rule.schema, current_path)[:errors])
-          when Array
+          if value.is_a?(Hash)
+            errors.concat(validate_hash(value, rule.schema, current_path))
+          elsif value.is_a?(Array)
             value.each_with_index do |item, index|
-              errors.concat(validate(item, rule.schema, current_path + [index.to_s])[:errors]) if item.is_a?(Hash)
+              errors.concat(validate_hash(item, rule.schema, current_path + [index.to_s])) if item.is_a?(Hash)
             end
           end
         end
       end
+      
+      # If a wildcard exists and the data is a hash that should not be empty
+      if schema['*']&.required && data.is_a?(Hash) && data.empty?
+          errors << { field: (path + ['*']).join('.'), issue: :missing }
+      end
 
-      { valid: errors.empty?, errors: errors }
+      errors
     end
   end
 end

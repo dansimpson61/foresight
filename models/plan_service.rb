@@ -43,15 +43,10 @@ module Foresight
       
       results = life.run_multi(strategies)
       
-      simulation_report = life.build_report(results, strategies: strategies.map(&:key))
-      
-      final_data = {
+      wrap({
         inputs: params,
-        results: simulation_report[:results]
-      }
-
-      # The final output of the service must be a JSON string for the API layer.
-      wrap(final_data).to_json
+        results: results.transform_keys(&:to_s)
+      })
     end
 
     private

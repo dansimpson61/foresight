@@ -24,7 +24,8 @@ module Foresight
         simulation_household = Marshal.load(Marshal.dump(baseline_household))
         yearly = simulate_on(simulation_household, strategy)
         aggregate = build_aggregate(yearly)
-        results[strategy.key] = { yearly: yearly.map(&:to_h), aggregate: aggregate.to_h }
+        # Ensure the key is a string to conform to the contract validator's wildcard rule.
+        results[strategy.key.to_s] = { yearly: yearly.map(&:to_h), aggregate: aggregate.to_h }
       end
       results
     end
@@ -122,7 +123,7 @@ module Foresight
         accounts: @household.accounts.map do |acct|
           { type: acct.class.name.split('::').last, starting_balance: acct.balance }
         end,
-        strategies: Array(strategy_names)
+        strategies: Array(strategy_names).map { |name| { key: name } }
       }
     end
 
