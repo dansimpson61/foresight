@@ -3,7 +3,21 @@ html
   head
     title Foresight
     link rel="stylesheet" href="/ui.css"
-    script src="/vendor/stimulus.js" type="module"
+    
+    / -- Import Map: The joyful, modern way to handle JS modules --
+    script type="importmap"
+      | {
+      |   "imports": {
+      |     "stimulus": "/vendor/stimulus.js",
+      |     "charts": "/controllers/charts_controller.js",
+      |     "plan-form": "/controllers/plan_form_controller.js",
+      |     "results-table": "/controllers/results_table_controller.js",
+      |     "summary": "/controllers/summary_controller.js",
+      |     "tax-bracket-slider": "/controllers/tax_bracket_slider_controller.js"
+      |   }
+      | }
+
+    / -- Main application entrypoint --
     script src="/ui-app.js" type="module"
 
   body

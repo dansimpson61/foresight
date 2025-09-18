@@ -12,13 +12,10 @@ module Foresight
     ACCOUNT_SCHEMA = {
       type: Rule.new(required: true, type: String, allowed_values: ['TraditionalIRA', 'RothIRA', 'TaxableBrokerage', 'Cash']),
       balance: Rule.new(required: true, type: Numeric),
-      # Note: owner/owners are validated in PlanService as they depend on the member list
     }.freeze
 
     INCOME_SOURCE_SCHEMA = {
       type: Rule.new(required: true, type: String, allowed_values: ['Salary', 'Pension', 'SocialSecurity', 'SocialSecurityBenefit']),
-      # Note: recipient is validated in PlanService
-      # Conditional fields (like pia_annual) will be handled in PlanService for now.
     }.freeze
 
     GROWTH_ASSUMPTIONS_SCHEMA = {
@@ -44,12 +41,19 @@ module Foresight
       growth_assumptions: Rule.new(required: true, type: Hash, schema: GROWTH_ASSUMPTIONS_SCHEMA, desc: "A hash of growth rates for different account types.")
     }.freeze
 
+    # A fully explicit schema for the data returned by the API.
     RESPONSE_SCHEMA = {
-      schema_version: Rule.new(required: true, type: String, desc: "The version of the simulation schema."),
-      mode: Rule.new(required: true, type: String, desc: "The simulation mode."),
+      schema_version: Rule.new(required: true, type: String),
+      mode: Rule.new(required: true, type: String),
       data: Rule.new(required: true, type: Hash, schema: {
-        inputs: Rule.new(required: true, type: Hash, desc: "A snapshot of the inputs used for the simulation."),
-        results: Rule.new(required: true, type: Hash, desc: "The simulation results, keyed by strategy name.")
+        inputs: Rule.new(required: true, type: Hash),
+        results: Rule.new(required: true, type: Hash, schema: {
+          # This now validates the structure of *each* strategy's results
+          '*': Rule.new(required: true, type: Hash, schema: {
+            aggregate: Rule.new(required: true, type: Hash),
+            yearly: Rule.new(required: true, type: Array)
+          })
+        })
       })
     }.freeze
 
@@ -83,6 +87,15 @@ module Foresight
 
     def self.validate(data, schema, path = [])
       errors = []
+
+      # Handle wildcard schemas (for validating each key in a hash)
+      if (wildcard_rule = schema['*'])
+        data.each do |key, value|
+          errors.concat(validate(value, wildcard_rule.schema, path + [key])[:errors])
+        end
+        return { valid: errors.empty?, errors: errors }
+      end
+
       schema.each do |field, rule|
         current_path = path + [field]
         

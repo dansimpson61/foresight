@@ -46,9 +46,18 @@ module Foresight
 
     post '/plan' do
       content_type :json
-      params = json_params[:payload] # Unwrap the payload
+      
+      request_data = json_params
+      params = request_data[:payload]
 
-      # 1. Validate the incoming request using our supercharged guardian
+      unless params
+        halt 400, wrap_response({
+          status: 'error',
+          communication_step: 'Request Parsing',
+          message: "The request is missing the 'payload' key."
+        })
+      end
+
       request_validation = Foresight::ContractValidator.validate_request(params)
       unless request_validation[:valid]
         halt 400, wrap_response({ 
@@ -60,11 +69,9 @@ module Foresight
       end
 
       begin
-        # 2. Run the simulation
-        result = Foresight::PlanService.run(params)
-        result_hash = JSON.parse(result.to_json, symbolize_names: true)
+        result_json_string = Foresight::PlanService.run(params)
+        result_hash = JSON.parse(result_json_string, symbolize_names: true)
 
-        # 3. Validate the outgoing response contract
         response_validation = Foresight::ContractValidator.validate_response(result_hash)
         unless response_validation[:valid]
           error_message = Foresight::ContractValidator.generate_error_message(response_validation[:errors], result_hash)
@@ -77,8 +84,9 @@ module Foresight
           })
         end
 
-        # 4. Send the validated result
-        wrap_response(result)
+        # The result_hash is already validated, so we can wrap and send it.
+        # We re-encode to JSON as the final step.
+        wrap_response(result_hash)
       rescue => e
         logger.error "PlanService execution error: #{e.message}\n#{e.backtrace.join("\n")}"
         halt 500, wrap_response({ 
@@ -91,7 +99,6 @@ module Foresight
 
     get '/plan/example' do
       content_type :json
-      # This example payload must satisfy the REQUEST_SCHEMA
       example = {
         members: [
           { name: 'Alice', date_of_birth: '1961-06-15' },

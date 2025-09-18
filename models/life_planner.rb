@@ -24,24 +24,17 @@ module Foresight
         simulation_household = Marshal.load(Marshal.dump(baseline_household))
         yearly = simulate_on(simulation_household, strategy)
         aggregate = build_aggregate(yearly)
-        # DIAGNOSTIC CHANGE: Prepending "DEBUG_" to the key
-        results["DEBUG_#{strategy.key}"] = { yearly: yearly, aggregate: aggregate }
+        results[strategy.key] = { yearly: yearly.map(&:to_h), aggregate: aggregate.to_h }
       end
       results
     end
     
-    def to_json_report(results_hash, strategies: nil)
+    def build_report(results_hash, strategies: nil)
       inputs = build_inputs_snapshot(strategies || results_hash.keys)
-      payload = {
+      {
         inputs: inputs,
-        results: results_hash.transform_keys(&:to_s).transform_values do |data|
-          {
-            aggregate: data[:aggregate].to_h,
-            yearly: data[:yearly].map(&:to_h)
-          }
-        end
+        results: results_hash
       }
-      JSON.pretty_generate(payload)
     end
 
     private
@@ -55,7 +48,7 @@ module Foresight
       
       YearSummary.new(
         year: year,
-        strategy_name: strategy.key, # Use the explicit key
+        strategy_name: strategy.name,
         requested_roth_conversion: result.roth_conversion_requested,
         actual_roth_conversion: result.actual_roth_conversion,
         federal_tax: result.federal_tax,
@@ -79,7 +72,7 @@ module Foresight
     def build_aggregate(yearly)
       last = yearly.last
       StrategyAggregate.new(
-        strategy_name: last.strategy_name, # This correctly uses the key from the YearSummary
+        strategy_name: last.strategy_name,
         years: yearly.size,
         cumulative_all_in_tax: yearly.sum(&:all_in_tax).round(2),
         cumulative_roth_conversions: yearly.sum(&:actual_roth_conversion).round(2),

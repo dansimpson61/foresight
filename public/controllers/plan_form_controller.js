@@ -1,4 +1,4 @@
-import { Controller } from '../vendor/stimulus.js';
+import { Controller } from 'stimulus';
 
 // A simple, joyful debounce implementation, as is our way.
 function debounce(func, wait) {

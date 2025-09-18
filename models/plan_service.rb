@@ -26,6 +26,8 @@ module Foresight
     end
 
     def run_multi(params)
+      puts "[STRATEGY_ASSEMBLY] PlanService: Received request to run simulation."
+      
       household = build_household(params)
       life = LifePlanner.new(
         household: household,
@@ -35,18 +37,21 @@ module Foresight
         inflation_rate: params[:inflation_rate] || 0.0
       )
       
-      strategies = params.fetch(:strategies).map { |spec| instantiate_strategy(spec) }
+      strategy_specs = params.fetch(:strategies)
+      puts "[STRATEGY_ASSEMBLY] PlanService: Received strategy specs: #{strategy_specs.inspect}"
+      strategies = strategy_specs.map { |spec| instantiate_strategy(spec) }
       
       results = life.run_multi(strategies)
       
-      simulation_results = JSON.parse(life.to_json_report(results, strategies: strategies.map(&:name)))
+      simulation_report = life.build_report(results, strategies: strategies.map(&:key))
       
       final_data = {
         inputs: params,
-        results: simulation_results
+        results: simulation_report[:results]
       }
 
-      wrap(final_data)
+      # The final output of the service must be a JSON string for the API layer.
+      wrap(final_data).to_json
     end
 
     private
@@ -84,12 +89,16 @@ module Foresight
 
     def instantiate_strategy(spec)
       key = spec[:key].to_s
+      puts "[STRATEGY_ASSEMBLY] PlanService: Instantiating strategy for spec: #{spec.inspect}"
       desc = @registry.fetch(key) { raise ArgumentError, "Unknown strategy key #{key}" }
       
       user_params = spec[:params] || {}
       merged_params = desc.default_params.merge(user_params)
+      puts "[STRATEGY_ASSEMBLY] PlanService: Merged params for '#{key}': #{merged_params.inspect}"
       
-      desc.klass.new(**merged_params.transform_keys(&:to_sym))
+      instance = desc.klass.new(**merged_params.transform_keys(&:to_sym))
+      puts "[STRATEGY_ASSEMBLY] PlanService: Successfully instantiated #{instance.class.name}."
+      instance
     end
     
     def build_household(params)
