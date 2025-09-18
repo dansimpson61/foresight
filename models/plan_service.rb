@@ -16,8 +16,7 @@ module Foresight
 
     def self.run(params)
       svc = new
-      plan_params = params[:inputs] || params
-      svc.run_multi(plan_params)
+      svc.run_multi(params)
     end
 
     def list_strategies
@@ -40,17 +39,23 @@ module Foresight
       
       results = life.run_multi(strategies)
       
-      json = life.to_json_report(results, strategies: strategies.map(&:name))
-      wrap(JSON.parse(json))
+      simulation_results = JSON.parse(life.to_json_report(results, strategies: strategies.map(&:name)))
+      
+      final_data = {
+        inputs: params,
+        results: simulation_results
+      }
+
+      wrap(final_data)
     end
 
     private
 
-    def wrap(parsed_data)
+    def wrap(data_hash)
       {
         schema_version: SCHEMA_VERSION,
         mode: 'multi_year',
-        data: parsed_data
+        data: data_hash
       }
     end
 
@@ -107,21 +112,21 @@ module Foresight
         end
       end
 
-      income_sources = (params[:income_sources] || []).reject { |s| s[:annual_gross].to_i.zero? && s[:fra_benefit].to_i.zero? }.map do |s|
+      income_sources = (params[:income_sources] || []).map do |s|
         recipient = member_index.fetch(s[:recipient])
         case s[:type]
         when 'Salary'
           Salary.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
         when 'Pension'
           Pension.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
-        when 'SocialSecurity'
+        when 'SocialSecurity', 'SocialSecurityBenefit'
           SocialSecurityBenefit.new(
             recipient: recipient,
-            pia_annual: s[:fra_benefit].to_f,
-            claiming_age: s[:claiming_age].to_i
+            pia_annual: s.fetch(:pia_annual),
+            claiming_age: s.fetch(:claiming_age)
           )
         else
-          raise ArgumentError, "Unknown income source type #{s[:type]}"
+          raise ArgumentError, "Unknown income source type '#{s[:type]}'"
         end
       end
 

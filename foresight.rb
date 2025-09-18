@@ -11,4 +11,4 @@ require_relative 'models/life_planner'
 require_relative 'models/plan_service'
 require_relative 'models/phase_analyzer'
 
-puts "Joyful Retirement Planner models loaded."
+puts "Joyful Retirement Planner models loaded. Now."

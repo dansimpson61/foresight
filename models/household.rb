@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative './rmd_calculator'
+
 module Foresight
   class Household
     attr_reader :members, :filing_status, :state, :accounts, :income_sources,
@@ -16,6 +18,22 @@ module Foresight
       @annual_expenses = annual_expenses.to_f
       @emergency_fund_floor = emergency_fund_floor.to_f
       @withdrawal_hierarchy = withdrawal_hierarchy
+    end
+
+    def net_worth
+      accounts.sum(&:balance)
+    end
+
+    def rmd_for(year)
+      total_rmd = 0.0
+      members.each do |member|
+        age = member.age_in(year)
+        member_iras = traditional_iras.select { |ira| ira.owner == member }
+        member_iras.each do |ira|
+          total_rmd += RmdCalculator.calculate(age: age, balance: ira.balance)
+        end
+      end
+      total_rmd
     end
 
     def cash_accounts

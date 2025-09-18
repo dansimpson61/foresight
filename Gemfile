@@ -6,6 +6,7 @@ gem 'bundler'
 gem 'rack'
 gem 'bigdecimal'
 gem 'slim', '~> 5.2'
+gem 'pry'
 
 group :development, :test do
 	gem 'rspec', '~> 3.13'

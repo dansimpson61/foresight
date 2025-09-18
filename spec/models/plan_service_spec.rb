@@ -19,8 +19,9 @@ RSpec.describe Foresight::PlanService do
         ],
         filing_status: 'mfj',
         state: 'NY',
-        analysis_horizon: 30,
+        years: 30,
         start_year: current_year,
+        strategies: [],
 
         # 2. Financial State
         accounts: [
@@ -37,8 +38,8 @@ RSpec.describe Foresight::PlanService do
         income_sources: [
           { type: 'Salary', recipient: 'You', annual_gross: 150_000 },
           { type: 'Salary', recipient: 'Spouse', annual_gross: 75_000 },
-          { type: 'SocialSecurity', recipient: 'You', fra_benefit: 30_000, claiming_age: 67 },
-          { type: 'SocialSecurity', recipient: 'Spouse', fra_benefit: 21_600, claiming_age: 67 }
+          { type: 'SocialSecurity', recipient: 'You', pia_annual: 30_000, claiming_age: 67 },
+          { type: 'SocialSecurity', recipient: 'Spouse', pia_annual: 21_600, claiming_age: 65 }
         ],
 
         # 4. Spending Plan

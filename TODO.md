@@ -1,47 +1,40 @@
-# Foresight To-Do: The Baker's Board
+## Foresight: Strategic TODO
 
-Welcome to our development plan. Like baking bread, our process is simple, focused on quality, and deeply rewarding. We work with a clear recipe, focus on one loaf at a time, and take joy in the craft.
+This document outlines the strategic steps to evolve Foresight from a financial calculator into an insight engine, in alignment with our "Ode to Joy" philosophy and design documents.
 
-This document is our "baker's board"—the single source of truth for what we're working on, what's rising, and what we'll bake in the future.
+### Phase 1: Build the Analytical Core
 
----
+The highest priority is to build the multi-scenario analysis engine. The tool cannot provide insight until it can compare different choices.
 
-### Our Simple Method: The Art of the Loaf
+-   [ ] **Refactor `PlanService` to be a `ScenarioAnalysisService`**:
+    -   [ ] Modify its main method to run multiple simulations for each year to find the optimal Roth conversion amount.
+    -   [ ] The service should take a `Strategy` object as input (e.g., `strategy.conversion_target = "fill_22_percent_bracket"` and `strategy.conversion_ceiling = "avoid_irmaa_tier_1"`).
+-   [ ] **Implement IRMAA Surcharge Calculations**: The core analysis is impossible without this. The cliffs are the dragons we are here to slay. Add IRMAA logic to the `TaxYear` model based on the MAGI calculation.
+-   [ ] **Implement RMD (Required Minimum Distribution) Calculations**: This is essential for long-term accuracy. RMDs are a primary driver of late-in-life tax burdens that we aim to mitigate.
+-   [ ] **Enhance API Response (`/plan` endpoint)`**:
+    -   [ ] Structure the JSON response to clearly separate the "with strategy" and "baseline (do nothing)" scenarios.
+    -   [ ] Add a top-level `summary` object with key insights (e.g., total taxes saved, change in final portfolio value).
+    -   [ ] Add a `recommended_actions` array with a year-by-year plan.
 
-Our workflow is designed to be as joyful and clear as our code.
+### Phase 2: Create an Insightful User Interface
 
-1.  **The Recipe (`/docs`):** Before we code, we think. Our living documents in the `/docs` folder are our recipes. Major changes to the application should begin with a small, thoughtful update to these documents to ensure we are building the right thing.
+With a powerful analytical engine, the next step is to translate its output into a user experience that provides clarity and confidence.
 
-2.  **Slicing the Work (This File):** We manage our work right here. No complex tools, just a clear, focused list. When a task is complete, we remove it from the board and add a note to our [`CHANGELOG.md`](./CHANGELOG.md).
+-   [ ] **Develop Key Visualizations**:
+    -   [ ] Implement `tax_efficiency_chart.js` to show a side-by-side comparison of annual taxable income ("strategy" vs. "baseline"). This is the most important chart.
+    -   [ ] Implement `irmaa_chart.js` to visualize how the strategy successfully navigates the income cliffs.
+-   [ ] **Build the Action-Oriented Summary View**:
+    -   [ ] The main view should display the high-level summary (`summary` object from the API) in clear, plain language.
+    -   [ ] Display the `recommended_actions` as a clear, step-by-step timeline.
+-   [ ] **Create the Interactive Controls**:
+    -   [ ] Implement the `tax_bracket_slider_controller.js` to allow the user to change the `Strategy` parameters (e.g., "What if I only convert up to the 12% bracket?") and re-run the analysis on the fly without a page reload.
 
-3.  **The Bake (The Code):** We work on one primary task at a time, giving it our full attention. The goal is to produce code that aligns with our [Ode to Joy](Ode%20to%20Joy%20-%20Ruby%20and%20Sinatra.txt)—clean, tested, maintainable, and a pleasure to read.
+### Phase 3: Refine and Deepen the Model
 
----
+Once the core insight loop is complete, we can add more nuance and accuracy.
 
-### The Board
+-   [ ] **Model Social Security Claiming Strategies**: Add functionality to model starting Social Security at different ages to see how it impacts the "low-income window" available for Roth conversions.
+-   [ ] **Implement Smart Withdrawal Strategy**: Code the withdrawal logic (Taxable -> Traditional -> Roth) into the annual simulation for retirement years.
+-   [ ] **Account for State Taxes**: Add a field for state tax rates to provide a more complete picture of total tax liability.
 
-#### Next Up
-*(The loaf we are currently shaping. One task at a time.)*
-
-*   **Add Strategy-Specific UI Controls:**
-    *   **Goal:** Dynamically show and hide UI controls based on the selected "Roth Conversion Strategy".
-    *   **Scope:** When a user selects "Fill to Top of Bracket," a slider or input should appear allowing them to set the desired `ceiling`.
-
----
-
-#### On Deck
-*(The dough that is rising. A short, prioritized list of what's next.)*
-
-1.  **WCAG Accessibility Polish:**
-    *   **Goal:** Ensure the application meets WCAG AA standards.
-    *   **Scope:** Add clear focus states, ARIA labels for all controls, and ensure full keyboard navigability.
-
----
-
-#### Someday / Maybe
-*(Our pantry of good ideas for future loaves.)*
-
-*   **Scenario Comparison Mode:** A dedicated UI to view two scenarios side-by-side, rather than toggling between them.
-*   **Local Storage Persistence:** Allow users to save and name their scenarios in the browser for later use.
-*   **Export to CSV/PDF:** Provide an option to download the detailed data table or a printable report.
-*   **In-UI Help and Guidance:** Add small, contextual help icons (`?`) that explain complex terms like "MAGI" or "IRMAA" directly in the interface.
+This strategic TODO provides a roadmap. By focusing on the analytical core first, we ensure that we have something genuinely valuable to present in the UI. This approach directly serves the "Ode to Joy" by building a tool that is not just functional, but truly insightful.

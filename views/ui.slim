@@ -14,6 +14,10 @@ html
     .container
       #controls.panel data-controller="plan-form"
         h2 Parameters
+
+        .error-panel data-plan-form-target="errorDisplay" hidden="true"
+          h4 
+          p 
         
         section
           h3 Household
@@ -149,9 +153,8 @@ html
           h3 Strategy
           .form-group
             label for="strategy_selector" Conversion Strategy
-            select data-plan-form-target="strategySelector" data-action="change->plan-form#runPlan"
+            select data-plan-form-target="strategySelector" data-action="change->plan-form#handleStrategyChange"
               option value="do_nothing" Do Nothing
-              option value="fixed_amount" Fixed Amount
               option value="fill_to_top_of_bracket" Fill to Top of Bracket
           .form-group data-plan-form-target="strategyControls"
             / -- Controls for the selected strategy will be injected here --

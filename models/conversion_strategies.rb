@@ -7,11 +7,20 @@ module Foresight
       def name
         self.class.name.split('::').last.gsub(/(.)([A-Z])/, '\1_\2').downcase
       end
+
+      # The key should be a simple, machine-readable identifier.
+      def key
+        name
+      end
     end
 
     class NoConversion < Base
       def name
-        'do_nothing'
+        'Do Nothing' # A human-readable name
+      end
+
+      def key
+        'do_nothing' # The machine-readable key
       end
 
       def conversion_amount(household:, tax_year:, base_taxable_income:)
@@ -28,7 +37,11 @@ module Foresight
       end
       
       def name
-        'fill_to_top_of_bracket'
+        'Fill to Top of Bracket' # A human-readable name
+      end
+
+      def key
+        'fill_to_top_of_bracket' # The machine-readable key
       end
 
       def conversion_amount(household:, tax_year:, base_taxable_income:)

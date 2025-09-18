@@ -1,43 +1,43 @@
 import { Controller } from '../vendor/stimulus.js';
-import debounce from 'https://cdn.jsdelivr.net/npm/lodash.debounce@4.0.8/+esm'
+
+// A simple, joyful debounce implementation, as is our way.
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
 
 export default class extends Controller {
   static targets = [
-    // Household
-    'yourAge', 'yourAgeNumber',
-    'spouseAge', 'spouseAgeNumber',
-    'filingStatus', 'state',
-
-    // Financial State
-    'tradIRA', 'tradIRANumber',
-    'rothIRA', 'rothIRANumber',
-    'taxableBrokerage', 'taxableBrokerageNumber',
-    'costBasis', 'costBasisNumber',
-    'cashSavings', 'cashSavingsNumber',
-    'emergencyFund', 'emergencyFundNumber',
+    'yourAge', 'yourAgeNumber', 'spouseAge', 'spouseAgeNumber', 'filingStatus', 'state',
+    'tradIRA', 'tradIRANumber', 'rothIRA', 'rothIRANumber', 'taxableBrokerage', 'taxableBrokerageNumber',
+    'costBasis', 'costBasisNumber', 'cashSavings', 'cashSavingsNumber', 'emergencyFund', 'emergencyFundNumber',
     'otherAssets', 'liabilities',
-
-    // Annual Income
-    'yourIncome', 'yourSSFRA', 'yourSSClaimAge', 'yourPension',
-    'spouseIncome', 'spouseSSFRA', 'spouseSSClaimAge', 'spousePension',
-
-    // Spending & Withdrawals
+    'yourIncome', 'yourSSFRA', 'yourSSClaimAge', 'yourPension', 'spouseIncome', 'spouseSSFRA',
+    'spouseSSClaimAge', 'spousePension',
     'annualExpenses', 'annualExpensesNumber',
     'withdrawal1', 'withdrawal2', 'withdrawal3', 'withdrawal4',
-
-    // Assumptions
-    'investmentGrowth', 'investmentGrowthNumber',
-    'inflationRate', 'inflationRateNumber',
+    'investmentGrowth', 'investmentGrowthNumber', 'inflationRate', 'inflationRateNumber',
     'analysisHorizon', 'analysisHorizonNumber',
-
-    // Strategy
-    'strategySelector', 'strategyControls'
+    'strategySelector', 'strategyControls',
+    "errorDisplay"
   ];
 
   connect() {
     this.runPlan = debounce(this.runPlan.bind(this), 500);
-    
-    this.syncableTargets = [
+    this.initializeSyncableTargets();
+    this.initializeNumberInputs();
+    this.runPlan();
+  }
+  
+  initializeSyncableTargets() {
+     this.syncableTargets = [
       { slider: this.yourAgeTarget, number: this.yourAgeNumberTarget },
       { slider: this.spouseAgeTarget, number: this.spouseAgeNumberTarget },
       { slider: this.tradIRATarget, number: this.tradIRANumberTarget },
@@ -51,14 +51,13 @@ export default class extends Controller {
       { slider: this.inflationRateTarget, number: this.inflationRateNumberTarget },
       { slider: this.analysisHorizonTarget, number: this.analysisHorizonNumberTarget },
     ];
-    
-    this.initializeNumberInputs();
-    this.runPlan();
   }
 
   initializeNumberInputs() {
     this.syncableTargets.forEach(pair => {
-      pair.number.value = pair.slider.value;
+      if (pair.slider && pair.number) {
+        pair.number.value = pair.slider.value;
+      }
     });
   }
 
@@ -73,28 +72,84 @@ export default class extends Controller {
         pair.slider.value = changedElement.value;
       }
     }
-    
     this.runPlan();
   }
 
-  runPlan() {
+  async runPlan() {
+    this.clearError();
     const parameters = this.buildParameters();
-    fetch('/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(parameters),
-    })
-      .then(response => response.json())
-      .then(data => {
-        this.results = data.data.results || {};
-        // Temporarily disable selector population until strategies are dynamic
-        // this.populateStrategySelector(); 
-        this.updateResultsForSelectedStrategy();
-      })
-      .catch(error => {
-        console.error('Error fetching or parsing plan data:', error);
-        this.results = {};
+    const wrappedPayload = {
+      metadata: {
+        sender: 'Foresight::UI',
+        intended_receiver: 'Foresight::API',
+        timestamp: new Date().toISOString()
+      },
+      payload: parameters
+    };
+    
+    // Log the payload to the console for verification
+    console.log("Sending payload:", JSON.stringify(wrappedPayload, null, 2));
+
+    try {
+      const response = await fetch('/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wrappedPayload),
       });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        this.fullResults = data.payload.data; // Unwrap the payload
+        this.dispatchResults();
+      } else {
+        this.showError(data.payload);
+      }
+    } catch (error) {
+      this.showError({
+        communication_step: 'Network',
+        message: 'Could not connect to the server. Please check your network connection.'
+      });
+    }
+  }
+
+  showError(errorData) {
+    const title = `Error: Breakdown in '${errorData.communication_step}'`;
+    const details = errorData.message;
+
+    const errorTitleElement = this.errorDisplayTarget.querySelector('h4');
+    const errorBodyElement = this.errorDisplayTarget.querySelector('p');
+
+    errorTitleElement.textContent = title;
+    errorBodyElement.textContent = details;
+    this.errorDisplayTarget.hidden = false;
+  }
+
+  clearError() {
+    this.errorDisplayTarget.hidden = true;
+    this.errorDisplayTarget.querySelector('h4').textContent = '';
+    this.errorDisplayTarget.querySelector('p').textContent = '';
+  }
+
+  dispatchResults() {
+    if (!this.fullResults) return;
+
+    const activeStrategyKey = this.strategySelectorTarget.value;
+    const simulationResults = this.fullResults.results[activeStrategyKey];
+    
+    if (simulationResults) {
+      const event = new CustomEvent('plan:results', { detail: { results: simulationResults } });
+      document.dispatchEvent(event);
+    } else {
+      this.showError({
+        communication_step: 'Frontend Data Handling',
+        message: `Could not find results for the selected strategy ('${activeStrategyKey}') in the data from the server.`
+      });
+    }
+  }
+  
+  handleStrategyChange() {
+    this.dispatchResults();
   }
 
   buildParameters() {
@@ -104,17 +159,10 @@ export default class extends Controller {
     const growthRate = parseFloat(this.investmentGrowthTarget.value) / 100;
 
     return {
-      // 1. Household & Demographics
       members: [
         { name: "You", date_of_birth: `${yourBirthYear}-01-01` },
         { name: "Spouse", date_of_birth: `${spouseBirthYear}-01-01` }
       ],
-      filing_status: this.filingStatusTargets.find(r => r.checked).value,
-      state: this.stateTarget.value,
-      analysis_horizon: parseInt(this.analysisHorizonTarget.value, 10),
-      start_year: currentYear,
-
-      // 2. Financial State
       accounts: [
         { type: "TraditionalIRA", owner: "You", balance: parseInt(this.tradIRATarget.value, 10) },
         { type: "RothIRA", owner: "You", balance: parseInt(this.rothIRATarget.value, 10) },
@@ -126,57 +174,45 @@ export default class extends Controller {
         },
         { type: "Cash", balance: parseInt(this.cashSavingsTarget.value, 10) }
       ],
-      emergency_fund_floor: parseInt(this.emergencyFundTarget.value, 10),
-      other_assets: parseInt(this.otherAssetsTarget.value, 10),
-      liabilities: parseInt(this.liabilitiesTarget.value, 10),
-
-      // 3. Income Streams
       income_sources: [
         { type: "Salary", recipient: "You", annual_gross: parseInt(this.yourIncomeTarget.value, 10) },
         { type: "Salary", recipient: "Spouse", annual_gross: parseInt(this.spouseIncomeTarget.value, 10) },
         { type: "Pension", recipient: "You", annual_gross: parseInt(this.yourPensionTarget.value, 10) },
         { type: "Pension", recipient: "Spouse", annual_gross: parseInt(this.spousePensionTarget.value, 10) },
-        { type: "SocialSecurity", recipient: "You", fra_benefit: parseInt(this.yourSSFRATarget.value, 10) * 12, claiming_age: parseInt(this.yourSSClaimAgeTarget.value, 10) },
-        { type: "SocialSecurity", recipient: "Spouse", fra_benefit: parseInt(this.spouseSSFRATarget.value, 10) * 12, claiming_age: parseInt(this.spouseSSClaimAgeTarget.value, 10) }
+        { 
+          type: "SocialSecurityBenefit", 
+          recipient: "You", 
+          pia_annual: parseInt(this.yourSSFRATarget.value, 10) * 12,
+          claiming_age: parseInt(this.yourSSClaimAgeTarget.value, 10)
+        },
+        { 
+          type: "SocialSecurityBenefit", 
+          recipient: "Spouse", 
+          pia_annual: parseInt(this.spouseSSFRATarget.value, 10) * 12,
+          claiming_age: parseInt(this.spouseSSClaimAgeTarget.value, 10)
+        }
       ],
-      
-      // 4. Spending Plan
       annual_expenses: parseInt(this.annualExpensesTarget.value, 10),
-      
-      // 5. Strategic Scenarios
-      roth_conversion_strategy: {
-        type: this.strategySelectorTarget.value,
-        parameters: {} // Placeholder for strategy-specific controls
-      },
-      withdrawal_hierarchy: [
-        this.withdrawal1Target.value,
-        this.withdrawal2Target.value,
-        this.withdrawal3Target.value,
-        this.withdrawal4Target.value,
-      ],
-
-      // 6. Economic Assumptions
+      emergency_fund_floor: parseInt(this.emergencyFundTarget.value, 10),
+      filing_status: this.filingStatusTargets.find(r => r.checked).value,
+      state: this.stateTarget.value,
+      years: parseInt(this.analysisHorizonTarget.value, 10),
+      start_year: currentYear,
       inflation_rate: parseFloat(this.inflationRateTarget.value) / 100,
       growth_assumptions: {
         traditional_ira: growthRate,
         roth_ira: growthRate,
         taxable: growthRate,
-        cash: 0.005 // Assuming a minimal growth for cash
-      }
+        cash: 0.005
+      },
+      strategies: [
+        { key: 'do_nothing', params: {} },
+        { key: 'fill_to_top_of_bracket', params: {} }
+      ],
+      withdrawal_hierarchy: [
+        this.withdrawal1Target.value, this.withdrawal2Target.value,
+        this.withdrawal3Target.value, this.withdrawal4Target.value
+      ]
     };
-  }
-
-  // To be re-enabled when backend returns multiple strategies
-  // populateStrategySelector() { ... }
-
-  updateResultsForSelectedStrategy() {
-    // The backend currently only returns one strategy based on the input
-    // so we can just use the first (and only) result set.
-    const strategyKey = Object.keys(this.results)[0];
-    if (!strategyKey) return;
-
-    const results = this.results[strategyKey] || {};
-    const event = new CustomEvent('plan:results', { detail: { results } });
-    document.dispatchEvent(event);
   }
 }
