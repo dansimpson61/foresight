@@ -1,4 +1,7 @@
 # config/tax_brackets.yml
+standard_deduction_mfj_2023: 27700
+standard_deduction_single_2023: 13850
+
 mfj_2023:
   ordinary:
     - { income: 0, rate: 0.10 }
@@ -10,19 +13,43 @@ mfj_2023:
     - { income: 89250, rate: 0.15 }
     - { income: 553850, rate: 0.20 }
   irmaa_part_b:
-    - { income_threshold: 97000, surcharge_per_person: 65.90 }
-    - { income_threshold: 194000, surcharge_per_person: 164.90 }
-    - { income_threshold: 386000, surcharge_per_person: 329.70 }
+    - { income_threshold: 194000, surcharge_per_person: 65.90 }
+    - { income_threshold: 246000, surcharge_per_person: 164.90 }
+    - { income_threshold: 306000, surcharge_per_person: 263.90 }
+    - { income_threshold: 366000, surcharge_per_person: 362.90 }
+    - { income_threshold: 750000, surcharge_per_person: 395.60 }
+  irmaa_part_d:
+    - { income_threshold: 194000, surcharge_per_person: 12.20 }
+    - { income_threshold: 246000, surcharge_per_person: 31.50 }
+    - { income_threshold: 306000, surcharge_per_person: 50.70 }
+    - { income_threshold: 366000, surcharge_per_person: 70.00 }
+    - { income_threshold: 750000, surcharge_per_person: 77.90 }
+  social_security_provisional_income:
+    phase1_start: 32000
+    phase2_start: 44000
+
 single_2023:
   ordinary:
     - { income: 0, rate: 0.10 }
     - { income: 11000, rate: 0.12 }
     - { income: 44725, rate: 0.22 }
     - { income: 100525, rate: 0.24 }
+  capital_gains:
+    - { income: 0, rate: 0.0 }
+    - { income: 44625, rate: 0.15 }
+    - { income: 492300, rate: 0.20 }
   irmaa_part_b:
     - { income_threshold: 97000, surcharge_per_person: 65.90 }
     - { income_threshold: 129000, surcharge_per_person: 164.90 }
     - { income_threshold: 161000, surcharge_per_person: 296.20 }
     - { income_threshold: 193000, surcharge_per_person: 329.70 }
     - { income_threshold: 500000, surcharge_per_person: 359.40 }
-    - { income_threshold: Infinity, surcharge_per_person: 395.60 }
+  irmaa_part_d:
+    - { income_threshold: 97000, surcharge_per_person: 12.20 }
+    - { income_threshold: 129000, surcharge_per_person: 31.50 }
+    - { income_threshold: 161000, surcharge_per_person: 50.70 }
+    - { income_threshold: 193000, surcharge_per_person: 70.00 }
+    - { income_threshold: 500000, surcharge_per_person: 77.90 }
+  social_security_provisional_income:
+    phase1_start: 25000
+    phase2_start: 34000

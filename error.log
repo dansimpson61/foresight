@@ -1,0 +1,25 @@
+2025-09-19T21:35:07Z [web] <Firebase Studio> ▶️ Preview running
+2025-09-19T21:35:07Z [web] Error: 127.0.0.1 - - [19/Sep/2025:21:35:07 +0000] "GET /ui?monospaceUid=64701 HTTP/1.1" 200 11980 0.1336
+2025-09-19T21:35:07Z [web] 
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Received request to run simulation.
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Received strategy specs: [{:key=>"do_nothing", :params=>{}}, {:key=>"fill_to_top_of_bracket", :params=>{}}]
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Instantiating strategy for spec: {:key=>"do_nothing", :params=>{}}
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Merged params for 'do_nothing': {}
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Successfully instantiated Foresight::ConversionStrategies::NoConversion.
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Instantiating strategy for spec: {:key=>"fill_to_top_of_bracket", :params=>{}}
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Merged params for 'fill_to_top_of_bracket': {:ceiling=>94300, :cushion_ratio=>0.05}
+2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Successfully instantiated Foresight::ConversionStrategies::BracketFill.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] NoConversion: Executing. Always returns 0.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] NoConversion: Executing. Always returns 0.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] NoConversion: Executing. Always returns 0.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: Executing. Ceiling: 94300.0, Base Income: 168849.6.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: No headroom. Returning 0.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: Executing. Ceiling: 94300.0, Base Income: 168849.6.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: No headroom. Returning 0.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: Executing. Ceiling: 94300.0, Base Income: 168849.6.
+2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: No headroom. Returning 0.
+2025-09-19T21:35:08Z [web] Error: 127.0.0.1 - - [19/Sep/2025:21:35:08 +0000] "POST /plan HTTP/1.1" 200 6852 0.0406
+2025-09-19T21:35:08Z [web] 
+
+Error: Breakdown in 'Frontend Data Handling'
+Could not find results for the selected strategy ('do_nothing') in the data from the server.
