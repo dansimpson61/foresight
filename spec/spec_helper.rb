@@ -1,32 +1,34 @@
 # frozen_string_literal: true
-require 'rspec'
-require 'capybara/rspec'
+
 require 'rack/test'
-require 'selenium-webdriver'
+require 'rspec'
+
+# Set the environment to 'test'
+ENV['RACK_ENV'] = 'test'
+
+# Pull in the main application file
 require_relative '../app'
 
-# New headless chrome options
-Capybara.register_driver :selenium_chrome_headless do |app|
-  options = Selenium::WebDriver::Chrome::Options.new
-  options.add_argument('--headless')
-  options.add_argument('--no-sandbox')
-  options.add_argument('--disable-dev-shm-usage')
-  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
-end
-
-Capybara.app = Sinatra::Application
-Capybara.server = :puma, { Silent: true }
-Capybara.javascript_driver = :selenium_chrome_headless
-Capybara.default_driver = :selenium_chrome_headless
-
-RSpec.configure do |config|
-  config.expect_with :rspec do |c|
-    c.syntax = :expect
-  end
-
-  config.include Rack::Test::Methods, type: :request
-
+# This module will be included in our feature specs
+module RSpecMixin
+  include Rack::Test::Methods
   def app
+    # This defines the app that Rack::Test will use
     Sinatra::Application
   end
+end
+
+RSpec.configure do |config|
+  # Mixin the RSpecMixin for all feature specs
+  config.include RSpecMixin, type: :feature
+
+  config.expect_with :rspec do |expectations|
+    expectations.include_chain_clauses_in_custom_matcher_descriptions = true
+  end
+
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+
+  config.shared_context_metadata_behavior = :apply_to_host_groups
 end
