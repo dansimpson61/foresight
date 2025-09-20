@@ -38,7 +38,7 @@ module Foresight
       end
     end
 
-    # Represents a withdrawal from an account to cover living expenses.
+    # Represents a withdrawal from any account to cover spending needs.
     class SpendingWithdrawal < Base
       attr_reader :source_account, :amount_withdrawn
 

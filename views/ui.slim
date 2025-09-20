@@ -13,7 +13,8 @@ html
       |     "plan-form": "/controllers/plan_form_controller.js",
       |     "results-table": "/controllers/results_table_controller.js",
       |     "summary": "/controllers/summary_controller.js",
-      |     "tax-bracket-slider": "/controllers/tax_bracket_slider_controller.js"
+      |     "tax-bracket-slider": "/controllers/tax_bracket_slider_controller.js",
+      |     "income-chart": "/controllers/income_chart_controller.js"
       |   }
       | }
 
@@ -104,26 +105,26 @@ html
           h4 You
           .form-group
             label for="your_income" Base Salary
-            input type="number" id="your_income" step="5000" value="150000" data-action="input->plan-form#runPlan" data-plan-form-target="yourIncome"
+            input type="number" id="your_income" step="5000" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="yourIncome"
           .form-group
             label for="your_ss_fra" Social Security (at FRA)
-            input type="number" id="your_ss_fra" step="100" value="2500" data-action="input->plan-form#runPlan" data-plan-form-target="yourSSFRA"
+            input type="number" id="your_ss_fra" step="100" value="2750" data-action="input->plan-form#runPlan" data-plan-form-target="yourSSFRA"
           .form-group
             label for="your_ss_claim_age" Claiming Age
-            input type="number" id="your_ss_claim_age" min="62" max="70" value="67" data-action="input->plan-form#runPlan" data-plan-form-target="yourSSClaimAge"
+            input type="number" id="your_ss_claim_age" min="62" max="70" value="70" data-action="input->plan-form#runPlan" data-plan-form-target="yourSSClaimAge"
           .form-group
             label for="your_pension" Pension
             input type="number" id="your_pension" step="1000" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="yourPension"
           h4 Spouse
           .form-group
             label for="spouse_income" Base Salary
-            input type="number" id="spouse_income" step="5000" value="75000" data-action="input->plan-form#runPlan" data-plan-form-target="spouseIncome"
+            input type="number" id="spouse_income" step="5000" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="spouseIncome"
           .form-group
             label for="spouse_ss_fra" Social Security (at FRA)
-            input type="number" id="spouse_ss_fra" step="100" value="1800" data-action="input->plan-form#runPlan" data-plan-form-target="spouseSSFRA"
+            input type="number" id="spouse_ss_fra" step="100" value="1375" data-action="input->plan-form#runPlan" data-plan-form-target="spouseSSFRA"
           .form-group
             label for="spouse_ss_claim_age" Claiming Age
-            input type="number" id="spouse_ss_claim_age" min="62" max="70" value="67" data-action="input->plan-form#runPlan" data-plan-form-target="spouseSSClaimAge"
+            input type="number" id="spouse_ss_claim_age" min="62" max="70" value="62" data-action="input->plan-form#runPlan" data-plan-form-target="spouseSSClaimAge"
           .form-group
             label for="spouse_pension" Pension
             input type="number" id="spouse_pension" step="1000" value="0" data-action="input->plan-form#runPlan" data-plan-form-target="spousePension"
@@ -133,29 +134,29 @@ html
           .form-group
             label for="annual_expenses" Annual Expenses
             .slider-group
-              input type="range" id="annual_expenses" min="0" max="300000" step="5000" value="80000" data-action="input->plan-form#sync" data-plan-form-target="annualExpenses"
+              input type="range" id="annual_expenses" min="0" max="300000" step="5000" value="100000" data-action="input->plan-form#sync" data-plan-form-target="annualExpenses"
               input type="number" step="5000" data-action="input->plan-form#sync" data-plan-form-target="annualExpensesNumber"
           .form-group
             label for="withdrawal_hierarchy" Withdrawal Hierarchy
             .select-group
               - (1..4).each do |i|
                 select id="withdrawal_#{i}" data-action="change->plan-form#runPlan" data-plan-form-target="withdrawal#{i}"
-                  option value="cash" Cash
-                  option value="taxable" Taxable
                   option value="traditional" Traditional
+                  option value="taxable" Taxable
                   option value="roth" Roth
+                  option value="cash" Cash
         
         section
           h3 Assumptions
           .form-group
               label for="investment_growth" Investment Growth Rate (%)
               .slider-group
-                input type="range" id="investment_growth" min="0" max="10" step="0.5" value="3" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowth"
+                input type="range" id="investment_growth" min="0" max="10" step="0.5" value="5" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowth"
                 input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="investmentGrowthNumber"
           .form-group
               label for="inflation_rate" Inflation Rate (%)
               .slider-group
-                input type="range" id="inflation_rate" min="0" max="10" step="0.5" value="2" data-action="input->plan-form#sync" data-plan-form-target="inflationRate"
+                input type="range" id="inflation_rate" min="0" max="10" step="0.5" value="0" data-action="input->plan-form#sync" data-plan-form-target="inflationRate"
                 input type="number" step="0.5" data-action="input->plan-form#sync" data-plan-form-target="inflationRateNumber"
           .form-group
               label for="analysis_horizon" Analysis Horizon (Years)
@@ -179,12 +180,13 @@ html
             h3 Lifetime Asset Progression
             .chart-container
               canvas data-charts-target="netWorthCanvas"
-
+        
+        div data-controller="income-chart"
           section
             h3 Annual Income & Tax Details
-            .chart-container
-              canvas data-charts-target="incomeTaxCanvas"
+            .chart-container data-income-chart-target="container"
 
+        div data-controller="charts"
           section
             h3 IRMAA Impact Timeline
             .chart-container

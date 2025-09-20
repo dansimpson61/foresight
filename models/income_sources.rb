@@ -11,11 +11,15 @@ module Foresight
   end
 
   class Salary < IncomeSource
-    attr_reader :annual_gross
-
-    def initialize(recipient:, annual_gross: 0.0)
+    def initialize(recipient:, annual_gross: 0.0, retirement_age: nil)
       super(recipient: recipient)
       @annual_gross = annual_gross.to_f
+      @retirement_age = retirement_age
+    end
+
+    def gross_for(year)
+      return 0.0 if @retirement_age && recipient.age_in(year) >= @retirement_age
+      @annual_gross
     end
   end
 

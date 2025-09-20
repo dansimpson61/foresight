@@ -15,6 +15,16 @@ module Foresight
       key = "standard_deduction_#{filing_status}_2023"
       @brackets.fetch(key)
     end
+    
+    def brackets_for_status(filing_status)
+      status_key = "#{filing_status}_2023"
+      {
+        standard_deduction: standard_deduction(filing_status),
+        brackets: @brackets[status_key]['ordinary'].map do |bracket|
+          { 'rate' => bracket['rate'], 'ceiling' => bracket['income'] }
+        end
+      }
+    end
 
     def calculate(filing_status:, taxable_income:, capital_gains: 0.0)
       status_key = "#{filing_status}_2023"

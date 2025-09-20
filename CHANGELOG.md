@@ -7,6 +7,21 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [Unreleased]
 
 ### Added
+- **New SVG Income Chart:** Implemented a new "Annual Income & Tax Details" chart using a dedicated Stimulus controller (`income_chart_controller.js`) and pure SVG for a minimalist, library-free visualization.
+- **Detailed Income Breakdown:** The `AnnualPlanner` now returns a granular breakdown of all taxable income sources for each year.
+- **Tax Bracket Data:** The API now provides the standard deduction and tax bracket ceilings for each year, enabling richer frontend visualizations.
+
+### Changed
+- **Refined Retirement Logic:** The `Salary` model now elegantly handles retirement by accepting an optional `retirement_age`, making the simulation more accurate and the model's responsibility clearer.
+- **Simplified Conversion Strategy:** Removed the incorrect standard deduction calculation from the `BracketFill` strategy. The strategy is now simpler and more accurate, focusing solely on its core responsibility.
+
+### Fixed
+- **Corrected "Sweet Spot" Scenario:** Resolved a long-standing failure in the core `PlanService` scenario test by fixing the underlying logic flaw in the `BracketFill` strategy, ensuring conversions are now correctly calculated.
+- **Harmonized Test Suite:** Repaired numerous broken tests across the suite, including request specs and model specs, by aligning them with the latest API contracts and model behaviors. Pruned several obsolete feature tests that no longer reflected the current UI.
+
+## [0.1.5] - 2025-09-17
+
+### Added
 - New unit tests for core models: `Person`, `Account`, and `IncomeSource`.
 - Granular integration tests for `AnnualPlanner` to verify event sequencing and income calculations.
 
@@ -22,7 +37,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Corrected faulty assumptions in the `accounts_spec.rb` test regarding RMD eligibility, ensuring the test now accurately validates the code.
 - Aligned the `AnnualPlanner`'s `StrategyResult` struct with the test suite by adding the `ss_taxable_baseline` field, making the model's output more transparent and verifiable.
 
-## [0.3.0] - 2025-09-17
+## [0.1.3] - 2025-09-17
 ### Added
 - **New Visualizations:** Implemented the three core Tufte-inspired visualizations:
   - "Lifetime Asset Progression" (Net Worth Over Time) stacked bar chart.
@@ -36,7 +51,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Fixed
 - **Critical Backend Bugs:** Resolved a series of cascading 500 errors in the `PlanService` caused by mismatches between the frontend payload and backend model expectations. This included correcting keys (`annual_expenses`, `emergency_fund_floor`) and aligning strategy names (`do_nothing`, `fill_to_top_of_bracket`) between the API and the core simulation, allowing the request specs to finally pass.
 
-## [0.2.0] - 2025-09-17
+## [0.1.2] - 2025-09-17
 ### Added
 - **Comprehensive UI Controls:** The UI now includes a full set of interactive controls for all aspects of the financial plan, including detailed income sources, assets, liabilities, spending, and withdrawal strategies.
 - **Backend Unit Test:** Added a new RSpec test for the `PlanService` to validate the parsing of the new, complex data model.
@@ -63,8 +78,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 *... (older versions remain the same)*
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/dansimpson61/foresight/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/dansimpson61/foresight/compare/v0.1.1...v0.2.0
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/dansimpson61/foresight/compare/v0.1.3...v0.1.5
+[0.1.3]: https://github.com/dansimpson61/foresight/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/dansimpson61/foresight/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/dansimpson61/foresight/releases/tag/v0.1.1
 [0.1.0]: https://github.com/dansimpson61/foresight/releases/tag/v0.1.0

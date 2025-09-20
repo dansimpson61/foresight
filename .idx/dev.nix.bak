@@ -15,10 +15,7 @@
   ];
 
   # Sets environment variables in the workspace
-  env = {
-    NIXPKGS_ALLOW_UNFREE = "1";
-    CHROME_BIN = "${pkgs.chromium}/bin/chromium";
-  };
+  env = { NIXPKGS_ALLOW_UNFREE = "1"; };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
@@ -44,7 +41,7 @@
         # Example: install JS dependencies from NPM
         npm-install = "bundle install";
       };
-      # Runs when the workspace is (re)started)
+      # Runs when the workspace is (re)started
       onStart = {
         # Example: start a background task to watch and re-build backend code
         # watch-backend = "npm run watch-backend";

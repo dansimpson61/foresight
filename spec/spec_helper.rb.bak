@@ -2,8 +2,6 @@
 
 require 'rack/test'
 require 'rspec'
-require 'capybara/rspec'
-require 'capybara/cuprite'
 
 # Set the environment to 'test'
 ENV['RACK_ENV'] = 'test'
@@ -14,26 +12,15 @@ require_relative '../app'
 # This module will be included in our feature specs
 module RSpecMixin
   include Rack::Test::Methods
-  def app()
+  def app
     # This defines the app that Rack::Test will use
     Sinatra::Application
   end
 end
 
-# Configure Capybara
-Capybara.register_driver(:cuprite) do |app|
-  Capybara::Cuprite::Driver.new(
-    app,
-    window_size: [1200, 800],
-    headless: true
-  )
-end
-Capybara.javascript_driver = :cuprite
-Capybara.app = Sinatra::Application
-
 RSpec.configure do |config|
-  # Mixin the RSpecMixin for all specs
-  config.include RSpecMixin
+  # Mixin the RSpecMixin for all feature specs
+  config.include RSpecMixin, type: :feature
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

@@ -24,7 +24,7 @@ RSpec.describe Foresight::PlanService do
           { type: 'RothIRA', owner: 'Retiree', balance: 50_000 }
         ],
         income_sources: [
-          { type: 'Salary', recipient: 'Retiree', annual_gross: 100_000 },
+          { type: 'Salary', recipient: 'Retiree', annual_gross: 100_000, retirement_age: retirement_age },
           { type: 'SocialSecurityBenefit', recipient: 'Retiree', pia_annual: 30_000, claiming_age: ss_claim_age }
         ],
         strategies: [
@@ -43,7 +43,7 @@ RSpec.describe Foresight::PlanService do
       conversion_yearly_data = results_hash[:data][:results]['fill_to_top_of_bracket'][:yearly]
 
       retirement_year = current_year + 1
-      ss_claim_year = current_year + (ss_claim_age - retirement_age) + 1
+      ss_claim_year = current_year + (ss_claim_age - (retirement_age - 1))
 
       sweet_spot_years = conversion_yearly_data.select do |year|
         year[:year] >= retirement_year && year[:year] < ss_claim_year

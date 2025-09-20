@@ -6,6 +6,7 @@ import PlanFormController from 'plan-form';
 import ResultsTableController from 'results-table';
 import SummaryController from 'summary';
 import TaxBracketSliderController from 'tax-bracket-slider';
+import IncomeChartController from 'income-chart';
 
 const application = Application.start();
 application.register('charts', ChartsController);
@@ -13,3 +14,4 @@ application.register('plan-form', PlanFormController);
 application.register('results-table', ResultsTableController);
 application.register('summary', SummaryController);
 application.register('tax-bracket-slider', TaxBracketSliderController);
+application.register('income-chart', IncomeChartController);

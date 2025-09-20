@@ -1,25 +1,49 @@
-2025-09-19T21:35:07Z [web] <Firebase Studio> ▶️ Preview running
-2025-09-19T21:35:07Z [web] Error: 127.0.0.1 - - [19/Sep/2025:21:35:07 +0000] "GET /ui?monospaceUid=64701 HTTP/1.1" 200 11980 0.1336
-2025-09-19T21:35:07Z [web] 
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Received request to run simulation.
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Received strategy specs: [{:key=>"do_nothing", :params=>{}}, {:key=>"fill_to_top_of_bracket", :params=>{}}]
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Instantiating strategy for spec: {:key=>"do_nothing", :params=>{}}
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Merged params for 'do_nothing': {}
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Successfully instantiated Foresight::ConversionStrategies::NoConversion.
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Instantiating strategy for spec: {:key=>"fill_to_top_of_bracket", :params=>{}}
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Merged params for 'fill_to_top_of_bracket': {:ceiling=>94300, :cushion_ratio=>0.05}
-2025-09-19T21:35:08Z [web] [STRATEGY_ASSEMBLY] PlanService: Successfully instantiated Foresight::ConversionStrategies::BracketFill.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] NoConversion: Executing. Always returns 0.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] NoConversion: Executing. Always returns 0.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] NoConversion: Executing. Always returns 0.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: Executing. Ceiling: 94300.0, Base Income: 168849.6.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: No headroom. Returning 0.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: Executing. Ceiling: 94300.0, Base Income: 168849.6.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: No headroom. Returning 0.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: Executing. Ceiling: 94300.0, Base Income: 168849.6.
-2025-09-19T21:35:08Z [web] [STRATEGY_STEP] BracketFill: No headroom. Returning 0.
-2025-09-19T21:35:08Z [web] Error: 127.0.0.1 - - [19/Sep/2025:21:35:08 +0000] "POST /plan HTTP/1.1" 200 6852 0.0406
-2025-09-19T21:35:08Z [web] 
-
-Error: Breakdown in 'Frontend Data Handling'
-Could not find results for the selected strategy ('do_nothing') in the data from the server.
+2025-09-20T17:57:59Z [web] <Firebase Studio> Starting preview...
+2025-09-20T17:57:59Z [web] Waiting for your web server to start serving
+2025-09-20T17:58:01Z [web] Error: Source locally installed gems is ignoring #<Bundler::StubSpecification name=rbs version=3.4.0 platform=ruby> because it is missing extensions
+2025-09-20T17:58:01Z [web] Source locally installed gems is ignoring #<Bundler::StubSpecification name=racc version=1.7.3 platform=ruby> because it is missing extensions
+2025-09-20T17:58:01Z [web] 
+2025-09-20T17:58:01Z [web] Error: Source locally installed gems is ignoring #<Bundler::StubSpecification name=debug version=1.9.2 platform=ruby> because it is missing extensions
+2025-09-20T17:58:01Z [web] 
+2025-09-20T17:58:03Z [web] Joyful Retirement Planner models loaded. Now.
+2025-09-20T17:58:03Z [web] Puma starting in single mode...
+2025-09-20T17:58:03Z [web] * Puma version: 6.6.1 ("Return to Forever")
+2025-09-20T17:58:03Z [web] * Ruby version: ruby 3.3.8 (2025-04-09 revision b200bad6cd) [x86_64-linux]
+2025-09-20T17:58:03Z [web] *  Min threads: 0
+2025-09-20T17:58:03Z [web] *  Max threads: 5
+2025-09-20T17:58:03Z [web] *  Environment: development
+2025-09-20T17:58:03Z [web] *          PID: 409
+2025-09-20T17:58:03Z [web] Error: bundler: failed to load command: rackup (/home/user/.local/share/gem/ruby/3.3.0/bin/rackup)
+2025-09-20T17:58:03Z [web] /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/binder.rb:342:in `initialize': getaddrinfo: Name or service not known (Socket::ResolutionError)
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/binder.rb:342:in `new'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/binder.rb:342:in `add_tcp_listener'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/binder.rb:171:in `block in parse'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/binder.rb:154:in `each'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/binder.rb:154:in `parse'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/runner.rb:175:in `load_and_bind'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/single.rb:44:in `run'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/puma/launcher.rb:203:in `run'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/puma-6.6.1/lib/rack/handler/puma.rb:79:in `run'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/rack-2.2.17/lib/rack/server.rb:327:in `start'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/rack-2.2.17/lib/rack/server.rb:168:in `start'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/rack-2.2.17/bin/rackup:5:in `<top (required)>'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/bin/rackup:25:in `load'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/bin/rackup:25:in `<top (required)>'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/cli/exec.rb:59:in `load'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/cli/exec.rb:59:in `kernel_load'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/cli/exec.rb:23:in `run'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/cli.rb:451:in `exec'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/vendor/thor/lib/thor/command.rb:28:in `run'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/vendor/thor/lib/thor.rb:538:in `dispatch'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/cli.rb:35:in `dispatch'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/vendor/thor/lib/thor/base.rb:584:in `start'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/cli.rb:29:in `start'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/exe/bundle:28:in `block in <top (required)>'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/lib/bundler/friendly_errors.rb:118:in `with_friendly_errors'
+2025-09-20T17:58:03Z [web] 	from /home/user/.local/share/gem/ruby/3.3.0/gems/bundler-2.7.1/exe/bundle:20:in `<top (required)>'
+2025-09-20T17:58:03Z [web] 	from /nix/store/ll92wwam2q5xr77p8zg6rqyh6xiqxdkf-ruby-3.3.8/lib/ruby/3.3.0/rubygems.rb:319:in `load'
+2025-09-20T17:58:03Z [web] 	from /nix/store/ll92wwam2q5xr77p8zg6rqyh6xiqxdkf-ruby-3.3.8/lib/ruby/3.3.0/rubygems.rb:319:in `activate_and_load_bin_path'
+2025-09-20T17:58:03Z [web] 	from /usr/bin/bundle:25:in `<main>'
+2025-09-20T17:58:03Z [web] 
+2025-09-20T17:58:03Z [web] <Firebase Studio> ✘ Preview failed to start

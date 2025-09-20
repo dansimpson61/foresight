@@ -120,7 +120,11 @@ module Foresight
         recipient = member_index.fetch(s[:recipient])
         case s[:type]
         when 'Salary'
-          Salary.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
+          Salary.new(
+            recipient: recipient,
+            annual_gross: s[:annual_gross].to_f,
+            retirement_age: s[:retirement_age]
+          )
         when 'Pension'
           Pension.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
         when 'SocialSecurity', 'SocialSecurityBenefit'

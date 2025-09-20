@@ -49,7 +49,7 @@ module Foresight
       def conversion_amount(household:, tax_year:, base_taxable_income:)
         puts "[STRATEGY_STEP] BracketFill: Executing. Ceiling: #{@ceiling}, Base Income: #{base_taxable_income}."
         
-        # We need to account for the standard deduction.
+        # We need to account for the standard deduction, which the planner does not do beforehand.
         deduction = tax_year.standard_deduction(household.filing_status)
         taxable_income_after_deduction = [base_taxable_income - deduction, 0.0].max
         

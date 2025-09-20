@@ -46,15 +46,13 @@ module Foresight
 
     # --- Public Methods ---
     def self.validate_request(params)
-      # First, ensure all keys from the JSON payload are strings.
-      string_keyed_params = JSON.parse(params.to_json)
+      string_keyed_params = deep_stringify_keys(params)
       errors = validate_hash(string_keyed_params, REQUEST_SCHEMA)
       { valid: errors.empty?, errors: errors }
     end
 
     def self.validate_response(response_hash)
-      # Ensure keys are strings for consistent validation.
-      string_keyed_hash = JSON.parse(response_hash.to_json)
+      string_keyed_hash = deep_stringify_keys(response_hash)
       errors = validate_hash(string_keyed_hash, RESPONSE_SCHEMA)
       { valid: errors.empty?, errors: errors }
     end
@@ -76,8 +74,24 @@ module Foresight
       "API Contract Error: #{error_messages.join(' ')}\nOffending Payload: #{payload.to_json}"
     end
 
-    # --- Private Validation Logic ---
+    # --- Private Helper for Key Conversion ---
     private
+    
+    def self.deep_stringify_keys(object)
+      case object
+      when Hash
+        object.each_with_object({}) do |(key, value), result|
+          result[key.to_s] = deep_stringify_keys(value)
+        end
+      when Array
+        object.map { |e| deep_stringify_keys(e) }
+      else
+        object
+      end
+    end
+
+
+    # --- Private Validation Logic ---
 
     def self.validate_hash(data, schema, path = [])
       errors = []

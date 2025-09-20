@@ -5,12 +5,20 @@ require_relative '../../models/person'
 require_relative '../../models/income_sources'
 
 RSpec.describe Foresight::IncomeSource do
-  let(:recipient) { Foresight::Person.new(name: 'Test Recipient', date_of_birth: '1960-01-01') } # Born in 1960, FRA is 67
+  let(:recipient) { Foresight::Person.new(name: 'Test Recipient', date_of_birth: '1960-01-01') }
+  let(:current_year) { Date.today.year }
 
   describe 'Salary' do
-    it 'reports its gross amount' do
+    it 'reports its gross amount for a given year' do
       salary = Foresight::Salary.new(recipient: recipient, annual_gross: 80_000)
-      expect(salary.annual_gross).to eq(80_000)
+      allow(recipient).to receive(:age_in).with(current_year).and_return(60)
+      expect(salary.gross_for(current_year)).to eq(80_000)
+    end
+
+    it 'reports zero gross amount if the recipient is at or past retirement age' do
+      salary = Foresight::Salary.new(recipient: recipient, annual_gross: 80_000, retirement_age: 65)
+      allow(recipient).to receive(:age_in).with(current_year).and_return(65)
+      expect(salary.gross_for(current_year)).to eq(0)
     end
   end
 
