@@ -8,6 +8,21 @@
 
 This layer focuses on the "small, focused methods" within your models. The goal here is to prove, with mathematical certainty, that the core calculations are correct in isolation.
 
+***Current Test Coverage:***
+-   **`TaxYear`**: ✅
+    -   `#calculate`: Verified for `single` and `mfj` filing statuses with representative income levels.
+    -   `#calculate_capital_gains_tax`: Verified for a `single` filer with capital gains.
+-   **`AnnualPlanner`**: ✅
+    -   `#compute_base_income`: Verified for two key scenarios:
+        1.  A pre-retirement household with salary, pension, and early Social Security.
+        2.  A retirement-age household with RMDs and Social Security.
+    -   Assertions cover the correctness of `:gross_income`, `:taxable_income`, `:ss_total`, `:ss_taxable_baseline`, and `:rmds`.
+-   **`SocialSecurityBenefit`**: ✅ (Implicitly)
+    -   `#annual_benefit_for`: The logic for benefit reduction due to early claiming (e.g., at ages 62 and 65) is validated via the `AnnualPlanner` specs.
+-   **Account Models**: ✅ (Implicitly)
+    -   `TraditionalIRA#calculate_rmd`: The RMD calculation is validated for a 73-year-old via the `AnnualPlanner` specs.
+-   **`Person` Model**: 🟡 **Pending**.
+
 #### What to Test:
 
 -   **`TaxYear`**: This is the most critical model to test. Create specs with known, verifiable inputs. For example, for a given filing status and income, the federal tax should be exactly a certain amount. Use real-world examples from past tax years to validate this. Test the boundary conditions: what happens if income is exactly on the edge of a tax bracket or an IRMAA tier?
@@ -35,6 +50,8 @@ end
 
 ### LAYER 2: Service-Level Scenario Tests (Verifying the Narrative)
 
+***Current Test Coverage:*** 🟡 **Pending**.
+
 This layer tests the integration of your models by running the `PlanService` with specific, meaningful scenarios. The goal is to verify that the simulation tells a correct and believable financial story over time.
 
 #### What to Test:
@@ -54,6 +71,8 @@ Create a few "golden" scenarios that represent key user stories.
 ---
 
 ### LAYER 3: End-to-End Visual Validation (Verifying the Tufte Display)
+
+***Current Test Coverage:*** 🟡 **Pending**.
 
 This is the final layer, ensuring that the validated, correct data from the backend is rendered perfectly by the frontend, fulfilling the UX/UI vision.
 

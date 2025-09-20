@@ -40,27 +40,33 @@ module Foresight
     end
 
     def calculate_capital_gains_tax(filing_status:, taxable_income:, capital_gains:)
-        return 0.0 if capital_gains <= 0
-        
-        status_key = "#{filing_status}_2023"
-        cg_brackets = @brackets[status_key]['capital_gains']
-        
-        tax = 0.0
-        remaining_gains = capital_gains
-        
-        cg_brackets.reverse_each do |bracket|
-            break if remaining_gains <= 0
-            
-            # The income threshold for capital gains includes ordinary income
-            threshold = [bracket['income'] - taxable_income, 0].max
-            
-            taxable_in_this_bracket = [remaining_gains, threshold].min
+      return 0.0 if capital_gains <= 0
+
+      status_key = "#{filing_status}_2023"
+      cg_brackets = @brackets[status_key]['capital_gains']
+      
+      tax = 0.0
+      remaining_gains = capital_gains
+      
+      cg_brackets.reverse_each do |bracket|
+          break if remaining_gains <= 0
+          
+          # The income threshold for capital gains includes ordinary income
+          threshold = bracket['income']
+          
+          taxable_income_plus_gains = taxable_income + remaining_gains
+
+          if taxable_income_plus_gains > threshold
+            taxable_in_this_bracket = taxable_income_plus_gains - threshold
+            taxable_in_this_bracket = [taxable_in_this_bracket, remaining_gains].min
+
             tax += taxable_in_this_bracket * bracket['rate']
             remaining_gains -= taxable_in_this_bracket
-        end
-        
-        tax
-    end
+          end
+      end
+      
+      tax
+  end
     
     def social_security_taxability_thresholds(filing_status)
         status_key = "#{filing_status}_2023"
