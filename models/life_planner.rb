@@ -5,7 +5,7 @@ require 'json'
 
 module Foresight
   class LifePlanner
-    YearSummary = Struct.new(:year, :strategy_name, :federal_tax, :capital_gains_tax, :state_tax, :effective_tax_rate, :starting_balance, :starting_net_worth, :ending_balance, :ending_net_worth, :ending_traditional_balance, :ending_roth_balance, :ending_taxable_balance, :rmd_taken, :narration, :future_rmd_pressure, :ss_taxable_post, :ss_taxable_increase, :magi, :irmaa_part_b, :all_in_tax, :events, :irmaa_lookback_year, :irmaa_lookback_magi, :financial_events, keyword_init: true)
+    YearSummary = Struct.new(:year, :strategy_name, :taxable_income_breakdown, :tax_brackets, :federal_tax, :capital_gains_tax, :state_tax, :effective_tax_rate, :starting_balance, :starting_net_worth, :ending_balance, :ending_net_worth, :ending_traditional_balance, :ending_roth_balance, :ending_taxable_balance, :rmd_taken, :narration, :future_rmd_pressure, :ss_taxable_post, :ss_taxable_increase, :magi, :irmaa_part_b, :all_in_tax, :events, :irmaa_lookback_year, :irmaa_lookback_magi, :financial_events, keyword_init: true)
     StrategyAggregate = Struct.new(:strategy_name, :years, :cumulative_federal_tax, :cumulative_capital_gains_tax, :cumulative_all_in_tax, :cumulative_roth_conversions, :cumulative_irmaa_surcharges, :ending_balances, :projected_first_rmd_pressure, keyword_init: true)
 
 
@@ -77,6 +77,8 @@ module Foresight
       YearSummary.new(
         year: year,
         strategy_name: strategy.name,
+        taxable_income_breakdown: result.taxable_income_breakdown,
+        tax_brackets: result.tax_brackets,
         federal_tax: result.federal_tax,
         capital_gains_tax: result.capital_gains_tax,
         state_tax: result.state_tax,

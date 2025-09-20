@@ -72,55 +72,232 @@ export default class extends Controller {
     });
   }
 
+/**
+ * Prepares the labels and datasets for the income and tax chart.
+ * This function isolates the data transformation logic.
+ * @param {Array} yearlyData - The raw data array for each year.
+ * @returns {Object} An object containing the formatted labels and datasets.
+ */
+prepareIncomeChartData(yearlyData) {
+  const labels = yearlyData.map(r => r.year);
+  
+  // 1. Define Income Sources (Stacked Area Datasets)
+  const incomeSources = [
+      { key: 'ss_benefits', label: 'Fuckable Social Security', color: 'rgba(117, 117, 117, 0.7)' },
+      { key: 'pensions', label: 'Pensions', color: 'rgba(189, 189, 189, 0.7)' },
+      { key: 'salaries', label: 'Salary', color: 'rgba(158, 158, 158, 0.7)' },
+      { key: 'capital_gains', label: 'Capital Gains', color: 'rgba(97, 97, 97, 0.7)' },
+      { key: 'rmds', label: 'RMDs', color: 'rgba(66, 66, 66, 0.7)' },
+      { key: 'spending_withdrawals_ordinary', label: 'Taxable Withdrawals', color: 'rgba(186, 104, 200, 0.7)' },
+      { key: 'roth_conversions', label: 'Roth Conversion', color: 'rgba(239, 83, 80, 0.7)' },
+  ];
+
+  const incomeDatasets = incomeSources.map(source => ({
+      label: source.label,
+      data: yearlyData.map(r => r.taxable_income_breakdown[source.key] || 0),
+      borderColor: 'transparent',
+      backgroundColor: source.color,
+      pointRadius: 0,
+      fill: true,
+      stack: 'income' // Groups for stacking
+  }));
+
+  // 2. Define Reference Lines (Independent Datasets)
+  const taxBrackets = yearlyData[0].tax_brackets;
+  const stdDeduction = taxBrackets.standard_deduction;
+
+  const stdDeductionLine = {
+      label: 'Standard Deduction',
+      data: Array(labels.length).fill(stdDeduction),
+      borderColor: 'rgba(158, 158, 158, 0.8)',
+      borderDash: [2, 3],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: false
+  };
+
+  const bracketLines = taxBrackets.brackets.map(bracket => ({
+      label: `${(bracket.rate * 100).toFixed(0)}% Bracket Ceiling`,
+      data: Array(labels.length).fill(bracket.ceiling + stdDeduction),
+      borderColor: 'rgba(33, 150, 243, 0.5)',
+      borderDash: [5, 5],
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: false
+  }));
+  
+  // 3. Define the Secondary Axis Line
+  const totalTaxLine = {
+      label: 'Total Tax',
+      data: yearlyData.map(r => r.all_in_tax),
+      borderColor: '#D32F2F',
+      borderWidth: 2,
+      yAxisID: 'y1', // Assigns to the right-hand axis
+      pointRadius: 1,
+      fill: false,
+      tension: 0.1
+  };
+
+  // 4. Combine all datasets
+  const datasets = [...incomeDatasets, stdDeductionLine, ...bracketLines, totalTaxLine];
+
+  return { labels, datasets };
+}
+
+/**
+* Renders the income and tax chart onto the canvas.
+* This function now focuses solely on chart configuration and rendering.
+* @param {Array} yearlyData - The raw data array for each year.
+*/
+renderIncomeAndTaxChart(yearlyData) {
+  // Validate the data before proceeding
+  if (!Array.isArray(yearlyData) || yearlyData.length === 0 || !yearlyData[0].taxable_income_breakdown || !yearlyData[0].tax_brackets) {
+      return;
+  }
+  
+  // Get the prepared data
+  const { labels, datasets } = this.prepareIncomeChartData(yearlyData);
+
+  // Destroy the previous chart instance if it exists
+  if (this.incomeTaxChart) {
+      this.incomeTaxChart.destroy();
+  }
+  
+  // Create the new chart
+  this.incomeTaxChart = new Chart(this.incomeTaxCanvasTarget, {
+      type: 'line',
+      data: {
+          labels: labels,
+          datasets: datasets
+      },
+      options: {
+          plugins: {
+              tooltip: { mode: 'index', intersect: false },
+          },
+          scales: {
+              x: {},
+              y: { 
+                  stacked: true,
+                  title: {
+                      display: true,
+                      text: 'Total Income'
+                  }
+              },
+              y1: {
+                  type: 'linear',
+                  display: true,
+                  position: 'right',
+                  grid: { drawOnChartArea: false }, // Only show the axis line
+                  title: {
+                      display: true,
+                      text: 'Annual Tax'
+                  }
+              }
+          },
+          interaction: {
+              mode: 'index',
+              intersect: false
+          }
+      }
+  });
+}
+
   renderIncomeAndTaxChart(yearlyData) {
-    if (!Array.isArray(yearlyData) || yearlyData.length === 0) return;
+    if (!Array.isArray(yearlyData) || yearlyData.length === 0 || !yearlyData[0].taxable_income_breakdown || !yearlyData[0].tax_brackets) return;
 
     const labels = yearlyData.map(r => r.year);
-    const taxableSS = yearlyData.map(r => r.taxable_social_security);
-    const pensions = yearlyData.map(r => r.pension_income);
-    const salary = yearlyData.map(r => r.salary);
-    const capitalGains = yearlyData.map(r => r.capital_gains_realized);
-    const rmds = yearlyData.map(r => r.rmd);
-    const rothConversions = yearlyData.map(r => r.requested_roth_conversion);
-    const totalTax = yearlyData.map(r => r.all_in_tax);
+    const incomeSources = [
+        { key: 'ss_benefits', label: 'Taxable Social Security', color: 'rgba(117, 117, 117, 0.7)' },
+        { key: 'pensions', label: 'Pensions', color: 'rgba(189, 189, 189, 0.7)' },
+        { key: 'salaries', label: 'Salary', color: 'rgba(158, 158, 158, 0.7)' },
+        { key: 'capital_gains', label: 'Capital Gains', color: 'rgba(97, 97, 97, 0.7)' },
+        { key: 'rmds', label: 'RMDs', color: 'rgba(66, 66, 66, 0.7)' },
+        { key: 'spending_withdrawals_ordinary', label: 'Taxable Withdrawals', color: 'rgba(186, 104, 200, 0.7)' },
+        { key: 'roth_conversions', label: 'Roth Conversion', color: 'rgba(239, 83, 80, 0.7)' },
+    ];
+
+    const incomeDatasets = incomeSources.map(source => ({
+      label: source.label,
+      data: yearlyData.map(r => r.taxable_income_breakdown[source.key] || 0),
+      borderColor: 'transparent',
+      backgroundColor: source.color,
+      pointRadius: 0,
+      fill: true // This is the key change to create the filled area
+    }));
+
+    const taxBrackets = yearlyData[0].tax_brackets;
+    const stdDeduction = taxBrackets.standard_deduction;
+
+    const bracketLines = taxBrackets.brackets.map(bracket => ({
+      label: `${(bracket.rate * 100).toFixed(0)}% Bracket Ceiling`,
+      data: Array(labels.length).fill(bracket.ceiling + stdDeduction),
+      borderColor: 'rgba(33, 150, 243, 0.5)',
+      borderDash: [5, 5],
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: false
+    }));
+
+    const stdDeductionLine = {
+        label: 'Standard Deduction',
+        data: Array(labels.length).fill(stdDeduction),
+        borderColor: 'rgba(158, 158, 158, 0.8)',
+        borderDash: [2, 3],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false
+    };
+
+    const totalTaxLine = {
+        label: 'Total Tax',
+        data: yearlyData.map(r => r.all_in_tax),
+        borderColor: '#D32F2F',
+        borderWidth: 2,
+        yAxisID: 'y1',
+        pointRadius: 1,
+        fill: false,
+        tension: 0.1
+    };
+
+    const datasets = [...incomeDatasets, stdDeductionLine, ...bracketLines, totalTaxLine];
 
     if (this.incomeTaxChart) {
       this.incomeTaxChart.destroy();
     }
 
     this.incomeTaxChart = new Chart(this.incomeTaxCanvasTarget, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: labels,
-            datasets: [
-                { label: 'Taxable Social Security', data: taxableSS, backgroundColor: '#CFD8DC' },
-                { label: 'Pensions', data: pensions, backgroundColor: '#90A4AE' },
-                { label: 'Salary', data: salary, backgroundColor: '#607D8B' },
-                { label: 'Capital Gains', data: capitalGains, backgroundColor: '#546E7A' },
-                { label: 'RMDs', data: rmds, backgroundColor: '#455A64' },
-                { label: 'Roth Conversion', data: rothConversions, backgroundColor: '#37474F' },
-                {
-                    label: 'Total Tax',
-                    data: totalTax,
-                    type: 'line',
-                    borderColor: '#EF5350',
-                    yAxisID: 'y1'
-                }
-            ]
+            datasets: datasets
         },
         options: {
             plugins: {
                 tooltip: { mode: 'index', intersect: false },
             },
             scales: {
-                x: { stacked: true },
-                y: { stacked: true },
+                x: {},
+                y: { 
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: 'Total Income'
+                    }
+                },
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
-                    grid: { drawOnChartArea: false }
+                    grid: { drawOnChartArea: false },
+                    title: {
+                        display: true,
+                        text: 'Annual Tax'
+                    }
                 }
+            },
+            interaction: {
+              mode: 'index',
+              intersect: false
             }
         }
     });

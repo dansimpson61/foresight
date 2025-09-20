@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.7] - 2025-09-18
+
+### Changed
+- **Overhauled Income Chart:** Replaced the previous income chart with a robust, Tufte-an stacked area chart powered by Chart.js. This new visualization, managed by the unified `charts_controller`, now correctly displays all income sources as stacked areas overlaid with tax bracket ceilings and the annual tax liability, providing a clear and insightful decision-making tool.
+- **Consolidated Charting Logic:** All frontend charting is now handled by a single, unified `charts_controller.js`, improving maintainability and removing redundant code.
+
+### Fixed
+- **Corrected Chart Data Flow:** Resolved a series of cascading issues preventing the income chart from rendering. This included propagating the detailed income breakdown from the backend, fixing the Stimulus controller instantiation in the view, and correctly mapping data within the controller to create a true stacked area chart.
+
+## [0.1.6] - 2025-09-17
+
 ### Added
 - **New SVG Income Chart:** Implemented a new "Annual Income & Tax Details" chart using a dedicated Stimulus controller (`income_chart_controller.js`) and pure SVG for a minimalist, library-free visualization.
 - **Detailed Income Breakdown:** The `AnnualPlanner` now returns a granular breakdown of all taxable income sources for each year.
@@ -46,7 +57,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - "Tax-Efficiency Gauge" doughnut chart.
 
 ### Changed
-- **Refactored Charting:** All charting logic is now consolidated within the `charts_controller.js` Stimulus controller, which manages all four new charts.
+- **Refactoring Charting:** All charting logic is now consolidated within the `charts_controller.js` Stimulus controller, which manages all four new charts.
 
 ### Fixed
 - **Critical Backend Bugs:** Resolved a series of cascading 500 errors in the `PlanService` caused by mismatches between the frontend payload and backend model expectations. This included correcting keys (`annual_expenses`, `emergency_fund_floor`) and aligning strategy names (`do_nothing`, `fill_to_top_of_bracket`) between the API and the core simulation, allowing the request specs to finally pass.
@@ -78,7 +89,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 *... (older versions remain the same)*
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/dansimpson61/foresight/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/dansimpson61/foresight/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/dansimpson61/foresight/compare/v0.1.3...v0.1.5
 [0.1.3]: https://github.com/dansimpson61/foresight/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/dansimpson61/foresight/compare/v0.1.1...v0.1.2

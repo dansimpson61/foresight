@@ -13,8 +13,7 @@ html
       |     "plan-form": "/controllers/plan_form_controller.js",
       |     "results-table": "/controllers/results_table_controller.js",
       |     "summary": "/controllers/summary_controller.js",
-      |     "tax-bracket-slider": "/controllers/tax_bracket_slider_controller.js",
-      |     "income-chart": "/controllers/income_chart_controller.js"
+      |     "tax-bracket-slider": "/controllers/tax_bracket_slider_controller.js"
       |   }
       | }
 
@@ -180,13 +179,12 @@ html
             h3 Lifetime Asset Progression
             .chart-container
               canvas data-charts-target="netWorthCanvas"
-        
-        div data-controller="income-chart"
+          
           section
             h3 Annual Income & Tax Details
-            .chart-container data-income-chart-target="container"
+            .chart-container
+              canvas data-charts-target="incomeTaxCanvas"
 
-        div data-controller="charts"
           section
             h3 IRMAA Impact Timeline
             .chart-container
