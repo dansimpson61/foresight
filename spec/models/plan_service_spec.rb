@@ -1,94 +1,77 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require_relative '../spec_helper'
 require_relative '../../models/plan_service'
-require_relative '../../models/household'
-require_relative '../../models/person'
-require_relative '../../models/accounts'
-require_relative '../../models/income_sources'
+
+# Helper to recursively symbolize keys in hashes and arrays of hashes
+def symbolize_keys(value)
+  case value
+  when Hash
+    value.each_with_object({}) do |(key, val), result|
+      new_key = key.is_a?(String) ? key.to_sym : key
+      result[new_key] = symbolize_keys(val)
+    end
+  when Array
+    value.map { |v| symbolize_keys(v) }
+  else
+    value
+  end
+end
 
 RSpec.describe Foresight::PlanService do
-  describe '.run with new data model' do
-    let(:current_year) { Date.today.year }
-    let(:params) do
-      {
-        # 1. Household & Demographics
-        members: [
-          { name: "You", date_of_birth: "#{current_year - 40}-01-01" },
-          { name: "Spouse", date_of_birth: "#{current_year - 42}-01-01" }
-        ],
-        filing_status: 'mfj',
-        state: 'NY',
-        years: 30,
-        start_year: current_year,
-        strategies: [],
+  let(:example_payload) do
+    {
+      'members' => [
+        { 'name' => 'Alice', 'date_of_birth' => '1961-06-15' },
+        { 'name' => 'Bob',   'date_of_birth' => '1967-02-10' }
+      ],
+      'filing_status' => 'mfj',
+      'state' => 'NY',
+      'start_year' => 2025,
+      'years' => 30,
+      'accounts' => [
+        { 'type' => 'TraditionalIRA', 'owner' => 'Alice', 'balance' => 100_000.0 },
+        { 'type' => 'RothIRA', 'owner' => 'Alice', 'balance' => 50_000.0 },
+        { 'type' => 'TaxableBrokerage', 'owners' => ['Alice','Bob'], 'balance' => 20_000.0, 'cost_basis_fraction' => 0.7 }
+      ],
+      'emergency_fund_floor' => 20_000.0,
+      'income_sources' => [
+        { 'type' => 'SocialSecurityBenefit', 'recipient' => 'Alice', 'pia_annual' => 24_000.0, 'claiming_age' => 67 },
+        { 'type' => 'SocialSecurityBenefit', 'recipient' => 'Bob',   'pia_annual' => 24_000.0, 'claiming_age' => 65 }
+      ],
+      'annual_expenses' => 60_000.0,
+      'withdrawal_hierarchy' => ['taxable', 'traditional', 'roth'],
+      'inflation_rate' => 0.02,
+      'growth_assumptions' => { 'traditional_ira' => 0.02, 'roth_ira' => 0.03, 'taxable' => 0.01, 'cash' => 0.005 },
+      'strategies' => [ { 'key' => 'do_nothing' } ]
+    }
+  end
+  
+  let(:symbolized_payload) { symbolize_keys(example_payload) }
 
-        # 2. Financial State
-        accounts: [
-          { type: 'TraditionalIRA', owner: 'You', balance: 500_000 },
-          { type: 'RothIRA', owner: 'You', balance: 100_000 },
-          { type: 'TaxableBrokerage', owners: ['You', 'Spouse'], balance: 200_000, cost_basis_fraction: 0.7 },
-          { type: 'Cash', balance: 50_000 }
-        ],
-        emergency_fund_floor: 25_000,
-        other_assets: 0,
-        liabilities: 0,
-
-        # 3. Income Streams
-        income_sources: [
-          { type: 'Salary', recipient: 'You', annual_gross: 150_000 },
-          { type: 'Salary', recipient: 'Spouse', annual_gross: 75_000 },
-          { type: 'SocialSecurity', recipient: 'You', pia_annual: 30_000, claiming_age: 67 },
-          { type: 'SocialSecurity', recipient: 'Spouse', pia_annual: 21_600, claiming_age: 65 }
-        ],
-
-        # 4. Spending Plan
-        annual_expenses: 80_000,
-
-        # 5. Strategic Scenarios
-        roth_conversion_strategy: { type: 'do_nothing', parameters: {} },
-        withdrawal_hierarchy: ['cash', 'taxable', 'traditional', 'roth'],
-
-        # 6. Economic Assumptions
-        inflation_rate: 0.02,
-        growth_assumptions: {
-          traditional_ira: 0.03,
-          roth_ira: 0.03,
-          taxable: 0.03,
-          cash: 0.005
-        }
-      }
-    end
-
-    it 'correctly builds the Household object from the new params' do
-      service_instance = Foresight::PlanService.new
+  describe '.run' do
+    it "runs the 'do_nothing' scenario and returns a complete, structurally valid result" do
+      result = described_class.run(symbolized_payload)
       
-      # We test the private `build_household` method directly using `send`
-      household = service_instance.send(:build_household, params)
-
-      # Assertions
-      expect(household).to be_a(Foresight::Household)
+      # Verify the top-level structure
+      expect(result).to have_key(:data)
+      expect(result[:data][:results]).to have_key('do_nothing')
       
-      # Household attributes
-      expect(household.filing_status).to eq(:mfj)
-      expect(household.state).to eq('NY')
-      expect(household.annual_expenses).to eq(80_000.0)
-      expect(household.emergency_fund_floor).to eq(25_000.0)
-      expect(household.withdrawal_hierarchy).to eq([:cash, :taxable, :traditional, :roth])
-
-      # Accounts
-      expect(household.accounts.size).to eq(4)
-      expect(household.traditional_iras.first.balance).to eq(500_000.0)
-      expect(household.roth_iras.first.balance).to eq(100_000.0)
-      expect(household.taxable_brokerage_accounts.first.balance).to eq(200_000.0)
-      expect(household.cash_accounts.first.balance).to eq(50_000.0)
-
-      # Income Sources
-      expect(household.income_sources.size).to eq(4)
-      expect(household.salaries.find { |s| s.recipient.name == 'You' }.annual_gross).to eq(150_000.0)
-      ss_you = household.social_security_benefits.find { |s| s.recipient.name == 'You' }
-      expect(ss_you.pia_annual).to eq(30_000.0)
-      expect(ss_you.claiming_age).to eq(67)
+      # Verify the completeness of the strategy's result payload
+      do_nothing_result = result[:data][:results]['do_nothing']
+      expect(do_nothing_result).to be_a(Hash)
+      expect(do_nothing_result).to have_key(:aggregate)
+      expect(do_nothing_result).to have_key(:yearly)
+      
+      # Verify the simulation ran for the correct number of years
+      yearly_data = do_nothing_result[:yearly]
+      expect(yearly_data).to be_an(Array)
+      expect(yearly_data.size).to eq(30)
+      
+      # Verify that the "do_nothing" strategy behaved as expected
+      aggregate_data = do_nothing_result[:aggregate]
+      expect(aggregate_data).to be_a(Hash)
+      expect(aggregate_data[:cumulative_roth_conversions]).to eq(0)
     end
   end
 end

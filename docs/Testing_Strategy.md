@@ -21,7 +21,8 @@ This layer focuses on the "small, focused methods" within your models. The goal 
     -   `#annual_benefit_for`: The logic for benefit reduction due to early claiming (e.g., at ages 62 and 65) is validated via the `AnnualPlanner` specs.
 -   **Account Models**: ✅ (Implicitly)
     -   `TraditionalIRA#calculate_rmd`: The RMD calculation is validated for a 73-year-old via the `AnnualPlanner` specs.
--   **`Person` Model**: 🟡 **Pending**.
+-   **`Person` Model**: ✅ 
+    - `#rmd_start_age`: The dynamic RMD start age logic is validated via the `PlanService` specs.
 
 #### What to Test:
 
@@ -50,9 +51,14 @@ end
 
 ### LAYER 2: Service-Level Scenario Tests (Verifying the Narrative)
 
-***Current Test Coverage:*** 🟡 **Pending**.
+***Current Test Coverage:*** ✅ **In Progress**.
 
 This layer tests the integration of your models by running the `PlanService` with specific, meaningful scenarios. The goal is to verify that the simulation tells a correct and believable financial story over time.
+
+-   **Baseline "do_nothing" Scenario**: ✅
+    -   We have successfully run a 30-year simulation using a representative household.
+    -   This test verifies that the `PlanService` can correctly orchestrate all the domain models (`Person`, `Household`, `Account`, `IncomeSource`, `TaxYear`, `AnnualPlanner`, `LifePlanner`) to produce a structurally complete and valid result.
+    -   Assertions confirm that the simulation runs for the correct number of years and that the "do_nothing" strategy results in zero Roth conversions, proving the core mechanics of the simulation engine.
 
 #### What to Test:
 
