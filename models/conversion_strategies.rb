@@ -48,7 +48,13 @@ module Foresight
 
       def conversion_amount(household:, tax_year:, base_taxable_income:)
         puts "[STRATEGY_STEP] BracketFill: Executing. Ceiling: #{@ceiling}, Base Income: #{base_taxable_income}."
-        headroom = @ceiling - base_taxable_income
+        
+        # We need to account for the standard deduction.
+        deduction = tax_year.standard_deduction(household.filing_status)
+        taxable_income_after_deduction = [base_taxable_income - deduction, 0.0].max
+        
+        headroom = @ceiling - taxable_income_after_deduction
+        
         if headroom <= 0
           puts "[STRATEGY_STEP] BracketFill: No headroom. Returning 0."
           return 0.0

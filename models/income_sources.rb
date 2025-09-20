@@ -27,10 +27,15 @@ module Foresight
       @annual_gross = annual_gross.to_f
     end
 
-    def taxable_amount(_state:, recipient_age:)
+    def taxable_amount(state:, recipient_age:)
       # NY exclusion simplified: up to 20k if age >= 59.5
-      return @annual_gross if recipient_age < 60
-      [@annual_gross - 20_000, 0.0].max
+      case state
+      when 'NY'
+        return @annual_gross if recipient_age < 60
+        [@annual_gross - 20_000, 0.0].max
+      else
+        @annual_gross
+      end
     end
   end
 

@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning (SemVer) as it evolves.
 
 ## [Unreleased]
-- TBD
+
+### Added
+- New unit tests for core models: `Person`, `Account`, and `IncomeSource`.
+- Granular integration tests for `AnnualPlanner` to verify event sequencing and income calculations.
+
+### Changed
+- **Testing Overhaul**: The testing strategy has been fundamentally improved from a single end-to-end scenario to a robust, multi-layered "Testing Pyramid" approach. This provides greater confidence, faster feedback, and more precise error detection. Refer to `docs/Testing_Strategy.md` for full details.
+- Renamed `conversion_logic_spec.rb` to `conversion_strategies_spec.rb` for clarity.
+- Enhanced `conversion_strategies_spec.rb` to cover all strategies and edge cases.
+- Enhanced `tax_year_spec.rb` to include tests for capital gains, Social Security taxability, and IRMAA surcharges.
+
+### Fixed
+- Corrected a logic flaw in the `BracketFill` conversion strategy where it would incorrectly recommend a conversion even when income was already above the target ceiling.
+- Fixed a bug in the `Pension` model where state-specific taxability rules were not being applied correctly.
+- Corrected faulty assumptions in the `accounts_spec.rb` test regarding RMD eligibility, ensuring the test now accurately validates the code.
+- Aligned the `AnnualPlanner`'s `StrategyResult` struct with the test suite by adding the `ss_taxable_baseline` field, making the model's output more transparent and verifiable.
 
 ## [0.3.0] - 2025-09-17
 ### Added

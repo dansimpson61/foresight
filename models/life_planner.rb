@@ -5,7 +5,7 @@ require 'json'
 
 module Foresight
   class LifePlanner
-    YearSummary = Struct.new(:year, :strategy_name, :requested_roth_conversion, :actual_roth_conversion, :federal_tax, :capital_gains_tax, :state_tax, :effective_tax_rate, :starting_balance, :starting_net_worth, :ending_balance, :ending_net_worth, :ending_traditional_balance, :ending_roth_balance, :ending_taxable_balance, :rmd_taken, :narration, :future_rmd_pressure, :ss_taxable_post, :ss_taxable_increase, :conversion_incremental_tax, :conversion_incremental_marginal_rate, :magi, :irmaa_part_b, :all_in_tax, :events, :irmaa_lookback_year, :irmaa_lookback_magi, keyword_init: true)
+    YearSummary = Struct.new(:year, :strategy_name, :federal_tax, :capital_gains_tax, :state_tax, :effective_tax_rate, :starting_balance, :starting_net_worth, :ending_balance, :ending_net_worth, :ending_traditional_balance, :ending_roth_balance, :ending_taxable_balance, :rmd_taken, :narration, :future_rmd_pressure, :ss_taxable_post, :ss_taxable_increase, :magi, :irmaa_part_b, :all_in_tax, :events, :irmaa_lookback_year, :irmaa_lookback_magi, :financial_events, keyword_init: true)
     StrategyAggregate = Struct.new(:strategy_name, :years, :cumulative_federal_tax, :cumulative_capital_gains_tax, :cumulative_all_in_tax, :cumulative_roth_conversions, :cumulative_irmaa_surcharges, :ending_balances, :projected_first_rmd_pressure, keyword_init: true)
 
 
@@ -45,8 +45,8 @@ module Foresight
         inputs: inputs,
         results: results_hash.transform_values do |data|
           {
-            aggregate: data[:aggregate], # Already a hash
-            yearly: data[:yearly]        # Already an array of hashes
+            aggregate: data[:aggregate],
+            yearly: data[:yearly]
           }
         end
       }
@@ -72,11 +72,11 @@ module Foresight
         cash: @household.cash_accounts.sum(&:balance).round(2)
       }
       
+      rmd_events = result.financial_events.select { |e| e.is_a?(FinancialEvent::RequiredMinimumDistribution) }
+      
       YearSummary.new(
         year: year,
         strategy_name: strategy.name,
-        requested_roth_conversion: result.roth_conversion_requested,
-        actual_roth_conversion: result.actual_roth_conversion,
         federal_tax: result.federal_tax,
         capital_gains_tax: result.capital_gains_tax,
         state_tax: result.state_tax,
@@ -86,22 +86,21 @@ module Foresight
         all_in_tax: all_in,
         
         starting_balance: starting_balances.values.sum.round(2),
-        starting_net_worth: starting_balances.values.sum.round(2), # TODO: Add other assets/liabilities
+        starting_net_worth: starting_balances.values.sum.round(2),
         
         ending_balance: ending_balances.values.sum.round(2),
-        ending_net_worth: ending_balances.values.sum.round(2), # TODO: Add other assets/liabilities
+        ending_net_worth: ending_balances.values.sum.round(2),
         ending_traditional_balance: ending_balances[:traditional],
         ending_roth_balance: ending_balances[:roth],
         ending_taxable_balance: ending_balances[:taxable],
         
-        rmd_taken: @household.traditional_iras.sum { |acct| acct.calculate_rmd(acct.owner.age_in(year)) }.round(2),
+        rmd_taken: rmd_events.sum(&:amount).round(2),
         narration: result.narration,
         future_rmd_pressure: future_rmd_pressure(year + 1),
         ss_taxable_post: result.ss_taxable_post,
         ss_taxable_increase: result.ss_taxable_increase,
-        conversion_incremental_tax: result.conversion_incremental_tax,
-        conversion_incremental_marginal_rate: result.conversion_incremental_marginal_rate,
         events: events_for(year),
+        financial_events: result.financial_events, # Store the actual event objects
         irmaa_lookback_year: nil,
         irmaa_lookback_magi: nil
       )
@@ -118,28 +117,35 @@ module Foresight
     end
 
     def projected_first_rmd_pressure_for(household)
-      # This logic needs to be re-evaluated with the new spending model
       0.0 
     end
 
     def build_aggregate(yearly)
-      last = yearly.last
-      StrategyAggregate.new(
-        strategy_name: last.strategy_name,
-        years: yearly.size,
-        cumulative_federal_tax: yearly.sum(&:federal_tax).round(2),
-        cumulative_capital_gains_tax: yearly.sum(&:capital_gains_tax).round(2),
-        cumulative_all_in_tax: yearly.sum(&:all_in_tax).round(2),
-        cumulative_roth_conversions: yearly.sum(&:actual_roth_conversion).round(2),
-        cumulative_irmaa_surcharges: yearly.sum(&:irmaa_part_b).round(2),
-        ending_balances: {
-          roth: last.ending_roth_balance,
-          traditional: last.ending_traditional_balance,
-          taxable: last.ending_taxable_balance
-        },
-        projected_first_rmd_pressure: 0.0 # Disabled for now
-      )
-    end
+        last = yearly.last
+        # Retrieve the actual event objects before processing
+        all_financial_events = yearly.flat_map(&:financial_events)
+        
+        total_conversions = all_financial_events
+          .select { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
+          .sum(&:amount)
+          .round(2)
+  
+        StrategyAggregate.new(
+          strategy_name: last.strategy_name,
+          years: yearly.size,
+          cumulative_federal_tax: yearly.sum(&:federal_tax).round(2),
+          cumulative_capital_gains_tax: yearly.sum(&:capital_gains_tax).round(2),
+          cumulative_all_in_tax: yearly.sum(&:all_in_tax).round(2),
+          cumulative_roth_conversions: total_conversions,
+          cumulative_irmaa_surcharges: yearly.sum(&:irmaa_part_b).round(2),
+          ending_balances: {
+            roth: last.ending_roth_balance,
+            traditional: last.ending_traditional_balance,
+            taxable: last.ending_taxable_balance
+          },
+          projected_first_rmd_pressure: 0.0
+        )
+      end
 
     def simulate_on(household, strategy)
       summaries = []
@@ -238,7 +244,6 @@ module Foresight
     def events_for(year)
       evts = []
       @household.social_security_benefits.each do |b|
-        # This needs to be updated based on age, not start_year
         evts << { type: 'ss_start', person: b.recipient.name } if b.recipient.age_in(year) == b.claiming_age
       end
       @household.members.each do |m|
