@@ -83,7 +83,7 @@ prepareIncomeChartData(yearlyData) {
   
   // 1. Define Income Sources (Stacked Area Datasets)
   const incomeSources = [
-      { key: 'ss_benefits', label: 'Fuckable Social Security', color: 'rgba(117, 117, 117, 0.7)' },
+    { key: 'ss_benefits', label: 'Taxable Social Security', color: 'rgba(117, 117, 117, 0.7)' },
       { key: 'pensions', label: 'Pensions', color: 'rgba(189, 189, 189, 0.7)' },
       { key: 'salaries', label: 'Salary', color: 'rgba(158, 158, 158, 0.7)' },
       { key: 'capital_gains', label: 'Capital Gains', color: 'rgba(97, 97, 97, 0.7)' },
@@ -98,8 +98,10 @@ prepareIncomeChartData(yearlyData) {
       borderColor: 'transparent',
       backgroundColor: source.color,
       pointRadius: 0,
-      fill: true,
-      stack: 'income' // Groups for stacking
+    fill: true,
+    stack: 'income', // stack group for income only
+    yAxisID: 'y',
+    order: 0
   }));
 
   // 2. Define Reference Lines (Independent Datasets)
@@ -113,18 +115,27 @@ prepareIncomeChartData(yearlyData) {
       borderDash: [2, 3],
       borderWidth: 1.5,
       pointRadius: 0,
-      fill: false
+    fill: false,
+    yAxisID: 'y',
+    stack: 'ref_std', // unique stack so it never stacks with income or other refs
+    order: 100
   };
 
-  const bracketLines = taxBrackets.brackets.map(bracket => ({
-      label: `${(bracket.rate * 100).toFixed(0)}% Bracket Ceiling`,
+  const bracketLines = taxBrackets.brackets.map(bracket => {
+    const rateLabel = `${(bracket.rate * 100).toFixed(0)}%`;
+    return {
+      label: `${rateLabel} Bracket Ceiling`,
       data: Array(labels.length).fill(bracket.ceiling + stdDeduction),
       borderColor: 'rgba(33, 150, 243, 0.5)',
       borderDash: [5, 5],
       borderWidth: 1,
       pointRadius: 0,
-      fill: false
-  }));
+      fill: false,
+      yAxisID: 'y',
+      stack: `ref_${rateLabel}`, // unique stack per bracket
+      order: 100
+    };
+  });
   
   // 3. Define the Secondary Axis Line
   const totalTaxLine = {
@@ -135,7 +146,8 @@ prepareIncomeChartData(yearlyData) {
       yAxisID: 'y1', // Assigns to the right-hand axis
       pointRadius: 1,
       fill: false,
-      tension: 0.1
+    tension: 0.1,
+    order: 110
   };
 
   // 4. Combine all datasets
@@ -152,7 +164,7 @@ prepareIncomeChartData(yearlyData) {
 renderIncomeAndTaxChart(yearlyData) {
   // Validate the data before proceeding
   if (!Array.isArray(yearlyData) || yearlyData.length === 0 || !yearlyData[0].taxable_income_breakdown || !yearlyData[0].tax_brackets) {
-      return;
+    return;
   }
   
   // Get the prepared data
@@ -160,148 +172,37 @@ renderIncomeAndTaxChart(yearlyData) {
 
   // Destroy the previous chart instance if it exists
   if (this.incomeTaxChart) {
-      this.incomeTaxChart.destroy();
+    this.incomeTaxChart.destroy();
   }
   
   // Create the new chart
   this.incomeTaxChart = new Chart(this.incomeTaxCanvasTarget, {
-      type: 'line',
-      data: {
-          labels: labels,
-          datasets: datasets
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      plugins: {
+        tooltip: { mode: 'index', intersect: false },
+        filler: { drawTime: 'beforeDatasetsDraw' } // draw area fills first so lines appear on top
       },
-      options: {
-          plugins: {
-              tooltip: { mode: 'index', intersect: false },
-          },
-          scales: {
-              x: {},
-              y: { 
-                  stacked: true,
-                  title: {
-                      display: true,
-                      text: 'Total Income'
-                  }
-              },
-              y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  grid: { drawOnChartArea: false }, // Only show the axis line
-                  title: {
-                      display: true,
-                      text: 'Annual Tax'
-                  }
-              }
-          },
-          interaction: {
-              mode: 'index',
-              intersect: false
-          }
-      }
+      scales: {
+        x: {},
+        y: { 
+          stacked: true, // stacks only datasets sharing the same `stack` id
+          title: { display: true, text: 'Total Income' }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Annual Tax' }
+        }
+      },
+      interaction: { mode: 'index', intersect: false }
+    }
   });
 }
-
-  renderIncomeAndTaxChart(yearlyData) {
-    if (!Array.isArray(yearlyData) || yearlyData.length === 0 || !yearlyData[0].taxable_income_breakdown || !yearlyData[0].tax_brackets) return;
-
-    const labels = yearlyData.map(r => r.year);
-    const incomeSources = [
-        { key: 'ss_benefits', label: 'Taxable Social Security', color: 'rgba(117, 117, 117, 0.7)' },
-        { key: 'pensions', label: 'Pensions', color: 'rgba(189, 189, 189, 0.7)' },
-        { key: 'salaries', label: 'Salary', color: 'rgba(158, 158, 158, 0.7)' },
-        { key: 'capital_gains', label: 'Capital Gains', color: 'rgba(97, 97, 97, 0.7)' },
-        { key: 'rmds', label: 'RMDs', color: 'rgba(66, 66, 66, 0.7)' },
-        { key: 'spending_withdrawals_ordinary', label: 'Taxable Withdrawals', color: 'rgba(186, 104, 200, 0.7)' },
-        { key: 'roth_conversions', label: 'Roth Conversion', color: 'rgba(239, 83, 80, 0.7)' },
-    ];
-
-    const incomeDatasets = incomeSources.map(source => ({
-      label: source.label,
-      data: yearlyData.map(r => r.taxable_income_breakdown[source.key] || 0),
-      borderColor: 'transparent',
-      backgroundColor: source.color,
-      pointRadius: 0,
-      fill: true // This is the key change to create the filled area
-    }));
-
-    const taxBrackets = yearlyData[0].tax_brackets;
-    const stdDeduction = taxBrackets.standard_deduction;
-
-    const bracketLines = taxBrackets.brackets.map(bracket => ({
-      label: `${(bracket.rate * 100).toFixed(0)}% Bracket Ceiling`,
-      data: Array(labels.length).fill(bracket.ceiling + stdDeduction),
-      borderColor: 'rgba(33, 150, 243, 0.5)',
-      borderDash: [5, 5],
-      borderWidth: 1,
-      pointRadius: 0,
-      fill: false
-    }));
-
-    const stdDeductionLine = {
-        label: 'Standard Deduction',
-        data: Array(labels.length).fill(stdDeduction),
-        borderColor: 'rgba(158, 158, 158, 0.8)',
-        borderDash: [2, 3],
-        borderWidth: 1.5,
-        pointRadius: 0,
-        fill: false
-    };
-
-    const totalTaxLine = {
-        label: 'Total Tax',
-        data: yearlyData.map(r => r.all_in_tax),
-        borderColor: '#D32F2F',
-        borderWidth: 2,
-        yAxisID: 'y1',
-        pointRadius: 1,
-        fill: false,
-        tension: 0.1
-    };
-
-    const datasets = [...incomeDatasets, stdDeductionLine, ...bracketLines, totalTaxLine];
-
-    if (this.incomeTaxChart) {
-      this.incomeTaxChart.destroy();
-    }
-
-    this.incomeTaxChart = new Chart(this.incomeTaxCanvasTarget, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
-        options: {
-            plugins: {
-                tooltip: { mode: 'index', intersect: false },
-            },
-            scales: {
-                x: {},
-                y: { 
-                    stacked: true,
-                    title: {
-                        display: true,
-                        text: 'Total Income'
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    grid: { drawOnChartArea: false },
-                    title: {
-                        display: true,
-                        text: 'Annual Tax'
-                    }
-                }
-            },
-            interaction: {
-              mode: 'index',
-              intersect: false
-            }
-        }
-    });
-  }
+  
 
   renderIrmaaTimeline(yearlyData) {
     if (!Array.isArray(yearlyData) || yearlyData.length === 0) return;

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foresight Wireframe</title>
+  </head>
+<body>
+
+  <main class="grid-container">
+
+    <section class="parameters-panel">
+      <header>
+        <h1>Foresight</h1>
+        <p>A minimal, joyful surface to post plans and preview key outputs.</p>
+      </header>
+
+      <form id="plan-form">
+        <h2>Parameters</h2>
+
+        <div class="form-group">
+          <label for="start-year">Start Year</label>
+          <input type="number" id="start-year" value="2025">
+        </div>
+
+        <div class="form-group">
+          <label for="years">Years</label>
+          <input type="number" id="years" value="5">
+        </div>
+
+        <div class="form-group slider-group">
+          <label for="inflation-rate">Inflation %</label>
+          <input type="range" id="inflation-rate" min="0" max="10" step="0.1" value="2.0">
+          <span>2.0%</span>
+          <svg class="sparkline" width="100" height="20"></svg>
+        </div>
+
+        <div class="form-group">
+            <label for="bracket-ceiling">Bracket Ceiling</label>
+            <select id="bracket-ceiling">
+                <option selected>22% Bracket ($94,300)</option>
+                <option>24% Bracket ($201,050)</option>
+            </select>
+        </div>
+
+        <h3>Accounts ($)</h3>
+        <div class="form-group">
+          <label for="alice-trad">Alice Trad IRA</label>
+          <input type="text" id="alice-trad" value="1,060,415">
+        </div>
+        <div class="form-group">
+          <label for="alice-roth">Alice Roth IRA</label>
+          <input type="text" id="alice-roth" value="84,000">
+        </div>
+        <footer>
+          <button type="button" id="btn-load-example">Load Example</button>
+          <button type="button" id="btn-download-json">Download JSON</button>
+        </footer>
+      </form>
+    </section>
+
+    <section class="results-panel">
+      <header class="results-header">
+        <h2>Results</h2>
+        <div class="strategy-selector">
+          <label for="strategy">Strategy</label>
+          <select id="strategy">
+            <option>BracketFill</option>
+            <option>NoConversion</option>
+          </select>
+        </div>
+      </header>
+
+      <div class="summary-cards">
+        <div class="card">
+          <h3>Lifetime Taxes</h3>
+          <p>$48,504</p>
+        </div>
+        <div class="card">
+          <h3>Total Conversions</h3>
+          <p>$447,925</p>
+        </div>
+        <div class="card">
+          <h3>End Net Worth</h3>
+          <p>$1,089,690</p>
+        </div>
+        <div class="card">
+          <h3>Tax-Free % (End)</h3>
+          <p>0.0%</p>
+        </div>
+      </div>
+
+      <div class="visualizations">
+        <figure class="viz-card">
+          <h3>Lifetime Assets & Taxes</h3>
+          <svg id="chart-assets" width="100%" height="260" aria-label="Stacked area chart of assets over time with an overlay line for taxes."></svg>
+        </figure>
+
+        <figure class="viz-card">
+            <h3>IRMAA Timeline</h3>
+            <svg id="timeline-irmaa" width="100%" height="36" aria-label="Color-coded timeline of IRMAA surcharge tiers over the plan horizon."></svg>
+        </figure>
+
+        <figure class="viz-card">
+          <h3>Tax-Efficiency Gauge (End of Plan)</h3>
+          <svg id="eff-gauge" width="100%" height="40" aria-label="Horizontal bar chart showing the proportion of tax-deferred vs tax-free assets at the end of the plan."></svg>
+        </figure>
+      </div>
+
+      <div class="details-table">
+        <h3>Yearly Details</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Conv</th>
+                <th>Fed Tax</th>
+                <th>State Tax</th>
+                <th>CG Tax</th>
+                <th>All-in Tax</th>
+                <th>MAGI</th>
+                <th>IRMAA B</th>
+                <th>Taxable End</th>
+                <th>Trad End</th>
+                <th>Roth End</th>
+                <th>Events</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2025</td>
+                <td>$89,585</td>
+                <td>$9,254</td>
+                <td>$5,065</td>
+                <td>$0</td>
+                <td>$14,319</td>
+                <td>$109,985</td>
+                <td>$0</td>
+                <td>$0</td>
+                <td>$1,269,663</td>
+                <td>$113,400</td>
+                <td>0</td>
+              </tr>
+              </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

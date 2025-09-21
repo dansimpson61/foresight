@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.8] - 2025-09-20
+
+### Changed
+- Income chart rendering refinements in `public/controllers/charts_controller.js`:
+  - Reference lines (Standard Deduction and Tax Bracket ceilings) no longer stack with income areas by isolating them into unique stack groups and keeping them on the income axis.
+  - Lines now render on top of the filled stacked areas by setting higher dataset order and configuring the Chart.js filler plugin to draw area fills first.
+  - Cleaned up and unified the renderer by removing a duplicate `renderIncomeAndTaxChart` implementation and clarifying dataset options.
+  - Polished labels (e.g., “Taxable Social Security”).
+
+### Fixed
+- JS bootstrap on `ui.slim`: Removed a non-existent `income-chart` controller import/registration from `public/ui-app.js` that was causing the module to fail to load, preventing all Stimulus controllers from starting.
+
 ## [0.1.7] - 2025-09-18
 
 ### Changed
@@ -89,7 +101,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 *... (older versions remain the same)*
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/dansimpson61/foresight/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/dansimpson61/foresight/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/dansimpson61/foresight/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/dansimpson61/foresight/compare/v0.1.3...v0.1.5
