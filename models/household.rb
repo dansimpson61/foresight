@@ -35,6 +35,17 @@ module Foresight
       end
       total_rmd
     end
+    
+    # Centralized helper to fetch accounts by their type symbol.
+    def accounts_by_type(type)
+      case type.to_sym
+      when :cash then cash_accounts
+      when :taxable then taxable_brokerage_accounts
+      when :traditional then traditional_iras
+      when :roth then roth_iras
+      else []
+      end
+    end
 
     def cash_accounts
       accounts.select { |a| a.is_a?(Cash) }

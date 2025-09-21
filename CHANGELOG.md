@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.9] - 2025-09-21
+
+### Fixed
+- **Corrected "Fill the Bracket" Strategy**: Fixed a critical bug in the `BracketFill` conversion strategy where it failed to properly account for spending needs, causing total income to significantly overshoot the target tax bracket. The strategy now correctly blends spending withdrawals and Roth conversions to precisely hit the desired ceiling.
+
+### Changed
+- **Refactored Conversion Strategies**: Overhauled the `ConversionStrategies` module to improve separation of concerns. The strategies are now solely responsible for planning all discretionary financial events (withdrawals and conversions) for a given year, making the `AnnualPlanner` a clean orchestrator and the overall design more robust and aligned with our principles.
+- **Improved Test Isolation**: Refactored the `AnnualPlanner` test suite to ensure proper isolation for strategy-specific test cases, preventing state leakage and improving test reliability.
+
+### Added
+- **Centralized Account Lookup**: Added a new `accounts_by_type` helper method to the `Household` model to provide a single, clear interface for accessing account collections, improving maintainability.
+
 ## [0.1.8] - 2025-09-20
 
 ### Changed
@@ -101,7 +113,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 *... (older versions remain the same)*
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/dansimpson61/foresight/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/dansimpson61/foresight/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/dansimpson61/foresight/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/dansimpson61/foresight/compare/v0.1.5...v0.1.6
