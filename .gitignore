@@ -24,3 +24,5 @@ Thumbs.db
 # Ignore RubyMine files
 
 .idea/
+dashboard/vendor/
+dashboard/bin/
