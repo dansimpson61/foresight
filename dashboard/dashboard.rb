@@ -2,6 +2,8 @@ require 'sinatra'
 require 'slim'
 require 'open3'
 require 'shellwords'
+require_relative 'lib/git_repository'
+require_relative 'lib/test_runner'
 
 helpers do
   def find_tests
@@ -9,27 +11,23 @@ helpers do
     Dir.glob(File.join(File.dirname(__FILE__), '..', 'spec', '**', '*_spec.rb'))
   end
 
-  def get_git_info
-    project_root = File.join(File.dirname(__FILE__), '..')
+  def repo
+    @repo ||= GitRepository.new(File.join(File.dirname(__FILE__), '..'))
+  end
 
-    branch, _, _ = Open3.capture3('git rev-parse --abbrev-ref HEAD', chdir: project_root)
-    status_output, _, _ = Open3.capture3('git status --porcelain', chdir: project_root)
-    log, _, _ = Open3.capture3("git log -n 5 --pretty=format:'%h - %an, %ar : %s'", chdir: project_root)
-
-    changed_files = status_output.strip.split("\n").map { |line| line.split.last }
-
-    {
-      branch: branch.strip,
-      status: status_output.strip,
-      changed_files: changed_files,
-      log: log.strip.split("\n")
-    }
+  def test_runner
+    @test_runner ||= TestRunner.new(File.join(File.dirname(__FILE__), '..'))
   end
 end
 
 get '/' do
   @test_files = find_tests
-  @git_info = get_git_info
+  @git_info = {
+    branch: repo.current_branch,
+    status: repo.status,
+    changed_files: repo.changed_files,
+    log: repo.recent_log
+  }
   slim :index
 end
 
@@ -37,22 +35,15 @@ post '/git/add' do
   file_path = params[:file]
 
   # Security: Only allow adding files that are reported by git status
-  valid_files = get_git_info[:changed_files]
-  halt 400, "Invalid file specified" unless valid_files.include?(file_path)
+  halt 400, "Invalid file specified" unless repo.changed_files.include?(file_path)
 
-  project_root = File.join(File.dirname(__FILE__), '..')
-  Open3.capture3("git add #{file_path}", chdir: project_root)
+  repo.add(file_path)
   redirect '/'
 end
 
 post '/git/commit' do
   message = params[:message]
-  project_root = File.join(File.dirname(__FILE__), '..')
-
-  # Escape the message for security
-  safe_message = Shellwords.escape(message)
-
-  Open3.capture3("git commit -m #{safe_message}", chdir: project_root)
+  repo.commit(message)
   redirect '/'
 end
 
@@ -63,18 +54,12 @@ post '/run_test' do
   valid_tests = find_tests
   halt 400, "Invalid test file specified" unless valid_tests.include?(file_path)
 
-  # We need to run this from the parent directory
-  project_root = File.join(File.dirname(__FILE__), '..')
-
-  # Construct the command
-  command = "bundle exec rspec #{file_path}"
-
-  # Run the command and capture output
-  stdout, stderr, status = Open3.capture3(command, chdir: project_root)
+  result = test_runner.run(file_path)
 
   @file = file_path
-  @output = stdout + stderr
-  @exit_status = status.exitstatus
+  @output = result[:output]
+  @exit_status = result[:exit_status]
+  @summary = result[:summary]
   @status_class = @exit_status == 0 ? 'pass' : 'fail'
 
   slim :test_result

@@ -3,5 +3,10 @@ html
   head
     title Test Dashboard
     link rel="stylesheet" href="/style.css"
+    script src="/stimulus.js"
+    script type="module"
+      | import TestRunnerController from '/controllers/test_runner_controller.js';
+      | const application = Stimulus.Application.start();
+      | application.register('test-runner', TestRunnerController);
   body class=("#{@status_class}")
     == yield
