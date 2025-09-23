@@ -5,10 +5,6 @@ export default class extends Controller {
 
   static targets = [ "results" ]
 
-  connect() {
-    this.resultsTarget = document.getElementById('test-results');
-  }
-
   run(event) {
     event.preventDefault();
 
