@@ -1,17 +1,16 @@
 import { Controller } from '/stimulus.js';
 
 export default class extends Controller {
-  static values = { file: String }
-
   static targets = [ "results" ]
 
   run(event) {
     event.preventDefault();
 
-    this.resultsTarget.innerHTML = 'Running test...';
+    const file = event.params.file;
+    this.resultsTarget.innerHTML = `Running test: ${file}...`;
 
     const formData = new FormData();
-    formData.append('file', this.fileValue);
+    formData.append('file', file);
 
     fetch('/run_test', {
       method: 'POST',

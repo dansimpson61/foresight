@@ -10,6 +10,6 @@
         - @test_files.each do |file|
           li
             = File.basename(file)
-            button data-action="click->test-runner#run" data-test-runner-file-value=file
+            button data-action="click->test-runner#run" data-test-runner-file-param=file
               | Run Test
       #test-results data-test-runner-target="results"
