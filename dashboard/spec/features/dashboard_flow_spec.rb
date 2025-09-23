@@ -5,9 +5,9 @@ RSpec.describe "Dashboard UI Flow", type: :feature, js: true do
   let(:mock_runner) { instance_double(TestRunner) }
 
   before do
-    # Stub the helpers to return our mock objects
-    allow_any_instance_of(Sinatra::Application).to receive(:repo).and_return(mock_repo)
-    allow_any_instance_of(Sinatra::Application).to receive(:test_runner).and_return(mock_runner)
+    # Stub the classes directly for more robust feature spec mocking
+    allow(GitRepository).to receive(:new).and_return(mock_repo)
+    allow(TestRunner).to receive(:new).and_return(mock_runner)
     allow_any_instance_of(Sinatra::Application).to receive(:find_tests).and_return(['spec/models/example_spec.rb'])
 
     # Stub the git repository methods
