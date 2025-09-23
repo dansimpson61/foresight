@@ -5,6 +5,10 @@ require 'shellwords'
 require_relative 'lib/git_repository'
 require_relative 'lib/test_runner'
 
+configure :test do
+  disable :protection
+end
+
 helpers do
   def find_tests
     # Search for spec files in the parent directory's spec folder

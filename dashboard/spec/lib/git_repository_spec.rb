@@ -13,16 +13,16 @@ RSpec.describe GitRepository do
   end
 
   describe '#status' do
-    it 'returns the output of git status --porcelain' do
-      status_output = " M dashboard/dashboard.rb\n?? dashboard/new_file.rb"
-      expect(Open3).to receive(:capture3).with('git status --porcelain', chdir: project_root).and_return([status_output, '', double(success?: true)])
-      expect(repo.status).to eq(status_output)
+    it 'returns the stripped output of git status --porcelain' do
+      raw_status_output = " M dashboard/dashboard.rb\n?? dashboard/new_file.rb "
+      expect(Open3).to receive(:capture3).with('git status --porcelain', chdir: project_root).and_return([raw_status_output, '', double(success?: true)])
+      expect(repo.status).to eq(raw_status_output.strip)
     end
   end
 
   describe '#changed_files' do
     it 'parses the status output to get a list of changed files' do
-      status_output = " M dashboard/dashboard.rb\n?? dashboard/new_file.rb"
+      status_output = "M dashboard/dashboard.rb\n?? dashboard/new_file.rb"
       allow(repo).to receive(:status).and_return(status_output)
       expect(repo.changed_files).to eq(['dashboard/dashboard.rb', 'dashboard/new_file.rb'])
     end
