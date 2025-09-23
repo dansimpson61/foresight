@@ -26,6 +26,20 @@ class GitRepository
   end
 
   def recent_log(count: 5)
+    stdout, _, _ = Open3.capture3("git log -n #{count} --pretty=format:'%h - %an, %ar : %s'", chdir: project_root)
+    stdout.strip.split("\n")
+  end
+
+  def add(file_path)
+    safe_path = Shellwords.escape(file_path)
+    Open3.capture3("git add #{safe_path}", chdir: project_root)
+  end
+
+  def commit(message)
+    safe_message = Shellwords.escape(message)
+    Open3.capture3("git commit -m #{safe_message}", chdir: project_root)
+  end
+
 private
 
   def status
@@ -44,20 +58,5 @@ private
     when '??' then 'Untracked'
     else 'Other'
     end
-  end
-    stdout, _, _ = Open3.capture3("git log -n #{count} --pretty=format:'%h - %an, %ar : %s'", chdir: project_root)
-    stdout.strip.split("\n")
-  end
-
-  def add(file_path)
-    # Security: This assumes file_path has been validated by the caller,
-    # but we escape it anyway for extra safety.
-    safe_path = Shellwords.escape(file_path)
-    Open3.capture3("git add #{safe_path}", chdir: project_root)
-  end
-
-  def commit(message)
-    safe_message = Shellwords.escape(message)
-    Open3.capture3("git commit -m #{safe_message}", chdir: project_root)
   end
 end
