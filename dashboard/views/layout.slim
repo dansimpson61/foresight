@@ -3,6 +3,8 @@ html
   head
     title Test Dashboard
     link rel="stylesheet" href="/style.css"
+  body class=("#{@status_class}")
+    == yield
     script src="/stimulus.js"
     script type="module"
       | import TestRunnerController from '/controllers/test_runner_controller.js';
@@ -10,5 +12,3 @@ html
       | const application = Stimulus.Application.start();
       | application.register('test-runner', TestRunnerController);
       | application.register('git', GitController);
-  body class=("#{@status_class}")
-    == yield
