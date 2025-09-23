@@ -13,16 +13,38 @@ class GitRepository
     stdout.strip
   end
 
-  def status
-    stdout, _, _ = Open3.capture3('git status --porcelain', chdir: project_root)
-    stdout.strip
+  def parsed_status
+    files = status.lines.map do |line|
+      parts = line.strip.split(" ", 2)
+      { status: parts[0], file: parts[1] }
+    end
+    files.group_by { |f| status_to_label(f[:status]) }
   end
 
   def changed_files
-    status.split("\n").map { |line| line.split.last }
+    status.lines.map { |line| line.strip.split(" ", 2)[1] }
   end
 
   def recent_log(count: 5)
+private
+
+  def status
+    stdout, _, _ = Open3.capture3('git status --porcelain', chdir: project_root)
+    stdout
+  end
+
+  def status_to_label(status_code)
+    case status_code
+    when 'M' then 'Modified'
+    when 'A' then 'Added'
+    when 'D' then 'Deleted'
+    when 'R' then 'Renamed'
+    when 'C' then 'Copied'
+    when 'U' then 'Unmerged'
+    when '??' then 'Untracked'
+    else 'Other'
+    end
+  end
     stdout, _, _ = Open3.capture3("git log -n #{count} --pretty=format:'%h - %an, %ar : %s'", chdir: project_root)
     stdout.strip.split("\n")
   end

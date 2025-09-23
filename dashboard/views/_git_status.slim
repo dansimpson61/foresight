@@ -4,15 +4,19 @@ h2 Git Status
     strong | Branch: #{@git_info[:branch]}
   p
     strong Status:
-  - if @git_info[:changed_files].empty?
+  - if @git_info[:parsed_status].empty?
     p Working directory clean
   - else
-    ul
-      - @git_info[:changed_files].each do |file|
-        li
-          = file
-          button data-action="click->git#add" data-git-file-param=file
-            | Add
+    - @git_info[:parsed_status].each do |status, files|
+      h4 = status
+      ul
+        - files.each do |file_info|
+          li
+            span class="file-status-#{file_info[:status]}" = file_info[:status]
+            = file_info[:file]
+            - if status != 'Added'
+              button data-action="click->git#add" data-git-file-param=file_info[:file]
+                | Add
 
 h2 Commit Changes
 form data-action="submit->git#commit"

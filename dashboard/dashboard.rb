@@ -24,7 +24,7 @@ get '/' do
   @test_files = find_tests
   @git_info = {
     branch: repo.current_branch,
-    status: repo.status,
+    parsed_status: repo.parsed_status,
     changed_files: repo.changed_files,
     log: repo.recent_log
   }
@@ -34,7 +34,7 @@ end
 get '/git/status_panel' do
   @git_info = {
     branch: repo.current_branch,
-    status: repo.status,
+    parsed_status: repo.parsed_status,
     changed_files: repo.changed_files,
     log: repo.recent_log
   }
@@ -59,8 +59,8 @@ post '/git/commit' do
   { success: true }.to_json
 end
 
-post '/run_test' do
-  file_path = params[:file]
+post '/tests/*' do
+  file_path = params[:splat].first
 
   # Security: Only allow running tests that are discovered in the spec folder
   valid_tests = find_tests
@@ -69,14 +69,8 @@ post '/run_test' do
   result = test_runner.run(file_path)
 
   @file = file_path
-  @output = result[:output]
-  @exit_status = result[:exit_status]
   @summary = result[:summary]
-  @status_class = @exit_status == 0 ? 'pass' : 'fail'
+  @examples = result[:examples]
 
-  if request.xhr?
-    slim :test_result, layout: false
-  else
-    slim :test_result
-  end
+  slim :_spec_details, layout: false
 end
