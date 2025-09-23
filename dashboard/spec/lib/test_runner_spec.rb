@@ -1,5 +1,5 @@
-require_relative '../../spec_helper'
-require_relative '../../../lib/test_runner'
+require_relative '../spec_helper'
+require_relative '../../lib/test_runner'
 
 RSpec.describe TestRunner do
   let(:project_root) { '/app' }

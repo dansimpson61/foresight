@@ -1,5 +1,5 @@
-require_relative '../../spec_helper'
-require_relative '../../../lib/git_repository'
+require_relative '../spec_helper'
+require_relative '../../lib/git_repository'
 
 RSpec.describe GitRepository do
   let(:project_root) { '/app' }
