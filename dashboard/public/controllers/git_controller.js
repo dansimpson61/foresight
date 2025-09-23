@@ -1,13 +1,12 @@
-import { Controller } from '/stimulus.js';
-
-export default class extends Controller {
+class GitController extends Stimulus.Controller {
   static targets = [ "message" ]
 
   add(event) {
     event.preventDefault();
 
+    const file = event.params.file;
     const formData = new FormData();
-    formData.append('file', event.target.dataset.gitFileValue);
+    formData.append('file', file);
 
     fetch('/git/add', {
       method: 'POST',

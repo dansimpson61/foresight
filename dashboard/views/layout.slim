@@ -5,10 +5,12 @@ html
     link rel="stylesheet" href="/style.css"
   body class=("#{@status_class}")
     == yield
+
     script src="/stimulus.js"
-    script type="module"
-      | import TestRunnerController from '/controllers/test_runner_controller.js';
-      | import GitController from '/controllers/git_controller.js';
+    script src="/controllers/test_runner_controller.js"
+    script src="/controllers/git_controller.js"
+
+    script
       | const application = Stimulus.Application.start();
       | application.register('test-runner', TestRunnerController);
       | application.register('git', GitController);

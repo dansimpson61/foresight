@@ -1,6 +1,4 @@
-import { Controller } from '/stimulus.js';
-
-export default class extends Controller {
+class TestRunnerController extends Stimulus.Controller {
   static targets = [ "results" ]
 
   run(event) {

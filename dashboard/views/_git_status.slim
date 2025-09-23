@@ -11,7 +11,7 @@ h2 Git Status
       - @git_info[:changed_files].each do |file|
         li
           = file
-          button data-action="click->git#add" data-git-file-value=file
+          button data-action="click->git#add" data-git-file-param=file
             | Add
 
 h2 Commit Changes
