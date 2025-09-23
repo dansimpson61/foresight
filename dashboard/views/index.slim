@@ -1,5 +1,5 @@
 .container
-  .sidebar
+  .sidebar data-controller="git"
     h2 Git Status
     .status-box
       p
@@ -14,13 +14,12 @@
           - @git_info[:changed_files].each do |file|
             li
               = file
-              form action="/git/add" method="post"
-                input type="hidden" name="file" value=file
-                button type="submit" Add
+              button data-action="click->git#add" data-git-file-value=file
+                | Add
 
     h2 Commit Changes
-    form action="/git/commit" method="post"
-      textarea name="message" rows="4" cols="50" placeholder="Commit message"
+    form data-action="submit->git#commit"
+      textarea data-git-target="message" rows="4" cols="50" placeholder="Commit message"
       br
       button type="submit" Commit
 
@@ -39,3 +38,4 @@
             = File.basename(file)
             button data-action="click->test-runner#run" data-test-runner-file-value=file
               | Run Test
+      #test-results

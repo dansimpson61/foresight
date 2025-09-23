@@ -32,19 +32,21 @@ get '/' do
 end
 
 post '/git/add' do
+  content_type :json
   file_path = params[:file]
 
   # Security: Only allow adding files that are reported by git status
-  halt 400, "Invalid file specified" unless repo.changed_files.include?(file_path)
+  halt 400, { success: false, error: "Invalid file specified" }.to_json unless repo.changed_files.include?(file_path)
 
   repo.add(file_path)
-  redirect '/'
+  { success: true }.to_json
 end
 
 post '/git/commit' do
+  content_type :json
   message = params[:message]
   repo.commit(message)
-  redirect '/'
+  { success: true }.to_json
 end
 
 post '/run_test' do
@@ -62,5 +64,9 @@ post '/run_test' do
   @summary = result[:summary]
   @status_class = @exit_status == 0 ? 'pass' : 'fail'
 
-  slim :test_result
+  if request.xhr?
+    slim :test_result, layout: false
+  else
+    slim :test_result
+  end
 end

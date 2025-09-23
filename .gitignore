@@ -26,3 +26,4 @@ Thumbs.db
 .idea/
 dashboard/vendor/
 dashboard/bin/
+dashboard/.bundle/

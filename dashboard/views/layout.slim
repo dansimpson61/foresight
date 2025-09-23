@@ -6,7 +6,9 @@ html
     script src="/stimulus.js"
     script type="module"
       | import TestRunnerController from '/controllers/test_runner_controller.js';
+      | import GitController from '/controllers/git_controller.js';
       | const application = Stimulus.Application.start();
       | application.register('test-runner', TestRunnerController);
+      | application.register('git', GitController);
   body class=("#{@status_class}")
     == yield

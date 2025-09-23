@@ -3,22 +3,34 @@ import { Controller } from '/stimulus.js';
 export default class extends Controller {
   static values = { file: String }
 
+  static targets = [ "results" ]
+
+  connect() {
+    this.resultsTarget = document.getElementById('test-results');
+  }
+
   run(event) {
     event.preventDefault();
+
+    this.resultsTarget.innerHTML = 'Running test...';
 
     const formData = new FormData();
     formData.append('file', this.fileValue);
 
     fetch('/run_test', {
       method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      },
       body: formData,
     })
     .then(response => response.text())
     .then(html => {
-      const newDoc = new DOMParser().parseFromString(html, 'text/html');
-      document.body.innerHTML = newDoc.body.innerHTML;
-      document.body.className = newDoc.body.className; // Copy status class
+      this.resultsTarget.innerHTML = html;
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+      this.resultsTarget.innerHTML = `<pre>Error: ${error}</pre>`;
+      console.error('Error:', error)
+    });
   }
 }
