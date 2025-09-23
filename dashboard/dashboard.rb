@@ -32,7 +32,17 @@ get '/' do
     changed_files: repo.changed_files,
     log: repo.recent_log
   }
-  slim :index
+  slim :index, layout: :layout
+end
+
+get '/git/status_panel' do
+  @git_info = {
+    branch: repo.current_branch,
+    status: repo.status,
+    changed_files: repo.changed_files,
+    log: repo.recent_log
+  }
+  slim :_git_status, layout: false
 end
 
 post '/git/add' do

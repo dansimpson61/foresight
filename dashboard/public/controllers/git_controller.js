@@ -16,7 +16,7 @@ export default class extends Controller {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        window.location.reload();
+        this.refreshStatus();
       } else {
         alert('Error adding file.');
       }
@@ -37,11 +37,19 @@ export default class extends Controller {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        window.location.reload();
+        this.refreshStatus();
       } else {
         alert('Error committing changes.');
       }
     })
     .catch(error => console.error('Error:', error));
+  }
+
+  refreshStatus() {
+    fetch('/git/status_panel')
+      .then(response => response.text())
+      .then(html => {
+        this.element.innerHTML = html;
+      });
   }
 }

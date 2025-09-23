@@ -9,7 +9,7 @@ class GitRepository
   end
 
   def current_branch
-    stdout, _, _ = Open3.capture3('git rev-parse --abbrev-ref HEAD', chdir: project_root)
+    stdout, _, _ = Open3.capture3('git branch --show-current', chdir: project_root)
     stdout.strip
   end
 
@@ -28,8 +28,10 @@ class GitRepository
   end
 
   def add(file_path)
-    # Security: This assumes file_path has been validated by the caller
-    Open3.capture3("git add #{file_path}", chdir: project_root)
+    # Security: This assumes file_path has been validated by the caller,
+    # but we escape it anyway for extra safety.
+    safe_path = Shellwords.escape(file_path)
+    Open3.capture3("git add #{safe_path}", chdir: project_root)
   end
 
   def commit(message)

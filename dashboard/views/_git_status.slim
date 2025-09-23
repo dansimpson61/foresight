@@ -1,0 +1,26 @@
+h2 Git Status
+.status-box
+  p
+    strong | Branch: #{@git_info[:branch]}
+  p
+    strong Status:
+  - if @git_info[:changed_files].empty?
+    p Working directory clean
+  - else
+    ul
+      - @git_info[:changed_files].each do |file|
+        li
+          = file
+          button data-action="click->git#add" data-git-file-value=file
+            | Add
+
+h2 Commit Changes
+form data-action="submit->git#commit"
+  textarea data-git-target="message" rows="4" cols="50" placeholder="Commit message"
+  br
+  button type="submit" Commit
+
+h2 Recent Commits
+ul
+  - @git_info[:log].each do |commit|
+    li = commit

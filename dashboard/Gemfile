@@ -5,7 +5,7 @@ gem 'puma'
 gem 'slim'
 gem 'rack'
 
-group :test do
+group :test, :development do
   gem 'rspec'
   gem 'rack-test'
   gem 'capybara'

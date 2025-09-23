@@ -15,6 +15,7 @@ Thumbs.db
 # Ignore log files
 
 /log/*
+*.log
 !/log/.keep
 
 # Ignore temporary files

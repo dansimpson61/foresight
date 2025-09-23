@@ -7,7 +7,7 @@ RSpec.describe GitRepository do
 
   describe '#current_branch' do
     it 'returns the current git branch' do
-      expect(Open3).to receive(:capture3).with('git rev-parse --abbrev-ref HEAD', chdir: project_root).and_return(['main', '', double(success?: true)])
+      expect(Open3).to receive(:capture3).with('git branch --show-current', chdir: project_root).and_return(['main', '', double(success?: true)])
       expect(repo.current_branch).to eq('main')
     end
   end
@@ -39,7 +39,8 @@ RSpec.describe GitRepository do
   describe '#add' do
     it 'calls git add with the specified file' do
       file_path = 'dashboard/dashboard.rb'
-      expect(Open3).to receive(:capture3).with("git add #{file_path}", chdir: project_root)
+      safe_path = Shellwords.escape(file_path)
+      expect(Open3).to receive(:capture3).with("git add #{safe_path}", chdir: project_root)
       repo.add(file_path)
     end
   end

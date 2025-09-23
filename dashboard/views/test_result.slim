@@ -1,22 +1,18 @@
-.container
-  .main-content
-    h1 Test Result for #{@file}
+h1 Test Result for #{@file}
 
-    h2 Status: #{@exit_status == 0 ? 'Pass' : 'Fail'}
+h2 Status: #{@exit_status == 0 ? 'Pass' : 'Fail'}
 
-    - if @summary && !@summary.empty?
-      h2 Summary
-      .status-box
-        p
-          strong Examples:
-          = @summary[:examples]
-        p
-          strong Failures:
-          = @summary[:failures]
+- if @summary && !@summary.empty?
+  h2 Summary
+  .status-box
+    p
+      strong Examples:
+      = @summary[:examples]
+    p
+      strong Failures:
+      = @summary[:failures]
 
-    h2 Output
-    pre
-      code
-        = @output
-
-    a href="/" Back to Dashboard
+h2 Output
+pre
+  code
+    = @output
