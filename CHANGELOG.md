@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-09-24
+
+### Added
+- **Interactive Testing & Git Dashboard**: A new, standalone Sinatra application in the `/dashboard` directory to provide a joyful and elegant development experience.
+  - Discovers and lists all RSpec tests from the main application.
+  - Allows running individual tests asynchronously and displays their results in an expanding card layout.
+  - Integrates with Git to show the current branch, status, and recent commit history.
+  - Provides UI controls to perform `git add` and `git commit` operations asynchronously.
+  - Includes its own comprehensive test suite using RSpec and Capybara.
+
 ## [0.1.9] - 2025-09-21
 
 ### Fixed
@@ -113,7 +123,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 *... (older versions remain the same)*
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/dansimpson61/foresight/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/dansimpson61/foresight/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/dansimpson61/foresight/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/dansimpson61/foresight/compare/v0.1.6...v0.1.7
