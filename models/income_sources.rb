@@ -26,9 +26,15 @@ module Foresight
   class Pension < IncomeSource
     attr_reader :annual_gross
 
-    def initialize(recipient:, annual_gross: 0.0)
+    def initialize(recipient:, annual_gross: 0.0, starting_age: nil)
       super(recipient: recipient)
       @annual_gross = annual_gross.to_f
+      @starting_age = starting_age
+    end
+
+    def gross_for(year)
+      return 0.0 if @starting_age && recipient.age_in(year) < @starting_age
+      @annual_gross
     end
 
     def taxable_amount(state:, recipient_age:)

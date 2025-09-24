@@ -13,26 +13,11 @@ module Foresight
     end
 
     def generate_strategy(strategy)
-      base_income = compute_base_income
-      execute_for_strategy(strategy, base_income)
+      # This is the single entry point. It orchestrates the entire annual calculation.
+      execute_for_strategy(strategy)
     end
 
     private
-
-    def compute_base_income
-      year = @tax_year.year
-      breakdown = {
-        salaries: @household.salaries.sum { |s| s.gross_for(year) },
-        pensions: @household.pensions.sum(&:annual_gross),
-        ss_benefits: 0.0, rmds: 0.0,
-        spending_withdrawals_ordinary: 0.0, roth_conversions: 0.0, capital_gains: 0.0,
-      }
-      ss_total = @household.social_security_benefits.sum { |b| b.annual_benefit_for(year) }
-      pre_ss_other_income = breakdown[:salaries] + breakdown[:pensions]
-      ss_taxable_baseline = taxable_social_security(ss_total, other_income: pre_ss_other_income)
-      breakdown[:ss_benefits] = ss_taxable_baseline
-      { breakdown: breakdown, ss_total: ss_total, ss_taxable_baseline: ss_taxable_baseline }
-    end
 
     def taxable_social_security(ss_total, other_income: 0.0)
       thresholds = @tax_year.social_security_taxability_thresholds(@household.filing_status)
@@ -47,63 +32,76 @@ module Foresight
       end
     end
 
-    def execute_for_strategy(strategy, base_income)
-      financial_events = []; breakdown = base_income[:breakdown].dup
+    def execute_for_strategy(strategy)
+      year = @tax_year.year
+      financial_events = []
 
-      # RMDs are non-discretionary and calculated first.
+      # Step 1: Calculate all non-discretionary income to establish a firm baseline.
+      base_breakdown = { salaries: 0.0, pensions: 0.0, rmds: 0.0, ss_benefits: 0.0 }
+      base_breakdown[:salaries] = @household.salaries.sum { |s| s.gross_for(year) }
+      base_breakdown[:pensions] = @household.pensions.sum { |p| p.gross_for(year) }
+
       @household.traditional_iras.each do |acct|
-        rmd = acct.calculate_rmd(acct.owner.age_in(@tax_year.year))
-        if rmd > 0
-          event = FinancialEvent::RequiredMinimumDistribution.new(year: @tax_year.year, source_account: acct, amount: rmd)
-          financial_events << event; breakdown[:rmds] += event.taxable_ordinary
+        rmd_amount = acct.calculate_rmd(acct.owner.age_in(year))
+        if rmd_amount > 0
+          financial_events << FinancialEvent::RequiredMinimumDistribution.new(year: year, source_account: acct, amount: rmd_amount)
+          base_breakdown[:rmds] += rmd_amount
         end
       end
+
+      ss_total = @household.social_security_benefits.sum { |b| b.annual_benefit_for(year) }
+      provisional_income_for_ss = base_breakdown[:salaries] + base_breakdown[:pensions] + base_breakdown[:rmds]
+      base_breakdown[:ss_benefits] = taxable_social_security(ss_total, other_income: provisional_income_for_ss)
       
-      # Determine spending need before the strategy is applied.
-      base_gross = breakdown.values_at(:salaries, :pensions).sum + base_income[:ss_total] + breakdown[:rmds]
-      base_taxable = breakdown.values_at(:salaries, :pensions, :rmds).sum
-      taxes_before_strategy = calculate_taxes(taxable_ordinary: base_taxable, capital_gains: 0.0)
-      net_cash = base_gross - taxes_before_strategy[:total_tax]
-      remaining_need = [@household.annual_expenses - net_cash, 0.0].max
+      base_taxable_income = base_breakdown.values.sum
+      base_gross_income = base_breakdown[:salaries] + base_breakdown[:pensions] + ss_total + base_breakdown[:rmds]
       
-      # DELEGATE to the strategy object to get all discretionary events.
+      # Step 2: Determine spending need based on this stable baseline.
+      taxes_before_strategy = calculate_taxes(taxable_ordinary: base_taxable_income, capital_gains: 0.0)
+      net_cash = base_gross_income - taxes_before_strategy[:total_tax]
+      remaining_spending_need = [@household.annual_expenses - net_cash, 0.0].max
+
+      # Step 3: Delegate to the strategy object to get all discretionary events.
       discretionary_events = strategy.plan_discretionary_events(
         household: @household, tax_year: @tax_year,
-        base_taxable_income: base_taxable, spending_need: remaining_need
+        base_taxable_income: base_taxable_income, spending_need: remaining_spending_need
       )
       financial_events.concat(discretionary_events)
       
-      # Update the income breakdown based on the events returned by the strategy.
+      # Step 4: Create the final income breakdown by adding discretionary income to the baseline.
+      final_breakdown = base_breakdown.merge(
+        spending_withdrawals_ordinary: 0.0, roth_conversions: 0.0, capital_gains: 0.0
+      )
       discretionary_events.each do |event|
-        breakdown[:spending_withdrawals_ordinary] += event.taxable_ordinary if event.is_a?(FinancialEvent::SpendingWithdrawal)
-        breakdown[:capital_gains] += event.taxable_capital_gains if event.is_a?(FinancialEvent::SpendingWithdrawal)
-        breakdown[:roth_conversions] += event.taxable_ordinary if event.is_a?(FinancialEvent::RothConversion)
+        final_breakdown[:spending_withdrawals_ordinary] += event.taxable_ordinary if event.is_a?(FinancialEvent::SpendingWithdrawal)
+        final_breakdown[:capital_gains] += event.taxable_capital_gains if event.is_a?(FinancialEvent::SpendingWithdrawal)
+        final_breakdown[:roth_conversions] += event.taxable_ordinary if event.is_a?(FinancialEvent::RothConversion)
       end
+      
+      # Step 5: Finalize Social Security taxability and total taxes for the year.
+      final_provisional_income = final_breakdown.except(:ss_benefits, :capital_gains).values.sum
+      final_breakdown[:ss_benefits] = taxable_social_security(ss_total, other_income: final_provisional_income)
 
-      # Finalize Social Security taxability and total taxes for the year.
-      final_income_before_ss = breakdown.values_at(:salaries, :pensions, :rmds, :roth_conversions, :spending_withdrawals_ordinary).sum
-      ss_taxable_post = taxable_social_security(base_income[:ss_total], other_income: final_income_before_ss)
-      breakdown[:ss_benefits] = ss_taxable_post
+      total_ordinary = final_breakdown.except(:capital_gains).values.sum
+      final_taxes = calculate_taxes(taxable_ordinary: total_ordinary, capital_gains: final_breakdown[:capital_gains])
       
-      total_ordinary = breakdown.except(:capital_gains).values.sum
-      final_taxes = calculate_taxes(taxable_ordinary: total_ordinary, capital_gains: breakdown[:capital_gains])
-      
-      magi = total_ordinary + breakdown[:capital_gains]
+      magi = total_ordinary + final_breakdown[:capital_gains]
       irmaa_part_b = @tax_year.irmaa_part_b_surcharge(magi: magi, status: @household.filing_status)
 
       StrategyResult.new(
         strategy_name: strategy.name, year: @tax_year.year,
-        taxable_income_breakdown: breakdown.transform_values(&:round),
+        taxable_income_breakdown: final_breakdown.transform_values(&:round),
         tax_brackets: @tax_year.brackets_for_status(@household.filing_status),
         financial_events: financial_events, magi: magi,
         after_tax_cash_before_spending_withdrawals: net_cash,
-        remaining_spending_need: remaining_need,
+        remaining_spending_need: remaining_spending_need,
         withdrawals: { cash_from_withdrawals: discretionary_events.select { |e| e.is_a?(FinancialEvent::SpendingWithdrawal)}.sum(&:amount_withdrawn) },
         federal_tax: final_taxes[:federal_tax], capital_gains_tax: final_taxes[:capital_gains_tax],
         state_tax: final_taxes[:state_tax], irmaa_part_b: irmaa_part_b,
-        effective_tax_rate: (final_taxes[:total_tax] / [base_gross, 1].max),
-        ss_taxable_baseline: base_income[:ss_taxable_baseline], ss_taxable_post: ss_taxable_post,
-        ss_taxable_increase: ss_taxable_post - ss_taxable_post
+        effective_tax_rate: (final_taxes[:total_tax] / [base_gross_income, 1].max),
+        ss_taxable_baseline: base_breakdown[:ss_benefits],
+        ss_taxable_post: final_breakdown[:ss_benefits],
+        ss_taxable_increase: final_breakdown[:ss_benefits] - base_breakdown[:ss_benefits]
       )
     end
     

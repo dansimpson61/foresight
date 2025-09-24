@@ -126,7 +126,11 @@ module Foresight
             retirement_age: s[:retirement_age]
           )
         when 'Pension'
-          Pension.new(recipient: recipient, annual_gross: s[:annual_gross].to_f)
+          Pension.new(
+            recipient: recipient,
+            annual_gross: s[:annual_gross].to_f,
+            starting_age: s[:starting_age]
+          )
         when 'SocialSecurity', 'SocialSecurityBenefit'
           SocialSecurityBenefit.new(
             recipient: recipient,
