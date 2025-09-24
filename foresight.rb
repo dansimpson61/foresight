@@ -11,4 +11,8 @@ require_relative 'models/life_planner'
 require_relative 'models/plan_service'
 require_relative 'models/phase_analyzer'
 
+# Load chart data models
+require_relative 'models/charts/net_worth_chart'
+require_relative 'models/charts/income_tax_chart'
+
 puts "Joyful Retirement Planner models loaded. Now."

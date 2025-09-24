@@ -84,6 +84,12 @@ module Foresight
         end
 
         wrap_response(result_hash)
+      rescue KeyError, ArgumentError => e
+        halt 400, wrap_response({
+          status: 'error',
+          communication_step: 'Request Payload Validation',
+          message: "Invalid input payload: #{e.message}"
+        })
       rescue => e
         logger.error "PlanService execution error: #{e.message}\n#{e.backtrace.join("\n")}"
         halt 500, wrap_response({ 

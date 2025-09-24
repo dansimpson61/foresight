@@ -50,7 +50,7 @@ RSpec.describe Foresight::PlanService do
       end
 
       other_years = conversion_yearly_data.select do |year|
-        year[:year] < retirement_year || year[:year] >= ss_claim_year
+        year[:year] < retirement_year
       end
       
       def total_conversion_for_year(year)

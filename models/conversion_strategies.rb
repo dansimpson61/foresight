@@ -128,12 +128,19 @@ module Foresight
 
         # Step 2: If headroom remains, perform a pure Roth conversion to fill the rest.
         if headroom > 0
-          target_conversion = headroom * (1 - @cushion_ratio)
-          available_for_conversion = household.traditional_iras.sum(&:balance)
-          conversion_amount = [target_conversion, available_for_conversion].min.round(2)
+          # The actual headroom might have been reduced by taxable spending withdrawals.
+          # We recalculate the target conversion based on the *remaining* headroom.
+          current_taxable_in_events = events.sum { |e| e.taxable_ordinary + e.taxable_capital_gains }
+          remaining_headroom = (@ceiling - base_taxable_income) - current_taxable_in_events
           
-          if conversion_amount > 0
-             events.concat(perform_roth_conversion(conversion_amount, household, tax_year))
+          if remaining_headroom > 0
+            target_conversion = remaining_headroom * (1 - @cushion_ratio)
+            available_for_conversion = household.traditional_iras.sum(&:balance)
+            conversion_amount = [target_conversion, available_for_conversion].min.round(2)
+
+            if conversion_amount > 0
+               events.concat(perform_roth_conversion(conversion_amount, household, tax_year))
+            end
           end
         end
         

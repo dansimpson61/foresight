@@ -43,6 +43,15 @@ module Foresight
       
       results = life.run_multi(strategies)
       
+      # Prepare chart data for each scenario
+      results.each do |key, scenario_results|
+        yearly_data = scenario_results[:yearly]
+        scenario_results[:charts] = {
+          net_worth: Charts::NetWorthChart.prepare(yearly_data),
+          income_tax: Charts::IncomeTaxChart.prepare(yearly_data)
+        }
+      end
+
       wrap({
         inputs: params,
         results: results.transform_keys(&:to_s)
