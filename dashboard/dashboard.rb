@@ -2,27 +2,24 @@ require 'sinatra'
 require 'slim'
 require 'open3'
 require 'shellwords'
-require_relative 'lib/git_repository'
-require_relative 'lib/test_runner'
+require 'pathname'
+require_relative 'lib/git_repository.rb'
+require_relative 'lib/test_runner.rb'
 
 helpers do
   def find_tests
-    # The dashboard app is in a subdirectory. We want to find tests
-    # in the parent (project root) directory.
     project_root = File.expand_path('..', __dir__)
-
-    # Find all spec files and make them relative to the project root.
     Dir.glob(File.join(project_root, 'spec', '**', '*_spec.rb')).map do |path|
       path.sub("#{project_root}/", '')
     end
   end
 
   def repo
-    @repo ||= GitRepository.new(File.join(File.dirname(__FILE__), '..'))
+    @repo ||= GitRepository.new(File.expand_path('..', __dir__))
   end
 
   def test_runner
-    @test_runner ||= TestRunner.new(File.join(File.dirname(__FILE__), '..'))
+    @test_runner ||= TestRunner.new(File.expand_path('..', __dir__))
   end
 end
 
@@ -51,7 +48,6 @@ post '/git/add' do
   content_type :json
   file_path = params[:file]
 
-  # Security: Only allow adding files that are reported by git status
   halt 400, { success: false, error: "Invalid file specified" }.to_json unless repo.changed_files.include?(file_path)
 
   repo.add(file_path)
@@ -68,9 +64,7 @@ end
 post '/tests/*' do
   file_path = params[:splat].first
 
-  # Security: Only allow running tests that are discovered in the spec folder
-  valid_tests = find_tests
-  halt 400, "Invalid test file specified" unless valid_tests.include?(file_path)
+  halt 400, "Invalid test file specified" unless find_tests.include?(file_path)
 
   result = test_runner.run(file_path)
 

@@ -1,5 +1,5 @@
 require_relative '../spec_helper'
-require_relative '../../lib/git_repository'
+require_relative '../../lib/git_repository.rb'
 
 RSpec.describe GitRepository do
   let(:project_root) { '/app' }
@@ -12,19 +12,22 @@ RSpec.describe GitRepository do
     end
   end
 
-  describe '#status' do
-    it 'returns the stripped output of git status --porcelain' do
-      raw_status_output = " M dashboard/dashboard.rb\n?? dashboard/new_file.rb "
-      expect(Open3).to receive(:capture3).with('git status --porcelain', chdir: project_root).and_return([raw_status_output, '', double(success?: true)])
-      expect(repo.status).to eq(raw_status_output.strip)
+  describe '#parsed_status' do
+    it 'parses the status output into a grouped hash' do
+      raw_status = "M  lib/a.rb\n?? new.rb\n"
+      allow(repo).to receive(:status).and_return(raw_status)
+      expect(repo.parsed_status).to eq({
+        'Modified' => [{ status: 'M', file: 'lib/a.rb' }],
+        'Untracked' => [{ status: '??', file: 'new.rb' }]
+      })
     end
   end
 
   describe '#changed_files' do
-    it 'parses the status output to get a list of changed files' do
-      status_output = "M dashboard/dashboard.rb\n?? dashboard/new_file.rb"
-      allow(repo).to receive(:status).and_return(status_output)
-      expect(repo.changed_files).to eq(['dashboard/dashboard.rb', 'dashboard/new_file.rb'])
+    it 'returns a simple list of changed files' do
+      raw_status = "M  lib/a.rb\n?? new.rb\n"
+      allow(repo).to receive(:status).and_return(raw_status)
+      expect(repo.changed_files).to eq(['lib/a.rb', 'new.rb'])
     end
   end
 
