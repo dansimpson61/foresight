@@ -70,4 +70,34 @@ RSpec.describe Foresight::TaxYear do
       expect(surcharge).to be > 0
     end
   end
+
+  context 'when handling multiple years' do
+    let(:tax_year_2023) { described_class.new(year: 2023) }
+    let(:tax_year_2024) { described_class.new(year: 2024) }
+
+    it 'loads the correct standard deduction for different years' do
+      deduction_2023 = tax_year_2023.standard_deduction(:single)
+      deduction_2024 = tax_year_2024.standard_deduction(:single)
+
+      expect(deduction_2023).to eq(13850)
+      expect(deduction_2024).to eq(14600)
+      expect(deduction_2023).not_to eq(deduction_2024)
+    end
+
+    it 'calculates taxes using the correct brackets for different years' do
+      # A taxable income of $50,000 for a single filer
+      # 2023 brackets: 10% on first 11k, 12% on next (44725-11k), 22% on remainder
+      # 2024 brackets: 10% on first 11.6k, 12% on next (47150-11.6k), 22% on remainder
+
+      tax_2023 = tax_year_2023.calculate(filing_status: :single, taxable_income: 50_000)[:federal_tax]
+      tax_2024 = tax_year_2024.calculate(filing_status: :single, taxable_income: 50_000)[:federal_tax]
+
+      # 2023 calc: (11000*0.1) + ((44725-11000)*0.12) + ((50000-44725)*0.22) = 1100 + 4047 + 1160.5 = 6307.5
+      # 2024 calc: (11600*0.1) + ((47150-11600)*0.12) + ((50000-47150)*0.22) = 1160 + 4266 + 627 = 6053
+
+      expect(tax_2023).to be_within(0.01).of(6307.5)
+      expect(tax_2024).to be_within(0.01).of(6053)
+      expect(tax_2023).not_to eq(tax_2024)
+    end
+  end
 end

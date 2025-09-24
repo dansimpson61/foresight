@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'yaml'
+require_relative 'tax_brackets'
 
 module Foresight
   class TaxYear
@@ -8,31 +9,31 @@ module Foresight
 
     def initialize(year:)
       @year = year.to_i
-      @brackets = YAML.load_file('./config/tax_brackets.yml')
+      @brackets = TaxBrackets.for_year(@year)
     end
 
     def standard_deduction(filing_status)
-      key = "standard_deduction_#{filing_status}_2023"
-      @brackets.fetch(key)
+      @brackets.dig('standard_deduction', filing_status.to_s)
     end
-    
+
     def brackets_for_status(filing_status)
-      status_key = "#{filing_status}_2023"
+      status_key = filing_status.to_s
       {
         standard_deduction: standard_deduction(filing_status),
-        brackets: @brackets[status_key]['ordinary'].map do |bracket|
+        brackets: @brackets.dig(status_key, 'ordinary')&.map do |bracket|
           { 'rate' => bracket['rate'], 'ceiling' => bracket['income'] }
         end
       }
     end
 
     def calculate(filing_status:, taxable_income:, capital_gains: 0.0)
-      status_key = "#{filing_status}_2023"
+      status_key = filing_status.to_s
       tax = 0.0
       remaining_income = taxable_income
+      ordinary_brackets = @brackets.dig(status_key, 'ordinary')
 
       # Calculate ordinary income tax
-      @brackets[status_key]['ordinary'].reverse_each do |bracket|
+      ordinary_brackets.reverse_each do |bracket|
         next if remaining_income <= bracket['income']
         taxable_at_this_rate = remaining_income - bracket['income']
         tax += taxable_at_this_rate * bracket['rate']
@@ -44,7 +45,7 @@ module Foresight
       tax += capital_gains_tax
       
       # Simplified state tax
-      state_tax = taxable_income * 0.04 
+      state_tax = taxable_income * 0.04
 
       { federal_tax: tax, state_tax: state_tax, capital_gains_tax: capital_gains_tax }
     end
@@ -52,8 +53,8 @@ module Foresight
     def calculate_capital_gains_tax(filing_status:, taxable_income:, capital_gains:)
       return 0.0 if capital_gains <= 0
 
-      status_key = "#{filing_status}_2023"
-      cg_brackets = @brackets[status_key]['capital_gains']
+      status_key = filing_status.to_s
+      cg_brackets = @brackets.dig(status_key, 'capital_gains')
       
       tax = 0.0
       remaining_gains = capital_gains
@@ -76,28 +77,29 @@ module Foresight
       end
       
       tax
-  end
+    end
     
     def social_security_taxability_thresholds(filing_status)
-        status_key = "#{filing_status}_2023"
-        @brackets[status_key]['social_security_provisional_income']
+        status_key = filing_status.to_s
+        @brackets.dig(status_key, 'social_security_provisional_income')
     end
 
     def irmaa_part_b_surcharge(magi: 0.0, status:)
       magi ||= 0.0
-      status_key = "#{status}_2023"
-      find_irmaa_surcharge(magi, @brackets[status_key]['irmaa_part_b'])
+      status_key = status.to_s
+      find_irmaa_surcharge(magi, @brackets.dig(status_key, 'irmaa_part_b'))
     end
 
     def irmaa_part_d_surcharge(magi: 0.0, status:)
       magi ||= 0.0
-      status_key = "#{status}_2023"
-      find_irmaa_surcharge(magi, @brackets[status_key]['irmaa_part_d'])
+      status_key = status.to_s
+      find_irmaa_surcharge(magi, @brackets.dig(status_key, 'irmaa_part_d'))
     end
 
     private
 
     def find_irmaa_surcharge(magi, tiers)
+      return 0.0 if tiers.nil?
       # Tiers are ordered from lowest to highest income threshold in the YAML
       found_tier = tiers.reverse.find { |tier| magi > tier['income_threshold'] }
       found_tier ? found_tier['surcharge_per_person'] * 2 : 0.0 # Multiply by 2 for household

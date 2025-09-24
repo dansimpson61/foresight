@@ -1,55 +1,167 @@
 # config/tax_brackets.yml
-standard_deduction_mfj_2023: 27700
-standard_deduction_single_2023: 13850
 
-mfj_2023:
-  ordinary:
-    - { income: 0, rate: 0.10 }
-    - { income: 22000, rate: 0.12 }
-    - { income: 89450, rate: 0.22 }
-    - { income: 201050, rate: 0.24 }
-  capital_gains:
-    - { income: 0, rate: 0.0 }
-    - { income: 89250, rate: 0.15 }
-    - { income: 553850, rate: 0.20 }
-  irmaa_part_b:
-    - { income_threshold: 194000, surcharge_per_person: 65.90 }
-    - { income_threshold: 246000, surcharge_per_person: 164.90 }
-    - { income_threshold: 306000, surcharge_per_person: 263.90 }
-    - { income_threshold: 366000, surcharge_per_person: 362.90 }
-    - { income_threshold: 750000, surcharge_per_person: 395.60 }
-  irmaa_part_d:
-    - { income_threshold: 194000, surcharge_per_person: 12.20 }
-    - { income_threshold: 246000, surcharge_per_person: 31.50 }
-    - { income_threshold: 306000, surcharge_per_person: 50.70 }
-    - { income_threshold: 366000, surcharge_per_person: 70.00 }
-    - { income_threshold: 750000, surcharge_per_person: 77.90 }
-  social_security_provisional_income:
-    phase1_start: 32000
-    phase2_start: 44000
+2023:
+  standard_deduction:
+    single: 13850
+    mfj: 27700
+  mfj:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 22000, rate: 0.12 }
+      - { income: 89450, rate: 0.22 }
+      - { income: 201050, rate: 0.24 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 89250, rate: 0.15 }
+      - { income: 553850, rate: 0.20 }
+    irmaa_part_b:
+      - { income_threshold: 194000, surcharge_per_person: 65.90 }
+      - { income_threshold: 246000, surcharge_per_person: 164.90 }
+      - { income_threshold: 306000, surcharge_per_person: 263.90 }
+      - { income_threshold: 366000, surcharge_per_person: 362.90 }
+      - { income_threshold: 750000, surcharge_per_person: 395.60 }
+    irmaa_part_d:
+      - { income_threshold: 194000, surcharge_per_person: 12.20 }
+      - { income_threshold: 246000, surcharge_per_person: 31.50 }
+      - { income_threshold: 306000, surcharge_per_person: 50.70 }
+      - { income_threshold: 366000, surcharge_per_person: 70.00 }
+      - { income_threshold: 750000, surcharge_per_person: 77.90 }
+    social_security_provisional_income:
+      phase1_start: 32000
+      phase2_start: 44000
+  single:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 11000, rate: 0.12 }
+      - { income: 44725, rate: 0.22 }
+      - { income: 100525, rate: 0.24 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 44625, rate: 0.15 }
+      - { income: 492300, rate: 0.20 }
+    irmaa_part_b:
+      - { income_threshold: 97000, surcharge_per_person: 65.90 }
+      - { income_threshold: 129000, surcharge_per_person: 164.90 }
+      - { income_threshold: 161000, surcharge_per_person: 296.20 }
+      - { income_threshold: 193000, surcharge_per_person: 329.70 }
+      - { income_threshold: 500000, surcharge_per_person: 359.40 }
+    irmaa_part_d:
+      - { income_threshold: 97000, surcharge_per_person: 12.20 }
+      - { income_threshold: 129000, surcharge_per_person: 31.50 }
+      - { income_threshold: 161000, surcharge_per_person: 50.70 }
+      - { income_threshold: 193000, surcharge_per_person: 70.00 }
+      - { income_threshold: 500000, surcharge_per_person: 77.90 }
+    social_security_provisional_income:
+      phase1_start: 25000
+      phase2_start: 34000
 
-single_2023:
-  ordinary:
-    - { income: 0, rate: 0.10 }
-    - { income: 11000, rate: 0.12 }
-    - { income: 44725, rate: 0.22 }
-    - { income: 100525, rate: 0.24 }
-  capital_gains:
-    - { income: 0, rate: 0.0 }
-    - { income: 44625, rate: 0.15 }
-    - { income: 492300, rate: 0.20 }
-  irmaa_part_b:
-    - { income_threshold: 97000, surcharge_per_person: 65.90 }
-    - { income_threshold: 129000, surcharge_per_person: 164.90 }
-    - { income_threshold: 161000, surcharge_per_person: 296.20 }
-    - { income_threshold: 193000, surcharge_per_person: 329.70 }
-    - { income_threshold: 500000, surcharge_per_person: 359.40 }
-  irmaa_part_d:
-    - { income_threshold: 97000, surcharge_per_person: 12.20 }
-    - { income_threshold: 129000, surcharge_per_person: 31.50 }
-    - { income_threshold: 161000, surcharge_per_person: 50.70 }
-    - { income_threshold: 193000, surcharge_per_person: 70.00 }
-    - { income_threshold: 500000, surcharge_per_person: 77.90 }
-  social_security_provisional_income:
-    phase1_start: 25000
-    phase2_start: 34000
+2024:
+  standard_deduction:
+    single: 14600
+    mfj: 29200
+  mfj:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 23200, rate: 0.12 }
+      - { income: 94300, rate: 0.22 }
+      - { income: 201050, rate: 0.24 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 94050, rate: 0.15 }
+      - { income: 583750, rate: 0.20 }
+    irmaa_part_b:
+      - { income_threshold: 206000, surcharge_per_person: 69.90 }
+      - { income_threshold: 258000, surcharge_per_person: 174.70 }
+      - { income_threshold: 322000, surcharge_per_person: 279.50 }
+      - { income_threshold: 386000, surcharge_per_person: 384.30 }
+      - { income_threshold: 750000, surcharge_per_person: 419.30 }
+    irmaa_part_d:
+      - { income_threshold: 206000, surcharge_per_person: 12.90 }
+      - { income_threshold: 258000, surcharge_per_person: 33.30 }
+      - { income_threshold: 322000, surcharge_per_person: 53.80 }
+      - { income_threshold: 386000, surcharge_per_person: 74.20 }
+      - { income_threshold: 750000, surcharge_per_person: 81.00 }
+    social_security_provisional_income:
+      phase1_start: 32000 # Not inflation adjusted
+      phase2_start: 44000 # Not inflation adjusted
+  single:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 11600, rate: 0.12 }
+      - { income: 47150, rate: 0.22 }
+      - { income: 100525, rate: 0.24 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 47025, rate: 0.15 }
+      - { income: 518900, rate: 0.20 }
+    irmaa_part_b:
+      - { income_threshold: 103000, surcharge_per_person: 69.90 }
+      - { income_threshold: 129000, surcharge_per_person: 174.70 }
+      - { income_threshold: 161000, surcharge_per_person: 279.50 }
+      - { income_threshold: 193000, surcharge_per_person: 384.30 }
+      - { income_threshold: 500000, surcharge_per_person: 419.30 }
+    irmaa_part_d:
+      - { income_threshold: 103000, surcharge_per_person: 12.90 }
+      - { income_threshold: 129000, surcharge_per_person: 33.30 }
+      - { income_threshold: 161000, surcharge_per_person: 53.80 }
+      - { income_threshold: 193000, surcharge_per_person: 74.20 }
+      - { income_threshold: 500000, surcharge_per_person: 81.00 }
+    social_security_provisional_income:
+      phase1_start: 25000 # Not inflation adjusted
+      phase2_start: 34000 # Not inflation adjusted
+
+2025:
+  # Note: 2025 figures are projected based on a 3% inflation adjustment of 2024 data.
+  standard_deduction:
+    single: 15050
+    mfj: 30100
+  mfj:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 23900, rate: 0.12 }
+      - { income: 97150, rate: 0.22 }
+      - { income: 207100, rate: 0.24 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 96900, rate: 0.15 }
+      - { income: 601250, rate: 0.20 }
+    irmaa_part_b:
+      - { income_threshold: 212200, surcharge_per_person: 72.00 }
+      - { income_threshold: 265750, surcharge_per_person: 179.90 }
+      - { income_threshold: 331650, surcharge_per_person: 287.90 }
+      - { income_threshold: 397600, surcharge_per_person: 395.80 }
+      - { income_threshold: 772500, surcharge_per_person: 431.90 }
+    irmaa_part_d:
+      - { income_threshold: 212200, surcharge_per_person: 13.30 }
+      - { income_threshold: 265750, surcharge_per_person: 34.30 }
+      - { income_threshold: 331650, surcharge_per_person: 55.40 }
+      - { income_threshold: 397600, surcharge_per_person: 76.40 }
+      - { income_threshold: 772500, surcharge_per_person: 83.40 }
+    social_security_provisional_income:
+      phase1_start: 32000 # Not inflation adjusted
+      phase2_start: 44000 # Not inflation adjusted
+  single:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 11950, rate: 0.12 }
+      - { income: 48550, rate: 0.22 }
+      - { income: 103550, rate: 0.24 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 48450, rate: 0.15 }
+      - { income: 534450, rate: 0.20 }
+    irmaa_part_b:
+      - { income_threshold: 106100, surcharge_per_person: 72.00 }
+      - { income_threshold: 132850, surcharge_per_person: 179.90 }
+      - { income_threshold: 165850, surcharge_per_person: 287.90 }
+      - { income_threshold: 198800, surcharge_per_person: 395.80 }
+      - { income_threshold: 515000, surcharge_per_person: 431.90 }
+    irmaa_part_d:
+      - { income_threshold: 106100, surcharge_per_person: 13.30 }
+      - { income_threshold: 132850, surcharge_per_person: 34.30 }
+      - { income_threshold: 165850, surcharge_per_person: 55.40 }
+      - { income_threshold: 198800, surcharge_per_person: 76.40 }
+      - { income_threshold: 515000, surcharge_per_person: 83.40 }
+    social_security_provisional_income:
+      phase1_start: 25000 # Not inflation adjusted
+      phase2_start: 34000 # Not inflation adjusted

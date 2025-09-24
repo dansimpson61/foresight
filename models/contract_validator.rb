@@ -25,6 +25,10 @@ module Foresight
     REQUEST_SCHEMA = {
       'members' => Rule.new(required: true, type: Array),
       'filing_status' => Rule.new(required: true, type: String, allowed_values: ['mfj', 'single']),
+      'start_year' => Rule.new(required: true, type: Integer),
+      'years' => Rule.new(required: true, type: Integer),
+      'annual_expenses' => Rule.new(required: true, type: Numeric),
+      'state' => Rule.new(required: true, type: String),
       'accounts' => Rule.new(required: true, type: Array, schema: ACCOUNT_SCHEMA),
       'income_sources' => Rule.new(required: true, type: Array, schema: INCOME_SOURCE_SCHEMA),
       'growth_assumptions' => Rule.new(required: true, type: Hash, schema: GROWTH_ASSUMPTIONS_SCHEMA)
