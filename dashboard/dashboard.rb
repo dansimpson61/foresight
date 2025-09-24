@@ -7,8 +7,14 @@ require_relative 'lib/test_runner'
 
 helpers do
   def find_tests
-    # Search for spec files in the parent directory's spec folder
-    Dir.glob(File.join(File.dirname(__FILE__), '..', 'spec', '**', '*_spec.rb'))
+    # The dashboard app is in a subdirectory. We want to find tests
+    # in the parent (project root) directory.
+    project_root = File.expand_path('..', __dir__)
+
+    # Find all spec files and make them relative to the project root.
+    Dir.glob(File.join(project_root, 'spec', '**', '*_spec.rb')).map do |path|
+      path.sub("#{project_root}/", '')
+    end
   end
 
   def repo
