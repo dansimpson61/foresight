@@ -1,0 +1,16 @@
+doctype html
+html
+  head
+    title Test Dashboard
+    link rel="stylesheet" href="/style.css"
+  body
+    == yield
+
+    script src="/stimulus.js"
+    script src="/controllers/git_controller.js"
+    script src="/controllers/test_card_controller.js"
+
+    script
+      | const application = Stimulus.Application.start();
+      | application.register('git', GitController);
+      | application.register('test-card', TestCardController);

@@ -1,0 +1,12 @@
+source 'https://rubygems.org'
+
+gem 'sinatra'
+gem 'puma'
+gem 'slim'
+gem 'rack'
+
+group :test, :development do
+  gem 'rspec'
+  gem 'capybara'
+  gem 'cuprite'
+end
