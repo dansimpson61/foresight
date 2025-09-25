@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require_relative 'modules/voluntary'
 
 module Foresight
   # A collection of classes to represent discrete financial events that occur within a year.
@@ -28,6 +29,7 @@ module Foresight
 
     # Represents a strategic, taxable conversion of pre-tax assets to a Roth account.
     class RothConversion < Base
+      include Foresight::Voluntary
       attr_reader :source_account, :destination_account, :amount
 
       def initialize(year:, source_account:, destination_account:, amount:)
