@@ -49,6 +49,10 @@ module Foresight
         @source_account = source_account
         @amount_withdrawn = amount_withdrawn
       end
+
+      def taxable_amount
+        taxable_ordinary + taxable_capital_gains
+      end
     end
   end
 end

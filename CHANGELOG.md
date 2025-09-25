@@ -2,9 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on Keep a Changelog and this project adheres to Semantic Versioning (SemVer) as it evolves.
+## [0.2.1] - 2025-09-25
 
-## [Unreleased]
+### Fixed
+- **Corrected "Fill the Bracket" Strategy Logic**: Fixed a critical logic flaw in the `BracketFill` conversion strategy where the Roth conversion amount was calculated *before* accounting for taxable income from spending withdrawals. This caused the strategy to overshoot the target bracket ceiling. The order of operations is now correct, ensuring conversions are precisely calculated based on the true remaining headroom.
+
+### Added
+- **Enhanced "Fill the Bracket" Strategy Specs**: Added a new, rigorous unit test to `spec/models/conversion_strategies_spec.rb` that explicitly validates the correct sequence of operations (spending withdrawals first, then conversion). This test was instrumental in identifying and verifying the fix for the logic flaw.
+- **Added `taxable_amount` to `SpendingWithdrawal` Event**: The `FinancialEvent::SpendingWithdrawal` class now has a `taxable_amount` method, making the event object a more complete and informative representation of its own tax impact. This was a necessary precursor to fixing the strategy logic and improving the test suite.
 
 ## [0.2.0] - 2025-09-24
 
@@ -123,7 +128,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 *... (older versions remain the same)*
 
-[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dansimpson61/foresight/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/dansimpson61/foresight/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/dansimpson61/foresight/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/dansimpson61/foresight/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/dansimpson61/foresight/compare/v0.1.7...v0.1.8

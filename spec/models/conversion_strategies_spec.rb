@@ -105,5 +105,38 @@ RSpec.describe Foresight::ConversionStrategies do
         expect(conversion.amount).to be_within(0.01).of(10_000)
       end
     end
+
+    context 'with both a spending need and conversion headroom' do
+      let(:base_taxable_income) { 20_000 }
+      let(:spending_need) { 30_000 }
+      let(:strategy_no_cushion) { Foresight::ConversionStrategies::BracketFill.new(ceiling: 89_450, cushion_ratio: 0.0) }
+
+      it 'correctly sequences withdrawals and conversions to precisely fill the bracket' do
+        events = strategy_no_cushion.plan_discretionary_events(
+          household: household, tax_year: tax_year,
+          base_taxable_income: base_taxable_income, spending_need: spending_need
+        )
+        
+        withdrawal = events.find { |e| e.is_a?(Foresight::FinancialEvent::SpendingWithdrawal) }
+        conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
+
+        expect(withdrawal).not_to be_nil
+        expect(conversion).not_to be_nil
+        
+        # Spending withdrawal should be fulfilled from the Traditional IRA
+        expect(withdrawal.source_account).to be_a(Foresight::TraditionalIRA)
+        expect(withdrawal.amount_withdrawn).to be_within(0.01).of(spending_need)
+        
+        # The conversion amount should be the remaining headroom AFTER the withdrawal
+        income_after_withdrawal = base_taxable_income + withdrawal.taxable_amount
+        expected_conversion_amount = 89_450 - income_after_withdrawal
+        expect(conversion.amount).to be_within(0.01).of(expected_conversion_amount)
+
+        # The sum of all taxable events should hit the ceiling
+        total_taxable_from_strategy = withdrawal.taxable_amount + conversion.amount
+        final_taxable_income = base_taxable_income + total_taxable_from_strategy
+        expect(final_taxable_income).to be_within(0.01).of(89_450)
+      end
+    end
   end
 end
