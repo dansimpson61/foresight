@@ -122,8 +122,6 @@ module Foresight
         taxable_from_spending = events.sum(&:taxable_amount)
         current_taxable_income = base_taxable_income + taxable_from_spending
         
-        # This needs to be more sophisticated, but for now, we'll keep it simple.
-        # It doesn't account for the fact that the withdrawals themselves may impact provisional income.
         current_provisional_income = provisional_income_before_strategy + taxable_from_spending
 
         target_headroom = calculate_headroom_algebraically(
@@ -155,7 +153,6 @@ module Foresight
       def calculate_headroom_algebraically(provisional_income:, ss_total:, tax_year:, filing_status:, standard_deduction:, base_taxable_income:)
         target_income = @ceiling + standard_deduction
         
-        # Calculate headroom without SS first
         headroom = target_income - base_taxable_income
         return headroom if ss_total.zero?
         
@@ -175,6 +172,128 @@ module Foresight
           excess = (provisional - thresholds['phase2_start']) * 0.85
           [base + excess, ss_total * 0.85].min
         end
+      end
+    end
+
+    # A base class for strategies that only execute if Social Security has not been claimed.
+    class ConditionalConversion < Base
+      def plan_discretionary_events(household:, tax_year:, base_taxable_income:, spending_need:, ss_total: 0.0, provisional_income_before_strategy: 0.0, standard_deduction: 0.0)
+        # If SS has been claimed, do nothing beyond meeting spending needs.
+        if ss_total > 0
+          return NoConversion.new.plan_discretionary_events(
+            household: household, tax_year: tax_year, base_taxable_income: base_taxable_income,
+            spending_need: spending_need
+          )
+        end
+        
+        # Otherwise, proceed with the specific conditional logic.
+        plan_conditional_conversion(
+          household: household, tax_year: tax_year, base_taxable_income: base_taxable_income,
+          spending_need: spending_need, provisional_income_before_strategy: provisional_income_before_strategy,
+          standard_deduction: standard_deduction
+        )
+      end
+
+      protected
+
+      def plan_conditional_conversion(household:, tax_year:, base_taxable_income:, spending_need:, provisional_income_before_strategy:, standard_deduction:)
+        raise NotImplementedError, "#{self.class.name} must implement #plan_conditional_conversion"
+      end
+    end
+
+    # Strategy 1: Fills a tax bracket, but only if SS is not claimed.
+    class ConditionalBracketFill < ConditionalConversion
+      attr_reader :ceiling
+
+      def initialize(ceiling:)
+        @ceiling = ceiling.to_f
+      end
+
+      def name; 'Fill Bracket (No SS Years)'; end
+      def key; 'fill_bracket_no_ss'; end
+
+      protected
+
+      def plan_conditional_conversion(household:, tax_year:, base_taxable_income:, spending_need:, provisional_income_before_strategy:, standard_deduction:)
+        # Delegate to a non-conditional BracketFill instance to perform the calculation.
+        # This is a classic example of the Strategy Pattern.
+        bracket_filler = BracketFill.new(ceiling: @ceiling)
+        bracket_filler.plan_discretionary_events(
+          household: household, tax_year: tax_year, base_taxable_income: base_taxable_income,
+          spending_need: spending_need, ss_total: 0.0,
+          provisional_income_before_strategy: provisional_income_before_strategy,
+          standard_deduction: standard_deduction
+        )
+      end
+    end
+
+    # Strategy 2: Fills a tax bracket within a specific year range, only if SS is not claimed.
+    class ConditionalBracketFillWithYears < ConditionalBracketFill
+      attr_reader :start_year, :end_year
+
+      def initialize(ceiling:, start_year:, end_year:)
+        super(ceiling: ceiling)
+        @start_year = start_year
+        @end_year = end_year
+      end
+
+      def name; 'Fill Bracket (No SS, Specific Years)'; end
+      def key; 'fill_bracket_no_ss_years'; end
+      
+      def plan_discretionary_events(household:, tax_year:, **args)
+        return NoConversion.new.plan_discretionary_events(household: household, tax_year: tax_year, **args.slice(:base_taxable_income, :spending_need)) unless tax_year.year.between?(@start_year, @end_year)
+        super
+      end
+    end
+
+    # Strategy 3: Converts a fixed amount, but only if SS is not claimed.
+    class ConditionalFixedAmount < ConditionalConversion
+      attr_reader :amount
+
+      def initialize(amount:)
+        @amount = amount.to_f
+      end
+
+      def name; 'Convert Fixed Amount (No SS Years)'; end
+      def key; 'fixed_amount_no_ss'; end
+
+      protected
+
+      def plan_conditional_conversion(household:, tax_year:, base_taxable_income:, spending_need:, **)
+        events = []
+        
+        if spending_need > 0
+          events.concat(allocate_spending_gap(
+            need: spending_need, household: household, tax_year: tax_year,
+            withdrawal_hierarchy: household.withdrawal_hierarchy
+          ))
+        end
+        
+        available = household.traditional_iras.sum(&:balance)
+        conversion_amount = [@amount, available].min.round(2)
+        
+        events.concat(perform_roth_conversion(conversion_amount, household, tax_year)) if conversion_amount > 0
+        
+        events
+      end
+    end
+    
+    # Strategy 4: Converts a fixed amount within a year range, only if SS is not claimed.
+    class ConditionalFixedAmountWithYears < ConditionalFixedAmount
+      attr_reader :start_year, :end_year
+
+      def initialize(amount:, start_year:, end_year:)
+        super(amount: amount)
+        @start_year = start_year
+        @end_year = end_year
+      end
+      
+      def name; 'Convert Fixed Amount (No SS, Specific Years)'; end
+      def key; 'fixed_amount_no_ss_years'; end
+
+      def plan_discretionary_events(household:, tax_year:, **args)
+        return NoConversion.new.plan_discretionary_events(household: household, tax_year: tax_year, **args.slice(:base_taxable_income, :spending_need)) unless tax_year.year.between?(@start_year, @end_year)
+        super
       end
     end
   end
