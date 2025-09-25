@@ -25,7 +25,8 @@ export default class extends Controller {
     'withdrawal1', 'withdrawal2', 'withdrawal3', 'withdrawal4',
     'investmentGrowth', 'investmentGrowthNumber', 'inflationRate', 'inflationRateNumber',
     'analysisHorizon', 'analysisHorizonNumber',
-    'strategySelector', 'strategyControls',
+    'strategySelector', 'strategyControls', 'yearRangeControls', 'bracketControls', 'amountControls',
+    'startYear', 'endYear', 'bracketCeiling', 'conversionAmount',
     "errorDisplay"
   ];
 
@@ -33,6 +34,7 @@ export default class extends Controller {
     this.runPlan = debounce(this.runPlan.bind(this), 500);
     this.initializeSyncableTargets();
     this.initializeNumberInputs();
+    this.handleStrategyChange();
     this.runPlan();
   }
   
@@ -149,6 +151,12 @@ export default class extends Controller {
   }
   
   handleStrategyChange() {
+    const strategy = this.strategySelectorTarget.value;
+
+    this.yearRangeControlsTarget.hidden = !strategy.includes('by_year');
+    this.bracketControlsTarget.hidden = !strategy.includes('bracket');
+    this.amountControlsTarget.hidden = !strategy.includes('amount');
+
     this.dispatchResults();
   }
 
@@ -157,6 +165,18 @@ export default class extends Controller {
     const yourBirthYear = currentYear - parseInt(this.yourAgeTarget.value, 10);
     const spouseBirthYear = currentYear - parseInt(this.spouseAgeTarget.value, 10);
     const growthRate = parseFloat(this.investmentGrowthTarget.value) / 100;
+
+    const strategies = [
+      { key: 'do_nothing', params: {} },
+      { key: 'fill_to_top_of_bracket', params: { ceiling: parseInt(this.bracketCeilingTarget.value, 10) || 0 } },
+      { key: 'fill_bracket_no_ss', params: { ceiling: parseInt(this.bracketCeilingTarget.value, 10) || 0 } },
+      { key: 'fill_bracket_by_year_no_ss', params: {
+          ceiling: parseInt(this.bracketCeilingTarget.value, 10) || 0,
+          start_year: parseInt(this.startYearTarget.value, 10) || currentYear,
+          end_year: parseInt(this.endYearTarget.value, 10) || currentYear + 1
+        }
+      }
+    ];
 
     return {
       members: [
@@ -205,10 +225,7 @@ export default class extends Controller {
         taxable: growthRate,
         cash: 0.005
       },
-      strategies: [
-        { key: 'do_nothing', params: {} },
-        { key: 'fill_to_top_of_bracket', params: {} }
-      ],
+      strategies: strategies,
       withdrawal_hierarchy: [
         this.withdrawal1Target.value, this.withdrawal2Target.value,
         this.withdrawal3Target.value, this.withdrawal4Target.value

@@ -10,15 +10,27 @@ require_relative '../../models/financial_event'
 require_relative '../../models/conditional_conversion_strategies'
 
 RSpec.describe Foresight::ConversionStrategies do
-  let(:p1) { Foresight::Person.new(birth_year: 1960, name: 'Person1') }
-  let(:p2) { Foresight::Person.new(birth_year: 1962, name: 'Person2') }
-  let(:household) do
-    Foresight::Household.new(filing_status: 'Married Filing Jointly', primary_taxpayer: p1, spouse: p2).tap do |h|
-      h.add_account(Foresight::TraditionalIRA.new(owner: p1, balance: 500_000))
-      h.add_account(Foresight::RothIRA.new(owner: p1, balance: 100_000))
-    end
+  let(:p1) { Foresight::Person.new(name: 'Person1', date_of_birth: '1960-01-01') }
+  let(:p2) { Foresight::Person.new(name: 'Person2', date_of_birth: '1962-01-01') }
+  let(:accounts) do
+    [
+      Foresight::TraditionalIRA.new(owner: p1, balance: 500_000),
+      Foresight::RothIRA.new(owner: p1, balance: 100_000)
+    ]
   end
-  let(:tax_year) { Foresight::TaxYear.new(year: 2024, brackets: tax_brackets_2024['Married Filing Jointly']) }
+  let(:household) do
+    Foresight::Household.new(
+      members: [p1, p2],
+      filing_status: 'mfj',
+      state: 'CA',
+      accounts: accounts,
+      income_sources: [],
+      annual_expenses: 0,
+      emergency_fund_floor: 0,
+      withdrawal_hierarchy: [:traditional, :roth, :taxable, :cash]
+    )
+  end
+  let(:tax_year) { Foresight::TaxYear.new(year: 2024) }
   let(:base_args) do
     {
       household: household,
@@ -30,36 +42,18 @@ RSpec.describe Foresight::ConversionStrategies do
     }
   end
 
-  # Mock tax brackets for simplicity
-  let(:tax_brackets_2024) do
-    {
-      'Married Filing Jointly' => [
-        { rate: 0.10, ceiling: 23200 },
-        { rate: 0.12, ceiling: 94300 },
-        { rate: 0.22, ceiling: 201050 }
-      ]
-    }
-  end
-
-  # Set up mock Social Security taxability thresholds
-  before do
-    allow(tax_year).to receive(:social_security_taxability_thresholds).and_return({
-      'phase1_start' => 32000,
-      'phase2_start' => 44000
-    })
-  end
-
   describe 'ConditionalBracketFill' do
-    let(:strategy) { described_class::ConditionalBracketFill.new(ceiling: 94300) }
+    let(:strategy) { described_class::ConditionalBracketFill.new(ceiling: 94300, cushion_ratio: 0.05) }
 
     context 'when Social Security is NOT claimed (ss_total is 0)' do
       it 'performs a Roth conversion to fill the specified tax bracket' do
         events = strategy.plan_discretionary_events(**base_args.merge(ss_total: 0))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).not_to be_nil
-        # Expected: (94300 ceiling + 29200 std deduction) - 0 base income = 123500
-        # With 5% cushion: 123500 * 0.95 = 117325
-        expect(conversion.amount).to be_within(1).of(117325)
+        # Expected: (94300 ceiling) - 0 base income = 94300.
+        # It does not include the standard deduction because that is handled by the TaxYear object.
+        # With 5% cushion: 94300 * 0.95 = 89585
+        expect(conversion.amount).to be_within(1).of(89585)
       end
     end
 
@@ -80,11 +74,11 @@ RSpec.describe Foresight::ConversionStrategies do
   end
 
   describe 'ConditionalBracketFillByYear' do
-    let(:strategy) { described_class::ConditionalBracketFillByYear.new(ceiling: 94300, start_year: 2024, end_year: 2026) }
+    let(:strategy) { described_class::ConditionalBracketFillByYear.new(ceiling: 94300, cushion_ratio: 0.05, start_year: 2024, end_year: 2026) }
 
     context 'when within the specified year range and no SS is claimed' do
       it 'performs a Roth conversion' do
-        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2025, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2025)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).not_to be_nil
       end
@@ -92,13 +86,13 @@ RSpec.describe Foresight::ConversionStrategies do
 
     context 'when outside the specified year range' do
       it 'does not perform a conversion before the start year' do
-        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2023, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2023)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).to be_nil
       end
 
       it 'does not perform a conversion after the end year' do
-        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2027, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2027)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).to be_nil
       end
@@ -106,7 +100,7 @@ RSpec.describe Foresight::ConversionStrategies do
 
     context 'when SS is claimed within the year range' do
       it 'does not perform a conversion' do
-        events = strategy.plan_discretionary_events(**base_args.merge(ss_total: 50000, tax_year: Foresight::TaxYear.new(year: 2025, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(ss_total: 50000, tax_year: Foresight::TaxYear.new(year: 2025)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).to be_nil
       end
@@ -125,7 +119,21 @@ RSpec.describe Foresight::ConversionStrategies do
       end
 
       it 'converts only the available balance if less than the fixed amount' do
-        household.traditional_iras.first.balance = 40000
+        accounts = [
+          Foresight::TraditionalIRA.new(owner: p1, balance: 40000),
+          Foresight::RothIRA.new(owner: p1, balance: 100_000)
+        ]
+        household = Foresight::Household.new(
+          members: [p1, p2],
+          filing_status: 'mfj',
+          state: 'CA',
+          accounts: accounts,
+          income_sources: [],
+          annual_expenses: 0,
+          emergency_fund_floor: 0,
+          withdrawal_hierarchy: [:traditional, :roth, :taxable, :cash]
+        )
+        base_args[:household] = household
         events = strategy.plan_discretionary_events(**base_args.merge(ss_total: 0))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion.amount).to eq(40000)
@@ -146,7 +154,7 @@ RSpec.describe Foresight::ConversionStrategies do
 
     context 'when within the year range and no SS is claimed' do
       it 'converts the specified fixed amount' do
-        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2026, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2026)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).not_to be_nil
         expect(conversion.amount).to eq(60000)
@@ -155,13 +163,13 @@ RSpec.describe Foresight::ConversionStrategies do
 
     context 'when outside the year range' do
       it 'does not perform a conversion before the start year' do
-        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2024, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2024)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).to be_nil
       end
 
       it 'does not perform a conversion after the end year' do
-        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2028, brackets: {})))
+        events = strategy.plan_discretionary_events(**base_args.merge(tax_year: Foresight::TaxYear.new(year: 2028)))
         conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
         expect(conversion).to be_nil
       end
@@ -169,7 +177,7 @@ RSpec.describe Foresight::ConversionStrategies do
 
     context 'when SS is claimed within the year range' do
       it 'does not perform a conversion' do
-         events = strategy.plan_discretionary_events(**base_args.merge(ss_total: 50000, tax_year: Foresight::TaxYear.new(year: 2026, brackets: {})))
+         events = strategy.plan_discretionary_events(**base_args.merge(ss_total: 50000, tax_year: Foresight::TaxYear.new(year: 2026)))
          conversion = events.find { |e| e.is_a?(Foresight::FinancialEvent::RothConversion) }
          expect(conversion).to be_nil
       end

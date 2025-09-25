@@ -76,6 +76,22 @@ module Foresight
           default_params: { ceiling: 94300, cushion_ratio: 0.05 }
         )
       )
+      register(
+        StrategyDescriptor.new(
+          key: 'fill_bracket_no_ss',
+          klass: ConversionStrategies::ConditionalBracketFill,
+          description: 'Fills a tax bracket, but only in years where no Social Security is claimed.',
+          default_params: { ceiling: 94300, cushion_ratio: 0.05 }
+        )
+      )
+      register(
+        StrategyDescriptor.new(
+          key: 'fill_bracket_by_year_no_ss',
+          klass: ConversionStrategies::ConditionalBracketFillByYear,
+          description: 'Fills a tax bracket, but only within a specified year range and in years with no SS.',
+          default_params: { ceiling: 94300, cushion_ratio: 0.05, start_year: 2024, end_year: 2030 }
+        )
+      )
     end
     
     def register(descriptor)

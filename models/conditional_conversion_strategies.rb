@@ -5,11 +5,8 @@ require_relative 'conversion_strategies'
 
 module Foresight
   module ConversionStrategies
-    # This module provides a condition-based execution for conversion strategies.
-    # It checks if Social Security benefits have been claimed in the tax year.
-    # If SS has been claimed, it falls back to the NoConversion strategy.
-    # Otherwise, it proceeds with the conversion logic defined in the including class.
-    module ConditionalConversion
+    # This is a base class for all conditional strategies.
+    class ConditionalBase < Base
       def plan_discretionary_events(household:, tax_year:, base_taxable_income:, spending_need:, ss_total: 0.0, provisional_income_before_strategy: 0.0, standard_deduction: 0.0)
         # If Social Security benefits are being received, do not perform any conversion.
         # Fall back to the baseline strategy of just meeting spending needs.
@@ -41,16 +38,34 @@ module Foresight
         end
         
         # If conditions are met, proceed with the actual strategy logic.
-        super
+        plan_conditional_events(
+          household: household, tax_year: tax_year, base_taxable_income: base_taxable_income,
+          spending_need: spending_need, ss_total: ss_total,
+          provisional_income_before_strategy: provisional_income_before_strategy,
+          standard_deduction: standard_deduction
+        )
       end
     end
 
     # Fills a tax bracket, but only in years where no Social Security is claimed.
-    class ConditionalBracketFill < BracketFill
-      include ConditionalConversion
-      
+    class ConditionalBracketFill < ConditionalBase
+      attr_reader :ceiling, :cushion_ratio
+      def initialize(ceiling:, cushion_ratio: 0.05)
+        @ceiling = ceiling
+        @cushion_ratio = cushion_ratio
+      end
+
       def name; 'Fill Bracket (No SS Years)'; end
       def key; 'fill_bracket_no_ss'; end
+
+      def plan_conditional_events(household:, tax_year:, base_taxable_income:, spending_need:, ss_total: 0.0, provisional_income_before_strategy: 0.0, standard_deduction: 0.0)
+        BracketFill.new(ceiling: @ceiling, cushion_ratio: @cushion_ratio).plan_discretionary_events(
+          household: household, tax_year: tax_year, base_taxable_income: base_taxable_income,
+          spending_need: spending_need, ss_total: ss_total,
+          provisional_income_before_strategy: provisional_income_before_strategy,
+          standard_deduction: standard_deduction
+        )
+      end
     end
 
     # Fills a tax bracket, but only within a specified year range and in years with no SS.
@@ -68,8 +83,7 @@ module Foresight
     end
 
     # Converts a fixed amount, but only in years where no Social Security is claimed.
-    class ConditionalFixedAmount < Base
-      include ConditionalConversion
+    class ConditionalFixedAmount < ConditionalBase
       attr_reader :amount
 
       def initialize(amount:)
@@ -79,7 +93,7 @@ module Foresight
       def name; 'Fixed Amount (No SS Years)'; end
       def key; 'fixed_amount_no_ss'; end
 
-      def plan_discretionary_events(household:, tax_year:, base_taxable_income:, spending_need:, ss_total: 0.0, provisional_income_before_strategy: 0.0, standard_deduction: 0.0)
+      def plan_conditional_events(household:, tax_year:, base_taxable_income:, spending_need:, ss_total: 0.0, provisional_income_before_strategy: 0.0, standard_deduction: 0.0)
         events = []
         
         # Step 1: Fulfill Spending Needs first.

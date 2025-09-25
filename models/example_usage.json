@@ -1,0 +1,31 @@
+{
+  "start_year": 2024,
+  "years": 30,
+  "members": [
+    {
+      "name": "Alex",
+      "date_of_birth": "1964-05-15"
+    },
+    {
+      "name": "Brenda",
+      "date_of_birth": "1966-10-20"
+    }
+  ],
+  "accounts": [
+    {
+      "type": "TraditionalIRA",
+      "owner": "Alex",
+      "balance": 500000
+    },
+    {
+      "type": "RothIRA",
+      "owner": "Alex",
+      "balance": 150000
+    }
+  ],
+  "income_sources": [],
+  "annual_expenses": 75000,
+  "emergency_fund_floor": 50000,
+  "filing_status": "married_filing_jointly",
+  "strategies": []
+}

@@ -170,8 +170,21 @@ html
             select data-plan-form-target="strategySelector" data-action="change->plan-form#handleStrategyChange"
               option value="do_nothing" Do Nothing
               option value="fill_to_top_of_bracket" Fill to Top of Bracket
+              option value="fill_bracket_no_ss" Fill Bracket (No SS Years)
+              option value="fill_bracket_by_year_no_ss" Fill Bracket by Year (No SS Years)
           .form-group data-plan-form-target="strategyControls"
             / -- Controls for the selected strategy will be injected here --
+            .form-group data-plan-form-target="yearRangeControls" hidden="true"
+              label for="start_year" Start Year
+              input type="number" data-plan-form-target="startYear"
+              label for="end_year" End Year
+              input type="number" data-plan-form-target="endYear"
+            .form-group data-plan-form-target="bracketControls" hidden="true"
+              label for="bracket_ceiling" Tax Bracket Ceiling
+              input type="number" data-plan-form-target="bracketCeiling"
+            .form-group data-plan-form-target="amountControls" hidden="true"
+              label for="conversion_amount" Fixed Conversion Amount
+              input type="number" data-plan-form-target="conversionAmount"
 
       #results.panel
         div data-controller="charts"
