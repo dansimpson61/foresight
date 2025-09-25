@@ -157,7 +157,7 @@ export default class extends Controller {
     this.bracketControlsTarget.hidden = !strategy.includes('bracket');
     this.amountControlsTarget.hidden = !strategy.includes('amount');
 
-    this.dispatchResults();
+    this.runPlan();
   }
 
   buildParameters() {
@@ -172,6 +172,13 @@ export default class extends Controller {
       { key: 'fill_bracket_no_ss', params: { ceiling: parseInt(this.bracketCeilingTarget.value, 10) || 0 } },
       { key: 'fill_bracket_by_year_no_ss', params: {
           ceiling: parseInt(this.bracketCeilingTarget.value, 10) || 0,
+          start_year: parseInt(this.startYearTarget.value, 10) || currentYear,
+          end_year: parseInt(this.endYearTarget.value, 10) || currentYear + 1
+        }
+      },
+      { key: 'fixed_amount_no_ss', params: { amount: parseInt(this.conversionAmountTarget.value, 10) || 0 } },
+      { key: 'fixed_amount_by_year_no_ss', params: {
+          amount: parseInt(this.conversionAmountTarget.value, 10) || 0,
           start_year: parseInt(this.startYearTarget.value, 10) || currentYear,
           end_year: parseInt(this.endYearTarget.value, 10) || currentYear + 1
         }
