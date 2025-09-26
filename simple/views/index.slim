@@ -1,0 +1,48 @@
+doctype html
+html
+  head
+    title Simple Foresight
+    style
+      | body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; background-color: #fdfdfd; }
+      | h1, h2 { color: #111; }
+      | .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+      | .strategy-card { padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fff; }
+      | .strategy-card h2 { margin-top: 0; }
+      | .metric { margin-bottom: 0.5rem; }
+      | .metric-label { font-weight: bold; }
+      | #chart-container { width: 100%; height: 400px; }
+  body
+    h1 Simple Foresight: A Radical Act of Simplification
+
+    .results-grid
+      .strategy-card
+        h2 Do Nothing Strategy
+        .metric
+          span.metric-label Cumulative Taxes Paid:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:cumulative_taxes])
+        .metric
+          span.metric-label Ending Net Worth:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:ending_net_worth])
+
+      .strategy-card
+        h2 Fill to Bracket Strategy
+        .metric
+          span.metric-label Cumulative Taxes Paid:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:cumulative_taxes])
+        .metric
+          span.metric-label Ending Net Worth:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
+
+    h2 Annual Income & Tax Details
+    #chart-container
+
+    / Embed data for JavaScript
+    script id="simulation-data" type="application/json"
+      = { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
+
+    / Load Stimulus and our chart controller
+    script src="https://unpkg.com/@hotwired/stimulus/dist/stimulus.umd.js"
+    script src="/js/chart_controller.js"
+    javascript:
+      const application = Stimulus.Application.start()
+      application.register("chart", ChartController)
