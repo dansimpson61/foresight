@@ -170,7 +170,7 @@ helpers do
 
       # Then, calculate conversion amount needed to fill the bracket
       current_taxable = base_taxable_income + taxable_from_spending
-      provisional_after_spending = base_taxable_income - taxable_social_security(base_taxable_income, ss_benefit) + taxable_from_spending
+      provisional_after_spending = base_taxable_income - calculate_taxable_social_security(base_taxable_income, ss_benefit) + taxable_from_spending
 
       # Simplified headroom calculation
       headroom = params[:ceiling] - current_taxable
