@@ -8,8 +8,8 @@ require 'json'
 # --- Configuration ---
 set :port, 9293
 set :bind, '0.0.0.0'
-set :views, File.dirname(__FILE__) + '/views'
-set :public_folder, File.dirname(__FILE__) + '/public'
+set :views, File.expand_path('views', __dir__)
+set :public_folder, File.expand_path('public', __dir__)
 
 # --- Hardcoded Financial Profile (The Single Purpose) ---
 # This hash represents the complete financial state of our user.
