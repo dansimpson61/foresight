@@ -33,13 +33,10 @@ html
           span.metric-label Ending Net Worth:
           span.metric-value = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
 
-    h2 Annual Income & Tax Details
-    #chart-container data-controller="chart"
-
-    / Embed data for JavaScript
-    script id="simulation-data" type="application/json"
-      = { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
-
-    / Load Stimulus and our chart controller
-    script src="/js/stimulus.umd.js"
-    script src="/js/chart_controller.js"
+    h2 Raw Yearly Data
+    h3 Do Nothing Strategy
+    pre
+      = JSON.pretty_generate(do_nothing_results[:yearly])
+    h3 Fill to Bracket Strategy
+    pre
+      = JSON.pretty_generate(fill_bracket_results[:yearly])
