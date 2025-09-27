@@ -105,10 +105,11 @@ html
     script id="default-profile-data" type="application/json"
       == profile.to_json
 
-    / Load Stimulus and our chart controller
+    / Load Stimulus, controllers, and the application entrypoint
     script src="/js/stimulus.umd.js"
     script src="/js/chart_controller.js"
     script src="/js/profile_controller.js"
+    script src="/js/application.js"
 
     style
       | .toggle { font-size: 0.8rem; font-weight: normal; color: #3b82f6; cursor: pointer; }
