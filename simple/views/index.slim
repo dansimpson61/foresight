@@ -55,3 +55,27 @@ html
     / Load Stimulus and our chart controller
     script src="/js/stimulus.umd.js"
     script src="/js/chart_controller.js"
+
+    h2.yearly-data-header Yearly Data Table (Fill to Bracket Strategy)
+    table.data-table
+      thead
+        tr
+          th Year
+          th Age
+          th Total Gross Income
+          th Total Tax
+          th Ending Net Worth
+      tbody
+        - fill_bracket_results[:yearly].each do |row|
+          tr
+            td = row[:year]
+            td = row[:age]
+            td = format_currency(row[:total_gross_income])
+            td = format_currency(row[:total_tax])
+            td = format_currency(row[:ending_net_worth])
+
+    style
+      | .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+      | .data-table th, .data-table td { border: 1px solid #e0e0e0; padding: 0.5rem; text-align: right; }
+      | .data-table th { background-color: #f8f8f8; font-weight: bold; }
+      | .yearly-data-header { margin-top: 3rem; }
