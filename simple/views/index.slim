@@ -51,6 +51,7 @@ html
         span.toggle data-action="click->chart#toggle"
           |  (Details)
       #chart-container data-chart-target="container"
+      div data-chart-target="legend"
 
       / Embed data for JavaScript
       script id="simulation-data" type="application/json"
@@ -83,3 +84,6 @@ html
       | .data-table.hidden { display: none; }
       | .data-table th, .data-table td { border: 1px solid #e0e0e0; padding: 0.5rem; text-align: right; }
       | .data-table th { background-color: #f8f8f8; font-weight: bold; }
+      | [data-chart-target='legend'] { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280; }
+      | .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+      | .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }

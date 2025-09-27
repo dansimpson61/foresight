@@ -3,18 +3,46 @@ window.addEventListener('DOMContentLoaded', () => {
   // This controller avoids heavy libraries in favor of clarity and minimalism.
   class ChartController extends Stimulus.Controller {
     static get targets() {
-      return ["table", "container"]
+      return ["table", "container", "legend"]
     }
 
     connect() {
       const chartJSON = JSON.parse(document.getElementById('simulation-data').textContent);
       this.chartData = chartJSON.fill_bracket; // Focus on the more interesting strategy
       this.tableTarget.classList.add('hidden');
+      this.colors = { social_security: '#a3e635', rmd: '#6b7280', withdrawals: '#f97316', conversions: '#3b82f6' };
       this.render();
+      this.renderLegend();
     }
 
     toggle() {
       this.tableTarget.classList.toggle('hidden');
+    }
+
+    renderLegend() {
+      this.legendTarget.innerHTML = '';
+      const legendItems = {
+        'Social Security': this.colors.social_security,
+        'RMDs': this.colors.rmd,
+        'Withdrawals': this.colors.withdrawals,
+        'Roth Conversions': this.colors.conversions
+      };
+
+      for (const [label, color] of Object.entries(legendItems)) {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+
+        const swatch = document.createElement('span');
+        swatch.className = 'legend-swatch';
+        swatch.style.backgroundColor = color;
+
+        const text = document.createElement('span');
+        text.textContent = label;
+
+        item.appendChild(swatch);
+        item.appendChild(text);
+        this.legendTarget.appendChild(item);
+      }
     }
 
     render() {
@@ -34,8 +62,6 @@ window.addEventListener('DOMContentLoaded', () => {
       const incomeKeys = ['social_security', 'rmd', 'withdrawals'];
       let lastY = new Array(this.chartData.length).fill(height - margin.bottom);
 
-      const colors = { social_security: '#a3e635', rmd: '#6b7280', withdrawals: '#f97316', conversions: '#3b82f6' };
-
       // Stacked areas for income sources
       incomeKeys.forEach(key => {
         const pathData = this.chartData.map((d, i) => {
@@ -47,7 +73,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }).join(' ');
 
         const areaPath = `M${xScale(this.chartData[0].year)},${height - margin.bottom} L${pathData} L${xScale(this.chartData[this.chartData.length - 1].year)},${height - margin.bottom}`;
-        svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: colors[key], opacity: 0.7 }));
+        svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: this.colors[key], opacity: 0.7 }));
       });
 
       // Add conversions on top
@@ -59,7 +85,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return point;
       }).join(' ');
       const areaPath = `M${xScale(this.chartData[0].year)},${height - margin.bottom} L${pathData} L${xScale(this.chartData[this.chartData.length - 1].year)},${height - margin.bottom}`;
-      svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: colors['conversions'], opacity: 0.7 }));
+      svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: this.colors['conversions'], opacity: 0.7 }));
 
       // --- Create Axes ---
       // Y-Axis
