@@ -2,9 +2,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // A Stimulus controller to render a simple, Tufte-an SVG chart
   // This controller avoids heavy libraries in favor of clarity and minimalism.
   class ChartController extends Stimulus.Controller {
-    static targets = ["table"]
+    static targets = ["table", "container"]
 
     connect() {
+      console.log("Chart controller connected to:", this.element);
+      console.log("Has container target?", this.hasContainerTarget);
       const chartJSON = JSON.parse(document.getElementById('simulation-data').textContent);
       this.chartData = chartJSON.fill_bracket; // Focus on the more interesting strategy
       this.tableTarget.classList.add('hidden');
@@ -16,8 +18,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     render() {
-      const width = this.element.clientWidth;
-      const height = this.element.clientHeight;
+      const width = this.containerTarget.clientWidth;
+      const height = this.containerTarget.clientHeight;
       const margin = { top: 20, right: 20, bottom: 30, left: 50 };
 
       const maxIncome = Math.max(...this.chartData.map(d => Object.values(d.income_sources).reduce((a, b) => a + b, 0) + d.taxable_income_breakdown.conversions));
@@ -73,8 +75,9 @@ window.addEventListener('DOMContentLoaded', () => {
           }
       });
 
-      this.element.innerHTML = '';
-      this.element.appendChild(svg);
+      console.log("About to render chart into:", this.containerTarget);
+      this.containerTarget.innerHTML = '';
+      this.containerTarget.appendChild(svg);
     }
 
     createSVGElement(tag, attrs, textContent = '') {
