@@ -17,6 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
       const xScale = (year) => margin.left + (year - this.chartData[0].year) * (width - margin.left - margin.right) / (this.chartData.length - 1);
       const yScale = (income) => height - margin.bottom - (income / maxIncome) * (height - margin.top - margin.bottom);
+      const yScaleInverse = (y) => (maxIncome * ((height - margin.bottom) - y)) / (height - margin.top - margin.bottom);
 
       const svg = this.createSVGElement('svg', { width, height });
 
@@ -30,7 +31,7 @@ window.addEventListener('DOMContentLoaded', () => {
       incomeKeys.forEach(key => {
         const pathData = this.chartData.map((d, i) => {
           const yValue = d.income_sources[key] || 0;
-          const newY = yScale(yScale.invert(lastY[i]) + yValue);
+          const newY = yScale(yScaleInverse(lastY[i]) + yValue);
           const point = `${xScale(d.year)},${newY}`;
           lastY[i] = newY;
           return point;
@@ -43,7 +44,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // Add conversions on top
       const pathData = this.chartData.map((d, i) => {
         const yValue = d.taxable_income_breakdown.conversions || 0;
-        const newY = yScale(yScale.invert(lastY[i]) + yValue);
+        const newY = yScale(yScaleInverse(lastY[i]) + yValue);
         const point = `${xScale(d.year)},${newY}`;
         lastY[i] = newY;
         return point;
