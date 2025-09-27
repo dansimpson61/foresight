@@ -50,7 +50,7 @@ html
 
     / Embed data for JavaScript
     script id="simulation-data" type="application/json"
-      = { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
+      == { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
 
     / Load Stimulus and our chart controller
     script src="/js/stimulus.umd.js"
