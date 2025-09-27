@@ -23,19 +23,19 @@ html
         .form-grid
           .form-group
             label for="annual_expenses" Annual Expenses
-            input type="number" data-profile-target="annualExpenses" value=profile['household']['annual_expenses']
+            input type="number" data-profile-target="annualExpenses" value=profile[:household][:annual_expenses]
           .form-group
             label for="traditional_balance" Traditional IRA Balance
-            input type="number" data-profile-target="traditionalBalance" value=profile['accounts'].find { |a| a['type'].to_sym == :traditional }['balance']
+            input type="number" data-profile-target="traditionalBalance" value=profile[:accounts].find { |a| a[:type] == :traditional }[:balance]
           .form-group
             label for="roth_balance" Roth IRA Balance
-            input type="number" data-profile-target="rothBalance" value=profile['accounts'].find { |a| a['type'].to_sym == :roth }['balance']
+            input type="number" data-profile-target="rothBalance" value=profile[:accounts].find { |a| a[:type] == :roth }[:balance]
           .form-group
             label for="taxable_balance" Taxable Account Balance
-            input type="number" data-profile-target="taxableBalance" value=profile['accounts'].find { |a| a['type'].to_sym == :taxable }['balance']
+            input type="number" data-profile-target="taxableBalance" value=profile[:accounts].find { |a| a[:type] == :taxable }[:balance]
           .form-group
             label for="pia_annual" Social Security (Annual)
-            input type="number" data-profile-target="piaAnnual" value=profile['income_sources'].find { |s| s['type'].to_sym == :social_security }['pia_annual']
+            input type="number" data-profile-target="piaAnnual" value=profile[:income_sources].find { |s| s[:type] == :social_security }[:pia_annual]
 
         button.button type="button" data-action="click->profile#save" Save & Re-run Simulation
 
