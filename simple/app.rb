@@ -14,7 +14,20 @@ set :public_folder, File.expand_path('public', __dir__)
 
 # --- Default Financial Profile ---
 # Loaded from an external YAML file for easier configuration.
-DEFAULT_PROFILE = YAML.load_file(File.expand_path('profile.yml', __dir__))
+def symbolize_keys(obj)
+  case obj
+  when Hash
+    obj.each_with_object({}) do |(k, v), result|
+      result[k.to_sym] = symbolize_keys(v)
+    end
+  when Array
+    obj.map { |v| symbolize_keys(v) }
+  else
+    obj
+  end
+end
+
+DEFAULT_PROFILE = symbolize_keys(YAML.load_file(File.expand_path('profile.yml', __dir__)))
 
 # --- Tax Data (Embedded for Simplicity) ---
 # We only need data for the simulation's start year.
@@ -59,7 +72,7 @@ end
 
 post '/run' do
   content_type :json
-  payload = JSON.parse(request.body.read)
+  payload = JSON.parse(request.body.read, symbolize_names: true)
 
   # Run simulations with the provided profile
   do_nothing_results = run_simulation(strategy: :do_nothing, profile: payload)
