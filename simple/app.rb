@@ -29,32 +29,9 @@ end
 
 DEFAULT_PROFILE = symbolize_keys(YAML.load_file(File.expand_path('profile.yml', __dir__)))
 
-# --- Tax Data (Embedded for Simplicity) ---
-# We only need data for the simulation's start year.
-# The simulation will not model changes in tax law.
-TAX_BRACKETS_2024 = {
-  'mfj' => {
-    'ordinary' => [
-      { 'income' => 0, 'rate' => 0.10 },
-      { 'income' => 23_200, 'rate' => 0.12 },
-      { 'income' => 94_300, 'rate' => 0.22 },
-      { 'income' => 201_050, 'rate' => 0.24 },
-      { 'income' => 383_900, 'rate' => 0.32 } # Simplified upper brackets
-    ],
-    'capital_gains' => [
-      { 'income' => 0, 'rate' => 0.0 },
-      { 'income' => 94_050, 'rate' => 0.15 },
-      { 'income' => 583_750, 'rate' => 0.20 }
-    ],
-    'social_security_provisional_income' => {
-      'phase1_start' => 32_000,
-      'phase2_start' => 44_000
-    }
-  },
-  'standard_deduction' => {
-    'mfj' => 29_200
-  }
-}.freeze
+# --- Tax Data ---
+# Loaded from an external YAML file.
+TAX_BRACKETS = symbolize_keys(YAML.load_file(File.expand_path('tax_brackets.yml', __dir__)))
 
 # --- The Application ---
 get '/' do
@@ -107,6 +84,7 @@ class Simulator
       person = profile[:members].first
       age = get_age(person[:date_of_birth], current_year)
       annual_expenses = profile[:household][:annual_expenses]
+      tax_brackets = get_tax_brackets_for_year(current_year)
 
       # A. Calculate Gross Income (Non-Discretionary)
       ss_benefit = get_social_security_benefit(profile[:income_sources].first, age)
@@ -126,7 +104,8 @@ class Simulator
         accounts: accounts,
         rmd: rmd,
         ss_benefit: ss_benefit,
-        spending_withdrawals: spending_withdrawals
+        spending_withdrawals: spending_withdrawals,
+        tax_brackets: tax_brackets
       )
 
       # D. Finalize Financial Picture for the Year
@@ -140,10 +119,10 @@ class Simulator
       conversion_amount = conversion_events.sum { |e| e[:amount] }
 
       provisional_income = rmd + taxable_ord_from_withdrawals + conversion_amount
-      final_taxable_ss = calculate_taxable_social_security(provisional_income, ss_benefit)
+      final_taxable_ss = calculate_taxable_social_security(provisional_income, ss_benefit, tax_brackets)
 
       total_ordinary_income = rmd + final_taxable_ss + taxable_ord_from_withdrawals + conversion_amount
-      taxes = calculate_taxes(total_ordinary_income, taxable_cg_from_withdrawals)
+      taxes = calculate_taxes(total_ordinary_income, taxable_cg_from_withdrawals, tax_brackets)
 
       # E. Record results
       yearly_results << {
@@ -169,7 +148,14 @@ class Simulator
 
   private
 
-  def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:)
+  def get_tax_brackets_for_year(year)
+    # Find the latest year in our data that is less than or equal to the current year
+    # or fall back to the earliest year if the simulation starts before our data.
+    applicable_year = TAX_BRACKETS.keys.select { |y| y <= year }.max || TAX_BRACKETS.keys.min
+    TAX_BRACKETS[applicable_year]
+  end
+
+  def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:, tax_brackets:)
     return [] if strategy == :do_nothing
 
     # This is the core logic for the "fill_to_bracket" strategy
@@ -177,7 +163,7 @@ class Simulator
 
     # This is the key calculation: determine the taxable income *before* the discretionary conversion
     provisional_income_before_conversion = rmd + taxable_ord_from_withdrawals
-    taxable_ss_before_conversion = calculate_taxable_social_security(provisional_income_before_conversion, ss_benefit)
+    taxable_ss_before_conversion = calculate_taxable_social_security(provisional_income_before_conversion, ss_benefit, tax_brackets)
     taxable_income_before_conversion = rmd + taxable_ss_before_conversion + taxable_ord_from_withdrawals
 
     headroom = strategy_params[:ceiling] - taxable_income_before_conversion
@@ -222,15 +208,15 @@ class Simulator
     [{ type: :conversion, amount: converted, taxable_ordinary: converted, taxable_capital_gains: 0 }]
   end
 
-  def calculate_taxes(ordinary_income, capital_gains)
-    brackets = TAX_BRACKETS_2024['mfj']
-    deduction = TAX_BRACKETS_2024['standard_deduction']['mfj']
+  def calculate_taxes(ordinary_income, capital_gains, tax_brackets)
+    brackets = tax_brackets[:mfj]
+    deduction = tax_brackets[:standard_deduction][:mfj]
     taxable_ord_after_deduction = [ordinary_income - deduction, 0].max
 
     # Calculate ordinary tax
     ord_tax = 0.0
     remaining_ord = taxable_ord_after_deduction
-    brackets['ordinary'].reverse_each do |bracket|
+    brackets[:ordinary].reverse_each do |bracket|
       next if remaining_ord <= bracket['income']
       taxable_at_this_rate = remaining_ord - bracket['income']
       ord_tax += taxable_at_this_rate * bracket['rate']
@@ -240,26 +226,26 @@ class Simulator
     # Simplified capital gains tax (assumes it stacks on top)
     cg_tax = 0.0
     # This is a major simplification for clarity. A real model is more complex.
-    if taxable_ord_after_deduction > brackets['capital_gains'][1]['income']
-      cg_tax = capital_gains * brackets['capital_gains'][1]['rate']
+    if taxable_ord_after_deduction > brackets[:capital_gains][1][:income]
+      cg_tax = capital_gains * brackets[:capital_gains][1][:rate]
     end
 
     total = ord_tax + cg_tax
     { federal: ord_tax, capital_gains: cg_tax, total: total }
   end
 
-  def calculate_taxable_social_security(provisional_income, ss_total)
+  def calculate_taxable_social_security(provisional_income, ss_total, tax_brackets)
     return 0.0 if ss_total <= 0
-    thresholds = TAX_BRACKETS_2024['mfj']['social_security_provisional_income']
+    thresholds = tax_brackets[:mfj][:social_security_provisional_income]
     provisional = provisional_income + (ss_total * 0.5)
 
-    return 0.0 if provisional <= thresholds['phase1_start']
-    if provisional <= thresholds['phase2_start']
-      return (provisional - thresholds['phase1_start']) * 0.5
+    return 0.0 if provisional <= thresholds[:phase1_start]
+    if provisional <= thresholds[:phase2_start]
+      return (provisional - thresholds[:phase1_start]) * 0.5
     end
 
-    phase1_taxable = (thresholds['phase2_start'] - thresholds['phase1_start']) * 0.5
-    phase2_taxable = (provisional - thresholds['phase2_start']) * 0.85
+    phase1_taxable = (thresholds[:phase2_start] - thresholds[:phase1_start]) * 0.5
+    phase2_taxable = (provisional - thresholds[:phase2_start]) * 0.85
     [phase1_taxable + phase2_taxable, ss_total * 0.85].min
   end
 
