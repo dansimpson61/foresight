@@ -58,13 +58,23 @@ TAX_BRACKETS_2024 = {
 
 # --- The Application ---
 get '/' do
+  # Pre-calculate simple values for the view to avoid complex logic in the template
+  profile_for_view = {
+    annual_expenses: DEFAULT_PROFILE[:household][:annual_expenses],
+    traditional_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :traditional }[:balance],
+    roth_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :roth }[:balance],
+    taxable_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :taxable }[:balance],
+    pia_annual: DEFAULT_PROFILE[:income_sources].find { |s| s[:type] == :social_security }[:pia_annual]
+  }
+
   # Run simulations with the default profile for the initial page load
   do_nothing_results = run_simulation(strategy: :do_nothing, profile: DEFAULT_PROFILE)
   fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: DEFAULT_PROFILE)
 
-  # Pass results to the view
+  # Pass results and simple profile data to the view
   slim :index, locals: {
     profile: DEFAULT_PROFILE,
+    profile_for_view: profile_for_view,
     do_nothing_results: do_nothing_results,
     fill_bracket_results: fill_bracket_results
   }
