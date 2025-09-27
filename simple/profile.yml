@@ -1,4 +1,4 @@
-start_year: 2024
+start_year: 2025
 years_to_simulate: 30
 inflation_rate: 0.03
 growth_assumptions:
@@ -10,30 +10,38 @@ household:
   filing_status: 'mfj'
   state: 'NY'
   annual_expenses: 100000
-  emergency_fund_floor: 50000
+  emergency_fund_floor: 25000
   withdrawal_hierarchy:
-    - :taxable
     - :traditional
     - :roth
+    - :taxable
+    - :cash
 members:
-  - name: 'Pat'
-    date_of_birth: '1964-05-01'
+  - name: 'Dan'
+    date_of_birth: '1961-11-05-01'
+  - name: 'Norine'
+    date_of_birth: '1967-04-30'
 accounts:
   - type: :traditional
-    owner: 'Pat'
-    balance: 1000000
+    owner: 'Dan'
+    balance: 1150000
   - type: :roth
-    owner: 'Pat'
+    owner: 'Dan'
     balance: 250000
   - type: :taxable
-    owner: 'Pat'
-    balance: 500000
+    owner: 'Dan'
+    balance: 10000
     cost_basis_fraction: 0.6
   - type: :cash
-    owner: 'Pat'
+    owner: 'Dan'
     balance: 100000
 income_sources:
   - type: :social_security
-    recipient: 'Pat'
-    pia_annual: 40000
+    recipient: 'Dan'
+    pia_annual: 33084
     claiming_age: 70
+  - type: :social_security
+    recipient: 'Norine'
+    pia_annual: 10000
+    claiming_age: 62
+    
