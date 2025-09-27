@@ -8,9 +8,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     connect() {
       const chartJSON = JSON.parse(document.getElementById('simulation-data').textContent);
-      this.chartData = chartJSON.fill_bracket; // Focus on the more interesting strategy
+      this.chartData = chartJSON.fill_bracket;
       this.tableTarget.classList.add('hidden');
-      this.colors = { social_security: '#a3e635', rmd: '#6b7280', withdrawals: '#f97316', conversions: '#3b82f6' };
+
+      // Single Source of Truth for chart layers
+      this.chartConfig = [
+        { key: 'social_security', label: 'Social Security', color: '#a3e635', source: 'income_sources' },
+        { key: 'rmd',             label: 'RMDs',            color: '#6b7280', source: 'income_sources' },
+        { key: 'withdrawals',     label: 'Withdrawals',     color: '#f97316', source: 'income_sources' },
+        { key: 'conversions',     label: 'Roth Conversions',color: '#3b82f6', source: 'taxable_income_breakdown' }
+      ];
+
       this.render();
       this.renderLegend();
     }
@@ -21,28 +29,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     renderLegend() {
       this.legendTarget.innerHTML = '';
-      const legendItems = {
-        'Social Security': this.colors.social_security,
-        'RMDs': this.colors.rmd,
-        'Withdrawals': this.colors.withdrawals,
-        'Roth Conversions': this.colors.conversions
-      };
-
-      for (const [label, color] of Object.entries(legendItems)) {
+      this.chartConfig.forEach(config => {
         const item = document.createElement('div');
         item.className = 'legend-item';
 
         const swatch = document.createElement('span');
         swatch.className = 'legend-swatch';
-        swatch.style.backgroundColor = color;
+        swatch.style.backgroundColor = config.color;
 
         const text = document.createElement('span');
-        text.textContent = label;
+        text.textContent = config.label;
 
         item.appendChild(swatch);
         item.appendChild(text);
         this.legendTarget.appendChild(item);
-      }
+      });
     }
 
     render() {
@@ -50,42 +51,38 @@ window.addEventListener('DOMContentLoaded', () => {
       const height = this.containerTarget.clientHeight;
       const margin = { top: 20, right: 20, bottom: 30, left: 50 };
 
-      const maxIncome = Math.max(...this.chartData.map(d => Object.values(d.income_sources).reduce((a, b) => a + b, 0) + d.taxable_income_breakdown.conversions));
+      const maxIncome = Math.max(...this.chartData.map(d =>
+        this.chartConfig.reduce((sum, config) => sum + (d[config.source][config.key] || 0), 0)
+      ));
 
       const xScale = (year) => margin.left + (year - this.chartData[0].year) * (width - margin.left - margin.right) / (this.chartData.length - 1);
       const yScale = (income) => height - margin.bottom - (income / maxIncome) * (height - margin.top - margin.bottom);
-      const yScaleInverse = (y) => (maxIncome * ((height - margin.bottom) - y)) / (height - margin.top - margin.bottom);
 
       const svg = this.createSVGElement('svg', { width, height });
+      let lastYValues = new Array(this.chartData.length).fill(0);
 
       // --- Create Stacked Area Paths ---
-      const incomeKeys = ['social_security', 'rmd', 'withdrawals'];
-      let lastY = new Array(this.chartData.length).fill(height - margin.bottom);
+      this.chartConfig.forEach(config => {
+        const currentYValues = [];
+        const topPoints = this.chartData.map((d, i) => {
+          const yValue = d[config.source][config.key] || 0;
+          currentYValues[i] = lastYValues[i] + yValue;
+          return { x: xScale(d.year), y: yScale(currentYValues[i]) };
+        });
 
-      // Stacked areas for income sources
-      incomeKeys.forEach(key => {
-        const pathData = this.chartData.map((d, i) => {
-          const yValue = d.income_sources[key] || 0;
-          const newY = yScale(yScaleInverse(lastY[i]) + yValue);
-          const point = `${xScale(d.year)},${newY}`;
-          lastY[i] = newY;
-          return point;
-        }).join(' ');
+        const bottomPoints = lastYValues.map((y, i) => {
+          return { x: xScale(this.chartData[i].year), y: yScale(y) };
+        });
 
-        const areaPath = `M${xScale(this.chartData[0].year)},${height - margin.bottom} L${pathData} L${xScale(this.chartData[this.chartData.length - 1].year)},${height - margin.bottom}`;
-        svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: this.colors[key], opacity: 0.7 }));
+        const pathData = topPoints.map(p => `L${p.x},${p.y}`).join('');
+        const bottomPathDataReversed = bottomPoints.reverse().map(p => `L${p.x},${p.y}`).join('');
+
+        const areaPath = `M${topPoints[0].x},${topPoints[0].y}${pathData}${bottomPathDataReversed}Z`;
+
+        svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: config.color, opacity: 0.8 }));
+
+        lastYValues = currentYValues;
       });
-
-      // Add conversions on top
-      const pathData = this.chartData.map((d, i) => {
-        const yValue = d.taxable_income_breakdown.conversions || 0;
-        const newY = yScale(yScaleInverse(lastY[i]) + yValue);
-        const point = `${xScale(d.year)},${newY}`;
-        lastY[i] = newY;
-        return point;
-      }).join(' ');
-      const areaPath = `M${xScale(this.chartData[0].year)},${height - margin.bottom} L${pathData} L${xScale(this.chartData[this.chartData.length - 1].year)},${height - margin.bottom}`;
-      svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: this.colors['conversions'], opacity: 0.7 }));
 
       // --- Create Axes ---
       // Y-Axis
