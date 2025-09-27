@@ -4,6 +4,7 @@
 require 'sinatra'
 require 'slim'
 require 'json'
+require 'yaml'
 
 # --- Configuration ---
 set :port, 9293
@@ -11,44 +12,9 @@ set :bind, '0.0.0.0'
 set :views, File.expand_path('views', __dir__)
 set :public_folder, File.expand_path('public', __dir__)
 
-# --- Hardcoded Financial Profile (The Single Purpose) ---
-# This hash represents the complete financial state of our user.
-# It replaces the need for a complex data entry UI.
-FINANCIAL_PROFILE = {
-  start_year: 2024,
-  years_to_simulate: 30,
-  inflation_rate: 0.03,
-  growth_assumptions: {
-    traditional: 0.04,
-    roth: 0.05,
-    taxable: 0.03,
-    cash: 0.01
-  },
-  household: {
-    filing_status: 'mfj', # married filing jointly
-    state: 'NY',
-    annual_expenses: 100_000,
-    emergency_fund_floor: 50_000,
-    withdrawal_hierarchy: [:taxable, :traditional, :roth]
-  },
-  members: [
-    { name: 'Pat', date_of_birth: '1964-05-01' }
-  ],
-  accounts: [
-    { type: :traditional, owner: 'Pat', balance: 1_000_000 },
-    { type: :roth, owner: 'Pat', balance: 250_000 },
-    { type: :taxable, owner: 'Pat', balance: 500_000, cost_basis_fraction: 0.6 },
-    { type: :cash, owner: 'Pat', balance: 100_000 }
-  ],
-  income_sources: [
-    {
-      type: :social_security,
-      recipient: 'Pat',
-      pia_annual: 40_000, # Primary Insurance Amount at Full Retirement Age
-      claiming_age: 70
-    }
-  ]
-}.freeze
+# --- Default Financial Profile ---
+# Loaded from an external YAML file for easier configuration.
+DEFAULT_PROFILE = YAML.load_file(File.expand_path('profile.yml', __dir__))
 
 # --- Tax Data (Embedded for Simplicity) ---
 # We only need data for the simulation's start year.
@@ -79,21 +45,37 @@ TAX_BRACKETS_2024 = {
 
 # --- The Application ---
 get '/' do
-  # Run both simulations
-  do_nothing_results = run_simulation(strategy: :do_nothing)
-  fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }) # Fill to top of 22% bracket
+  # Run simulations with the default profile for the initial page load
+  do_nothing_results = run_simulation(strategy: :do_nothing, profile: DEFAULT_PROFILE)
+  fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: DEFAULT_PROFILE)
 
   # Pass results to the view
   slim :index, locals: {
+    profile: DEFAULT_PROFILE,
     do_nothing_results: do_nothing_results,
     fill_bracket_results: fill_bracket_results
   }
 end
 
+post '/run' do
+  content_type :json
+  payload = JSON.parse(request.body.read)
+
+  # Run simulations with the provided profile
+  do_nothing_results = run_simulation(strategy: :do_nothing, profile: payload)
+  fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: payload)
+
+  {
+    do_nothing_results: do_nothing_results,
+    fill_bracket_results: fill_bracket_results
+  }.to_json
+end
+
 # --- Simulation Engine ---
 class Simulator
-  def run(strategy:, strategy_params: {})
-    profile = Marshal.load(Marshal.dump(FINANCIAL_PROFILE))
+  def run(strategy:, strategy_params: {}, profile: DEFAULT_PROFILE)
+    # Deep copy the profile to prevent mutation between runs
+    profile = Marshal.load(Marshal.dump(profile))
     yearly_results = []
     accounts = profile[:accounts]
 
@@ -298,8 +280,8 @@ class Simulator
 end
 
 helpers do
-  def run_simulation(strategy:, strategy_params: {})
-    Simulator.new.run(strategy: strategy, strategy_params: strategy_params)
+  def run_simulation(strategy:, strategy_params: {}, profile:)
+    Simulator.new.run(strategy: strategy, strategy_params: strategy_params, profile: profile)
   end
 
   def format_currency(number)

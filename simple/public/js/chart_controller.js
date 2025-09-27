@@ -11,7 +11,6 @@ window.addEventListener('DOMContentLoaded', () => {
       this.chartData = chartJSON.fill_bracket;
       this.tableTarget.classList.add('hidden');
 
-      // Single Source of Truth for chart layers
       this.chartConfig = [
         { key: 'social_security', label: 'Social Security', color: '#a3e635', source: 'income_sources' },
         { key: 'rmd',             label: 'RMDs',            color: '#6b7280', source: 'income_sources' },
@@ -19,8 +18,42 @@ window.addEventListener('DOMContentLoaded', () => {
         { key: 'conversions',     label: 'Roth Conversions',color: '#3b82f6', source: 'taxable_income_breakdown' }
       ];
 
+      this.update = this.update.bind(this);
+      window.addEventListener('profile:updated', this.update);
+
       this.render();
       this.renderLegend();
+    }
+
+    disconnect() {
+      window.removeEventListener('profile:updated', this.update);
+    }
+
+    update(event) {
+      const results = event.detail.results;
+      this.chartData = results.fill_bracket_results.yearly;
+      this.render();
+      this.updateTable(this.chartData);
+    }
+
+    updateTable(data) {
+      const tbody = this.tableTarget.querySelector('tbody');
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.year}</td>
+          <td>${row.age}</td>
+          <td>${this.formatCurrency(row.total_gross_income)}</td>
+          <td>${this.formatCurrency(row.total_tax)}</td>
+          <td>${this.formatCurrency(row.ending_net_worth)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    formatCurrency(number) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(number);
     }
 
     toggle() {
