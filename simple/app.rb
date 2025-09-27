@@ -90,64 +90,71 @@ get '/' do
   }
 end
 
-helpers do
-  # --- Core Simulation Logic ---
-  def run_simulation(strategy:, strategy_params: {})
-    # Deep copy the profile to prevent mutation between runs
+# --- Simulation Engine ---
+class Simulator
+  def run(strategy:, strategy_params: {})
     profile = Marshal.load(Marshal.dump(FINANCIAL_PROFILE))
     yearly_results = []
     accounts = profile[:accounts]
 
     profile[:years_to_simulate].times do |i|
       current_year = profile[:start_year] + i
-      person = profile[:members].first # Simplify for single person
+      person = profile[:members].first
       age = get_age(person[:date_of_birth], current_year)
+      annual_expenses = profile[:household][:annual_expenses]
 
-      # 1. Baseline Income
+      # A. Calculate Gross Income (Non-Discretionary)
       ss_benefit = get_social_security_benefit(profile[:income_sources].first, age)
       rmd = get_rmd(age, accounts)
+      gross_income_from_sources = ss_benefit + rmd
 
-      # Provisional income for SS taxability
-      provisional_income = rmd
-      taxable_ss_baseline = calculate_taxable_social_security(provisional_income, ss_benefit)
-      base_taxable_income = rmd + taxable_ss_baseline
+      # B. Determine Spending Shortfall and Withdrawals
+      # This is a simplification. A real model would account for taxes on withdrawals.
+      # For clarity, we assume withdrawals are made to cover the gap after income is received.
+      spending_shortfall = [annual_expenses - gross_income_from_sources, 0].max
+      spending_withdrawals = withdraw_for_spending(spending_shortfall, accounts)
 
-      # 2. Spending Needs
-      gross_income = ss_benefit + rmd
-      # Estimate taxes on baseline income to see if we have a shortfall
-      estimated_taxes = calculate_taxes(base_taxable_income, 0)[:total]
-      net_income = gross_income - estimated_taxes
-      spending_shortfall = [profile[:household][:annual_expenses] - net_income, 0].max
-
-      # 3. Apply Strategy (produces events for conversions and withdrawals)
-      strategy_events = apply_strategy(
+      # C. Determine Roth Conversion Amount
+      conversion_events = determine_conversion_events(
         strategy: strategy,
-        params: strategy_params,
+        strategy_params: strategy_params,
         accounts: accounts,
-        base_taxable_income: base_taxable_income,
-        spending_shortfall: spending_shortfall,
-        ss_benefit: ss_benefit
+        rmd: rmd,
+        ss_benefit: ss_benefit,
+        spending_withdrawals: spending_withdrawals
       )
 
-      # 4. Finalize Income & Taxes for the Year
-      taxable_from_events = strategy_events.sum { |e| e[:taxable_ordinary] }
-      capital_gains_from_events = strategy_events.sum { |e| e[:taxable_capital_gains] }
+      # D. Finalize Financial Picture for the Year
+      all_events = spending_withdrawals + conversion_events
+      withdrawals_for_spending_amount = spending_withdrawals.sum { |e| e[:amount] }
+      total_gross_income = gross_income_from_sources + withdrawals_for_spending_amount
 
-      final_provisional_income = provisional_income + taxable_from_events + capital_gains_from_events
-      final_taxable_ss = calculate_taxable_social_security(final_provisional_income, ss_benefit)
+      # Finalize Taxable Income
+      taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
+      taxable_cg_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_capital_gains] }
+      conversion_amount = conversion_events.sum { |e| e[:amount] }
 
-      total_ordinary_income = rmd + final_taxable_ss + taxable_from_events
-      taxes = calculate_taxes(total_ordinary_income, capital_gains_from_events)
+      provisional_income = rmd + taxable_ord_from_withdrawals + conversion_amount
+      final_taxable_ss = calculate_taxable_social_security(provisional_income, ss_benefit)
 
-      # 5. Record results and Grow Assets
+      total_ordinary_income = rmd + final_taxable_ss + taxable_ord_from_withdrawals + conversion_amount
+      taxes = calculate_taxes(total_ordinary_income, taxable_cg_from_withdrawals)
+
+      # E. Record results
       yearly_results << {
-        year: current_year,
-        age: age,
-        income_breakdown: { rmd: rmd, taxable_ss: final_taxable_ss, conversions: strategy_events.select{|e| e[:type] == :conversion}.sum{|e| e[:amount]}, withdrawals_ord: strategy_events.select{|e| e[:type] == :withdrawal}.sum{|e| e[:taxable_ordinary]} },
-        total_tax: taxes[:total],
-        ending_net_worth: accounts.sum { |a| a[:balance] }
+        year: current_year, age: age,
+        annual_expenses: annual_expenses.round(0),
+        total_gross_income: total_gross_income.round(0),
+        income_sources: { social_security: ss_benefit, rmd: rmd, withdrawals: withdrawals_for_spending_amount },
+        taxable_income_breakdown: {
+          rmd: rmd, taxable_ss: final_taxable_ss, conversions: conversion_amount,
+          taxable_withdrawals: taxable_ord_from_withdrawals, capital_gains: taxable_cg_from_withdrawals
+        },
+        total_tax: taxes[:total].round(0),
+        ending_net_worth: accounts.sum { |a| a[:balance] }.round(0)
       }
 
+      # F. Grow assets for next year
       grow_assets(accounts, profile[:growth_assumptions])
       profile[:household][:annual_expenses] *= (1 + profile[:inflation_rate])
     end
@@ -157,28 +164,24 @@ helpers do
 
   private
 
-  # --- Simulation Helpers ---
+  def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:)
+    return [] if strategy == :do_nothing
 
-  def apply_strategy(strategy:, params:, accounts:, base_taxable_income:, spending_shortfall:, ss_benefit:)
-    case strategy
-    when :do_nothing
-      withdraw_for_spending(spending_shortfall, accounts)
-    when :fill_to_bracket
-      # First, cover spending. This might generate taxable income.
-      spending_events = withdraw_for_spending(spending_shortfall, accounts)
-      taxable_from_spending = spending_events.sum { |e| e[:taxable_ordinary] }
+    # This is the core logic for the "fill_to_bracket" strategy
+    taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
 
-      # Then, calculate conversion amount needed to fill the bracket
-      current_taxable = base_taxable_income + taxable_from_spending
-      provisional_after_spending = base_taxable_income - calculate_taxable_social_security(base_taxable_income, ss_benefit) + taxable_from_spending
+    # This is the key calculation: determine the taxable income *before* the discretionary conversion
+    provisional_income_before_conversion = rmd + taxable_ord_from_withdrawals
+    taxable_ss_before_conversion = calculate_taxable_social_security(provisional_income_before_conversion, ss_benefit)
+    taxable_income_before_conversion = rmd + taxable_ss_before_conversion + taxable_ord_from_withdrawals
 
-      # Simplified headroom calculation
-      headroom = params[:ceiling] - current_taxable
-      conversion_amount = [headroom, 0, accounts.find { |a| a[:type] == :traditional }[:balance]].sort[1]
+    headroom = strategy_params[:ceiling] - taxable_income_before_conversion
 
-      conversion_events = perform_roth_conversion(conversion_amount, accounts)
-      spending_events + conversion_events
-    end
+    # A more robust model would iteratively solve for the ideal conversion amount.
+    # This simplified version uses the initial headroom, which is a reasonable approximation.
+    conversion_amount = [headroom, 0, accounts.find { |a| a[:type] == :traditional }[:balance]].sort[1]
+
+    perform_roth_conversion(conversion_amount, accounts)
   end
 
   def withdraw_for_spending(amount_needed, accounts)
@@ -284,11 +287,19 @@ helpers do
   end
 
   def aggregate_results(yearly_results)
-    return { cumulative_taxes: 0, ending_net_worth: 0 } if yearly_results.empty?
+    return { cumulative_taxes: 0, ending_net_worth: 0, total_gross_income: 0, total_expenses: 0 } if yearly_results.empty?
     {
       cumulative_taxes: yearly_results.sum { |r| r[:total_tax] }.round(0),
-      ending_net_worth: yearly_results.last[:ending_net_worth].round(0)
+      ending_net_worth: yearly_results.last[:ending_net_worth].round(0),
+      total_gross_income: yearly_results.sum { |r| r[:total_gross_income] }.round(0),
+      total_expenses: yearly_results.sum { |r| r[:annual_expenses] }.round(0)
     }
+  end
+end
+
+helpers do
+  def run_simulation(strategy:, strategy_params: {})
+    Simulator.new.run(strategy: strategy, strategy_params: strategy_params)
   end
 
   def format_currency(number)

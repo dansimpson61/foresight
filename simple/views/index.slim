@@ -23,6 +23,12 @@ html
         .metric
           span.metric-label Ending Net Worth:
           span.metric-value = format_currency(do_nothing_results[:aggregate][:ending_net_worth])
+        .metric
+          span.metric-label Total Gross Income:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:total_gross_income])
+        .metric
+          span.metric-label Total Expenses:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:total_expenses])
 
       .strategy-card
         h2 Fill to Bracket Strategy
@@ -32,11 +38,20 @@ html
         .metric
           span.metric-label Ending Net Worth:
           span.metric-value = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
+        .metric
+          span.metric-label Total Gross Income:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:total_gross_income])
+        .metric
+          span.metric-label Total Expenses:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:total_expenses])
 
-    h2 Raw Yearly Data
-    h3 Do Nothing Strategy
-    pre
-      = JSON.pretty_generate(do_nothing_results[:yearly])
-    h3 Fill to Bracket Strategy
-    pre
-      = JSON.pretty_generate(fill_bracket_results[:yearly])
+    h2 Annual Income & Tax Details
+    #chart-container data-controller="chart"
+
+    / Embed data for JavaScript
+    script id="simulation-data" type="application/json"
+      = { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
+
+    / Load Stimulus and our chart controller
+    script src="/js/stimulus.umd.js"
+    script src="/js/chart_controller.js"

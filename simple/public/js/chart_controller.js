@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const height = this.element.clientHeight;
       const margin = { top: 20, right: 20, bottom: 30, left: 50 };
 
-      const maxIncome = Math.max(...this.chartData.map(d => Object.values(d.income_breakdown).reduce((a, b) => a + b, 0)));
+      const maxIncome = Math.max(...this.chartData.map(d => Object.values(d.income_sources).reduce((a, b) => a + b, 0) + d.taxable_income_breakdown.conversions));
 
       const xScale = (year) => margin.left + (year - this.chartData[0].year) * (width - margin.left - margin.right) / (this.chartData.length - 1);
       const yScale = (income) => height - margin.bottom - (income / maxIncome) * (height - margin.top - margin.bottom);
@@ -21,14 +21,15 @@ window.addEventListener('DOMContentLoaded', () => {
       const svg = this.createSVGElement('svg', { width, height });
 
       // --- Create Stacked Area Paths ---
-      const incomeKeys = ['rmd', 'taxable_ss', 'withdrawals_ord', 'conversions'];
+      const incomeKeys = ['social_security', 'rmd', 'withdrawals'];
       let lastY = new Array(this.chartData.length).fill(height - margin.bottom);
 
-      const colors = { rmd: '#6b7280', taxable_ss: '#ef4444', withdrawals_ord: '#f97316', conversions: '#3b82f6' };
+      const colors = { social_security: '#a3e635', rmd: '#6b7280', withdrawals: '#f97316', conversions: '#3b82f6' };
 
+      // Stacked areas for income sources
       incomeKeys.forEach(key => {
         const pathData = this.chartData.map((d, i) => {
-          const yValue = d.income_breakdown[key] || 0;
+          const yValue = d.income_sources[key] || 0;
           const newY = yScale(yScale.invert(lastY[i]) + yValue);
           const point = `${xScale(d.year)},${newY}`;
           lastY[i] = newY;
@@ -38,6 +39,17 @@ window.addEventListener('DOMContentLoaded', () => {
         const areaPath = `M${xScale(this.chartData[0].year)},${height - margin.bottom} L${pathData} L${xScale(this.chartData[this.chartData.length - 1].year)},${height - margin.bottom}`;
         svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: colors[key], opacity: 0.7 }));
       });
+
+      // Add conversions on top
+      const pathData = this.chartData.map((d, i) => {
+        const yValue = d.taxable_income_breakdown.conversions || 0;
+        const newY = yScale(yScale.invert(lastY[i]) + yValue);
+        const point = `${xScale(d.year)},${newY}`;
+        lastY[i] = newY;
+        return point;
+      }).join(' ');
+      const areaPath = `M${xScale(this.chartData[0].year)},${height - margin.bottom} L${pathData} L${xScale(this.chartData[this.chartData.length - 1].year)},${height - margin.bottom}`;
+      svg.appendChild(this.createSVGElement('path', { d: areaPath, fill: colors['conversions'], opacity: 0.7 }));
 
       // --- Create Axes ---
       // Y-Axis
