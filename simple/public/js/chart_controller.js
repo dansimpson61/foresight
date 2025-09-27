@@ -2,10 +2,17 @@ window.addEventListener('DOMContentLoaded', () => {
   // A Stimulus controller to render a simple, Tufte-an SVG chart
   // This controller avoids heavy libraries in favor of clarity and minimalism.
   class ChartController extends Stimulus.Controller {
+    static targets = ["table"]
+
     connect() {
       const chartJSON = JSON.parse(document.getElementById('simulation-data').textContent);
       this.chartData = chartJSON.fill_bracket; // Focus on the more interesting strategy
+      this.tableTarget.classList.add('hidden');
       this.render();
+    }
+
+    toggle() {
+      this.tableTarget.classList.toggle('hidden');
     }
 
     render() {
