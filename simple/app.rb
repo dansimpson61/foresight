@@ -18,7 +18,8 @@ def symbolize_keys(obj)
   case obj
   when Hash
     obj.each_with_object({}) do |(k, v), result|
-      result[k.to_sym] = symbolize_keys(v)
+      new_key = k.is_a?(String) ? k.to_sym : k
+      result[new_key] = symbolize_keys(v)
     end
   when Array
     obj.map { |v| symbolize_keys(v) }
@@ -217,10 +218,10 @@ class Simulator
     ord_tax = 0.0
     remaining_ord = taxable_ord_after_deduction
     brackets[:ordinary].reverse_each do |bracket|
-      next if remaining_ord <= bracket['income']
-      taxable_at_this_rate = remaining_ord - bracket['income']
-      ord_tax += taxable_at_this_rate * bracket['rate']
-      remaining_ord = bracket['income']
+      next if remaining_ord <= bracket[:income]
+      taxable_at_this_rate = remaining_ord - bracket[:income]
+      ord_tax += taxable_at_this_rate * bracket[:rate]
+      remaining_ord = bracket[:income]
     end
 
     # Simplified capital gains tax (assumes it stacks on top)
