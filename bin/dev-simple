@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd simple
+bundle exec rackup --port "${PORT:-9393}" -o 127.0.0.1

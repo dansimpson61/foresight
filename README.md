@@ -38,12 +38,24 @@ Foresight is proudly built with a minimalist, joyful stack:
     ```bash
     bundle install
     ```
-2.  **Run the application:**
-    ```bash
-    bundle exec rackup --port 9292
-    ```
-3.  **Open the UI:**
-    Navigate to `http://127.0.0.1:9292/ui` in your browser.
+2.  **Run (choose one):**
+        - Main app only (classic UI):
+            ```bash
+            bin/dev-main
+            ```
+            Open: `http://127.0.0.1:9292/ui`
+
+        - Simple app only (radically simplified UI):
+            ```bash
+            bin/dev-simple
+            ```
+            Open: `http://127.0.0.1:9393/`
+
+        - Both apps in one server (URL mapped):
+            ```bash
+            bin/dev-both
+            ```
+            Open: `http://127.0.0.1:9292/ui` (Main) and `http://127.0.0.1:9292/simple/` (Simple)
 
 ## Key Endpoints
 
@@ -52,6 +64,21 @@ Foresight is proudly built with a minimalist, joyful stack:
 *   `GET /plan/example`: Returns a sample JSON payload for testing and demos.
 *   `GET /strategies`: Lists the available Roth conversion strategies.
 
+### Simple App Endpoints (when running simple app)
+
+*   `GET /` (under `/simple` when using the combined server): Simple UI landing page
+*   `POST /run`: Runs the simplified simulation with the posted profile JSON
+
 ## Project Status
 
-The project is under active development. The latest version is **0.1.1**. See the [`CHANGELOG.md`](./CHANGELOG.md) for a detailed history of changes.
+The project is under active development. See the [`CHANGELOG.md`](./CHANGELOG.md) for a detailed history of changes.
+
+## Architecture notes: running both and future extraction
+
+- The classic app mounts `Foresight::API` and `Foresight::UI` in `app.rb`.
+- The simplified app is a modular Sinatra app: `Foresight::Simple::UI` in `simple/app.rb`.
+- `config.multi.ru` uses `Rack::URLMap` to serve both at once: `/` (main) and `/simple`.
+
+To extract either app later:
+- Simple app can be copied as a standalone Rack app using `simple/config.ru`.
+- Main app remains standalone via `config.ru` at the repo root.
