@@ -1,0 +1,41 @@
+---
+2024:
+  mfj:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 23200, rate: 0.12 }
+      - { income: 94300, rate: 0.22 }
+      - { income: 201050, rate: 0.24 }
+      - { income: 383900, rate: 0.32 }
+    capital_gains:
+      - { income: 0, rate: 0.0 }
+      - { income: 94050, rate: 0.15 }
+      - { income: 583750, rate: 0.20 }
+    social_security_provisional_income:
+      phase1_start: 32000
+      phase2_start: 44000
+  standard_deduction:
+    mfj: 29200
+
+2025:
+  mfj:
+    ordinary:
+      - { income: 0, rate: 0.10 }
+      - { income: 23850, rate: 0.12 }
+      - { income: 96950, rate: 0.22 }
+      - { income: 206700, rate: 0.24 }
+      - { income: 394600, rate: 0.32 }
+      - { income: 501050, rate: 0.35 }
+      - { income: 751600, rate: 0.37 }
+    capital_gains:
+      # For simplicity, we will assume capital gains brackets inflate similarly.
+      # A real application would require official IRS data for these.
+      - { income: 0, rate: 0.0 }
+      - { income: 99000, rate: 0.15 } # Estimated
+      - { income: 615000, rate: 0.20 } # Estimated
+    social_security_provisional_income:
+      # These thresholds are not indexed for inflation by law.
+      phase1_start: 32000
+      phase2_start: 44000
+  standard_deduction:
+    mfj: 30000
