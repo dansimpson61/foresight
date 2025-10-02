@@ -1,7 +1,13 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require_relative './app'
+require 'rack'
+require_relative './app/ui'
+require_relative './app/api'
 
-# Use the classic Sinatra application instance defined in app.rb
-run Sinatra::Application
+# Route UI at root, and send API endpoints to the API app.
+run Rack::URLMap.new(
+	'/plan' => Foresight::API,
+	'/strategies' => Foresight::API,
+	'/' => Foresight::UI
+)

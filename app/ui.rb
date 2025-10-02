@@ -7,6 +7,8 @@ require_relative '../foresight'
 module Foresight
   class UI < Sinatra::Base
     set :views, File.expand_path('../../views', __FILE__)
+    set :public_folder, File.expand_path('../../public', __FILE__)
+    enable :static
 
     get '/' do
       slim :home
