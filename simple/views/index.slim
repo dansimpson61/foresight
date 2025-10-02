@@ -12,9 +12,16 @@ html
       | .metric-label { font-weight: bold; }
       | #chart-container { width: 100%; height: 400px; }
   body
-    h1 Simple Foresight: A Radical Act of Simplification
+    header
+      h1 Simple Foresight: A Radical Act of Simplification
+      nav
+        a href="/" Home
+        |  · 
+        a href="/ui" Classic
+        |  · 
+        a href="/simple/" Simple
 
-    div data-controller="profile"
+  div data-controller="profile"
       h2.profile-header
         | Financial Profile
         span.toggle data-action="click->profile#toggleEditor" (Edit)
