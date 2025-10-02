@@ -1,75 +1,86 @@
-# An Ode to Joy: A Radically Simplified Financial Simulator
-# All logic, data, and routing are contained in this single file.
-
-require 'sinatra'
+require 'sinatra/base'
 require 'slim'
 require 'json'
 require 'yaml'
+require 'date'
 
-# --- Configuration ---
-set :port, 9293
-set :bind, '0.0.0.0'
-set :views, File.expand_path('views', __dir__)
-set :public_folder, File.expand_path('public', __dir__)
-
-# --- Default Financial Profile ---
-# Loaded from an external YAML file for easier configuration.
-def symbolize_keys(obj)
-  case obj
-  when Hash
-    obj.each_with_object({}) do |(k, v), result|
-      new_key = k.is_a?(String) ? k.to_sym : k
-      result[new_key] = symbolize_keys(v)
+module Foresight
+  module Simple
+    # --- Default Financial Profile ---
+    # Loaded from an external YAML file for easier configuration.
+    def self.symbolize_keys(obj)
+      case obj
+      when Hash
+        obj.each_with_object({}) do |(k, v), result|
+          new_key = k.is_a?(String) ? k.to_sym : k
+          result[new_key] = symbolize_keys(v)
+        end
+      when Array
+        obj.map { |v| symbolize_keys(v) }
+      else
+        obj
+      end
     end
-  when Array
-    obj.map { |v| symbolize_keys(v) }
-  else
-    obj
+
+    ROOT_DIR = File.expand_path(__dir__)
+    DEFAULT_PROFILE = symbolize_keys(YAML.load_file(File.join(ROOT_DIR, 'profile.yml')))
+    TAX_BRACKETS   = symbolize_keys(YAML.load_file(File.join(ROOT_DIR, 'tax_brackets.yml')))
+
+    class UI < Sinatra::Base
+      set :root, File.expand_path('..', __FILE__)
+      set :views, File.expand_path('views', __dir__)
+      set :public_folder, File.expand_path('public', __dir__)
+      enable :static
+
+      # --- The Application ---
+      get '/' do
+        # Pre-calculate simple values for the view to avoid complex logic in the template
+        profile_for_view = {
+          annual_expenses: DEFAULT_PROFILE[:household][:annual_expenses],
+          traditional_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :traditional }[:balance],
+          roth_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :roth }[:balance],
+          taxable_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :taxable }[:balance],
+          pia_annual: DEFAULT_PROFILE[:income_sources].find { |s| s[:type] == :social_security }[:pia_annual]
+        }
+
+        # Run simulations with the default profile for the initial page load
+        do_nothing_results = run_simulation(strategy: :do_nothing, profile: DEFAULT_PROFILE)
+        fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: DEFAULT_PROFILE)
+
+        # Pass results and simple profile data to the view
+        slim :index, locals: {
+          profile: DEFAULT_PROFILE,
+          profile_for_view: profile_for_view,
+          do_nothing_results: do_nothing_results,
+          fill_bracket_results: fill_bracket_results
+        }
+      end
+
+      post '/run' do
+        content_type :json
+        payload = JSON.parse(request.body.read, symbolize_names: true)
+
+        # Run simulations with the provided profile
+        do_nothing_results = run_simulation(strategy: :do_nothing, profile: payload)
+        fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: payload)
+
+        {
+          do_nothing_results: do_nothing_results,
+          fill_bracket_results: fill_bracket_results
+        }.to_json
+      end
+
+      helpers do
+        def run_simulation(strategy:, strategy_params: {}, profile:)
+          Simulator.new.run(strategy: strategy, strategy_params: strategy_params, profile: profile)
+        end
+
+        def format_currency(number)
+          "$#{number.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+        end
+      end
+    end
   end
-end
-
-DEFAULT_PROFILE = symbolize_keys(YAML.load_file(File.expand_path('profile.yml', __dir__)))
-
-# --- Tax Data ---
-# Loaded from an external YAML file.
-TAX_BRACKETS = symbolize_keys(YAML.load_file(File.expand_path('tax_brackets.yml', __dir__)))
-
-# --- The Application ---
-get '/' do
-  # Pre-calculate simple values for the view to avoid complex logic in the template
-  profile_for_view = {
-    annual_expenses: DEFAULT_PROFILE[:household][:annual_expenses],
-    traditional_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :traditional }[:balance],
-    roth_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :roth }[:balance],
-    taxable_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :taxable }[:balance],
-    pia_annual: DEFAULT_PROFILE[:income_sources].find { |s| s[:type] == :social_security }[:pia_annual]
-  }
-
-  # Run simulations with the default profile for the initial page load
-  do_nothing_results = run_simulation(strategy: :do_nothing, profile: DEFAULT_PROFILE)
-  fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: DEFAULT_PROFILE)
-
-  # Pass results and simple profile data to the view
-  slim :index, locals: {
-    profile: DEFAULT_PROFILE,
-    profile_for_view: profile_for_view,
-    do_nothing_results: do_nothing_results,
-    fill_bracket_results: fill_bracket_results
-  }
-end
-
-post '/run' do
-  content_type :json
-  payload = JSON.parse(request.body.read, symbolize_names: true)
-
-  # Run simulations with the provided profile
-  do_nothing_results = run_simulation(strategy: :do_nothing, profile: payload)
-  fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: payload)
-
-  {
-    do_nothing_results: do_nothing_results,
-    fill_bracket_results: fill_bracket_results
-  }.to_json
 end
 
 # --- Simulation Engine ---
@@ -110,8 +121,8 @@ class Simulator
       )
 
       # D. Finalize Financial Picture for the Year
-      all_events = spending_withdrawals + conversion_events
-      withdrawals_for_spending_amount = spending_withdrawals.sum { |e| e[:amount] }
+  # Combine events if needed in future: spending_withdrawals + conversion_events
+  withdrawals_for_spending_amount = spending_withdrawals.sum { |e| e[:amount] }
       total_gross_income = gross_income_from_sources + withdrawals_for_spending_amount
 
       # Finalize Taxable Income
@@ -286,15 +297,5 @@ class Simulator
       total_gross_income: yearly_results.sum { |r| r[:total_gross_income] }.round(0),
       total_expenses: yearly_results.sum { |r| r[:annual_expenses] }.round(0)
     }
-  end
-end
-
-helpers do
-  def run_simulation(strategy:, strategy_params: {}, profile:)
-    Simulator.new.run(strategy: strategy, strategy_params: strategy_params, profile: profile)
-  end
-
-  def format_currency(number)
-    "$#{number.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
   end
 end
