@@ -26,7 +26,7 @@ module Foresight
     DEFAULT_PROFILE = symbolize_keys(YAML.load_file(File.join(ROOT_DIR, 'profile.yml')))
     TAX_BRACKETS   = symbolize_keys(YAML.load_file(File.join(ROOT_DIR, 'tax_brackets.yml')))
 
-  class UI < Sinatra::Base
+    class UI < Sinatra::Base
       set :root, File.expand_path('..', __FILE__)
       set :views, File.expand_path('views', __dir__)
       set :public_folder, File.expand_path('public', __dir__)
@@ -34,23 +34,17 @@ module Foresight
 
       # --- The Application ---
       get '/' do
-        # Pre-calculate simple values for the view to avoid complex logic in the template
-        profile_for_view = {
-          annual_expenses: DEFAULT_PROFILE[:household][:annual_expenses],
-          traditional_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :traditional }[:balance],
-          roth_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :roth }[:balance],
-          taxable_balance: DEFAULT_PROFILE[:accounts].find { |a| a[:type] == :taxable }[:balance],
-          pia_annual: DEFAULT_PROFILE[:income_sources].find { |s| s[:type] == :social_security }[:pia_annual]
-        }
-
         # Run simulations with the default profile for the initial page load
         do_nothing_results = run_simulation(strategy: :do_nothing, profile: DEFAULT_PROFILE)
-        fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: DEFAULT_PROFILE)
+        fill_bracket_results = run_simulation(
+          strategy: :fill_to_bracket, 
+          strategy_params: { ceiling: 94_300 }, 
+          profile: DEFAULT_PROFILE
+        )
 
-        # Pass results and simple profile data to the view
+        # Pass results and complete profile to the view
         slim :index, locals: {
           profile: DEFAULT_PROFILE,
-          profile_for_view: profile_for_view,
           do_nothing_results: do_nothing_results,
           fill_bracket_results: fill_bracket_results
         }
@@ -60,13 +54,24 @@ module Foresight
         content_type :json
         payload = JSON.parse(request.body.read, symbolize_names: true)
 
-        # Run simulations with the provided profile
-        do_nothing_results = run_simulation(strategy: :do_nothing, profile: payload)
-        fill_bracket_results = run_simulation(strategy: :fill_to_bracket, strategy_params: { ceiling: 94_300 }, profile: payload)
+        # Extract profile, strategy, and parameters
+        # Handle both old format (just profile) and new format (with strategy/params)
+        profile = payload[:profile] || payload
+        strategy = payload[:strategy] || :fill_to_bracket
+        strategy_params = payload[:strategy_params] || { ceiling: 94_300 }
+
+        # Run both simulations to maintain consistency with UI expectations
+        do_nothing_results = run_simulation(strategy: :do_nothing, profile: profile)
+        fill_bracket_results = run_simulation(
+          strategy: strategy.to_sym, 
+          strategy_params: strategy_params, 
+          profile: profile
+        )
 
         {
           do_nothing_results: do_nothing_results,
-          fill_bracket_results: fill_bracket_results
+          fill_bracket_results: fill_bracket_results,
+          profile: profile  # Echo back the profile for consistency
         }.to_json
       end
 
@@ -108,6 +113,10 @@ module Foresight
           spending_withdrawals = withdraw_for_spending(spending_shortfall, accounts)
 
           # C. Determine Roth Conversion Amount
+          # NOTE: This uses a simplified approach that approximates the impact of conversions
+          # on Social Security taxation. A more robust model would iteratively solve for
+          # the optimal conversion amount, since conversions increase provisional income
+          # which can increase the taxable portion of Social Security benefits.
           conversion_events = determine_conversion_events(
             strategy: strategy,
             strategy_params: strategy_params,
@@ -119,7 +128,6 @@ module Foresight
           )
 
           # D. Finalize Financial Picture for the Year
-          # Combine events if needed in future: spending_withdrawals + conversion_events
           withdrawals_for_spending_amount = spending_withdrawals.sum { |e| e[:amount] }
           total_gross_income = gross_income_from_sources + withdrawals_for_spending_amount
 
@@ -139,10 +147,17 @@ module Foresight
             year: current_year, age: age,
             annual_expenses: annual_expenses.round(0),
             total_gross_income: total_gross_income.round(0),
-            income_sources: { social_security: ss_benefit, rmd: rmd, withdrawals: withdrawals_for_spending_amount },
+            income_sources: { 
+              social_security: ss_benefit.round(0), 
+              rmd: rmd.round(0), 
+              withdrawals: withdrawals_for_spending_amount.round(0) 
+            },
             taxable_income_breakdown: {
-              rmd: rmd, taxable_ss: final_taxable_ss, conversions: conversion_amount,
-              taxable_withdrawals: taxable_ord_from_withdrawals, capital_gains: taxable_cg_from_withdrawals
+              rmd: rmd.round(0), 
+              taxable_ss: final_taxable_ss.round(0), 
+              conversions: conversion_amount.round(0),
+              taxable_withdrawals: taxable_ord_from_withdrawals.round(0), 
+              capital_gains: taxable_cg_from_withdrawals.round(0)
             },
             total_tax: taxes[:total].round(0),
             ending_net_worth: accounts.sum { |a| a[:balance] }.round(0)
@@ -178,8 +193,10 @@ module Foresight
 
         headroom = strategy_params[:ceiling] - taxable_income_before_conversion
 
-        # A more robust model would iteratively solve for the ideal conversion amount.
-        # This simplified version uses the initial headroom, which is a reasonable approximation.
+        # NOTE: This is a simplification. A more robust model would iteratively solve for the
+        # ideal conversion amount, since conversions increase provisional income which can
+        # increase the taxable portion of Social Security benefits, reducing actual headroom.
+        # This approximation works well when conversions are modest relative to the bracket ceiling.
         conversion_amount = [headroom, 0, accounts.find { |a| a[:type] == :traditional }[:balance]].sort[1]
 
         perform_roth_conversion(conversion_amount, accounts)
@@ -188,8 +205,8 @@ module Foresight
       def withdraw_for_spending(amount_needed, accounts)
         events = []
         remaining_need = amount_needed
-        # Simplified withdrawal hierarchy (Taxable -> Traditional)
-        [:taxable, :traditional].each do |type|
+        # Simplified withdrawal hierarchy (Taxable -> Traditional -> Roth)
+        [:taxable, :traditional, :roth].each do |type|
           break if remaining_need <= 0
           account = accounts.find { |a| a[:type] == type }
           next unless account && account[:balance] > 0
@@ -198,10 +215,16 @@ module Foresight
           account[:balance] -= pulled
           remaining_need -= pulled
 
+          # Determine taxability based on account type
           taxable_ord = type == :traditional ? pulled : 0
           taxable_cg = type == :taxable ? pulled * (1 - account[:cost_basis_fraction]) : 0
 
-          events << { type: :withdrawal, amount: pulled, taxable_ordinary: taxable_ord, taxable_capital_gains: taxable_cg }
+          events << { 
+            type: :withdrawal, 
+            amount: pulled, 
+            taxable_ordinary: taxable_ord, 
+            taxable_capital_gains: taxable_cg 
+          }
         end
         events
       end
@@ -233,11 +256,18 @@ module Foresight
           remaining_ord = bracket[:income]
         end
 
-        # Simplified capital gains tax (assumes it stacks on top)
+        # Simplified capital gains tax
+        # NOTE: This is a major simplification. In reality, capital gains "stack" on top of
+        # ordinary income, and the bracket thresholds depend on the total. This simplified
+        # version applies a flat rate based on ordinary income position, which approximates
+        # the effect but may not be precisely accurate for all scenarios.
         cg_tax = 0.0
-        # This is a major simplification for clarity. A real model is more complex.
         if taxable_ord_after_deduction > brackets[:capital_gains][1][:income]
           cg_tax = capital_gains * brackets[:capital_gains][1][:rate]
+        elsif taxable_ord_after_deduction > brackets[:capital_gains][0][:income]
+          # In reality, we'd need to calculate how much CG fits in the 0% bracket
+          # and how much spills into the 15% bracket. This is simplified.
+          cg_tax = capital_gains * 0.15
         end
 
         total = ord_tax + cg_tax
@@ -247,21 +277,35 @@ module Foresight
       def calculate_taxable_social_security(provisional_income, ss_total, tax_brackets)
         return 0.0 if ss_total <= 0
         thresholds = tax_brackets[:mfj][:social_security_provisional_income]
+        
+        # Provisional income includes 50% of Social Security benefits
         provisional = provisional_income + (ss_total * 0.5)
 
         return 0.0 if provisional <= thresholds[:phase1_start]
+        
         if provisional <= thresholds[:phase2_start]
+          # 50% of SS is taxable in phase 1
           return (provisional - thresholds[:phase1_start]) * 0.5
         end
 
+        # In phase 2, up to 85% of SS can be taxable
         phase1_taxable = (thresholds[:phase2_start] - thresholds[:phase1_start]) * 0.5
         phase2_taxable = (provisional - thresholds[:phase2_start]) * 0.85
         [phase1_taxable + phase2_taxable, ss_total * 0.85].min
       end
 
       def get_rmd(age, accounts)
-        return 0.0 if age < 73 # Simplified RMD age
-        rmd_divisor = { 73 => 26.5, 74 => 25.5, 75 => 24.6, 76 => 23.7, 77 => 22.9, 78 => 22.0, 79 => 21.2, 80 => 20.3, 81 => 19.5, 82 => 18.7, 83 => 17.9, 84 => 17.1, 85 => 16.3, 86 => 15.5, 87 => 14.8, 88 => 14.1, 89 => 13.4, 90 => 12.7, 91 => 12.0, 92 => 11.4, 93 => 10.8, 94 => 10.2, 95 => 9.6, 96 => 9.1, 97 => 8.6, 98 => 8.1, 99 => 7.6, 100 => 7.1 }
+        return 0.0 if age < 73 # Simplified RMD age (actual varies by birth year)
+        
+        # IRS Uniform Lifetime Table divisors
+        rmd_divisor = { 
+          73 => 26.5, 74 => 25.5, 75 => 24.6, 76 => 23.7, 77 => 22.9, 
+          78 => 22.0, 79 => 21.2, 80 => 20.3, 81 => 19.5, 82 => 18.7, 
+          83 => 17.9, 84 => 17.1, 85 => 16.3, 86 => 15.5, 87 => 14.8, 
+          88 => 14.1, 89 => 13.4, 90 => 12.7, 91 => 12.0, 92 => 11.4, 
+          93 => 10.8, 94 => 10.2, 95 => 9.6, 96 => 9.1, 
+          97 => 8.6, 98 => 8.1, 99 => 7.6, 100 => 7.1 
+        }
         divisor = rmd_divisor[age] || 7.1 # Fallback for older ages
         trad_balance = accounts.find { |a| a[:type] == :traditional }[:balance]
         rmd = trad_balance / divisor
@@ -299,5 +343,3 @@ module Foresight
     end
   end
 end
-
-# --- Simulation Engine ---
