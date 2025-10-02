@@ -2,6 +2,7 @@ doctype html
 html
   head
     title Simple Foresight
+    link rel="icon" type="image/svg+xml" href="/favicon.svg"
     style
       | body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; background-color: #fdfdfd; }
       | h1, h2 { color: #111; }
@@ -11,6 +12,23 @@ html
       | .metric { margin-bottom: 0.5rem; }
       | .metric-label { font-weight: bold; }
       | #chart-container { width: 100%; height: 400px; }
+      | .toggle { font-size: 0.8rem; font-weight: normal; color: #3b82f6; cursor: pointer; }
+      | .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+      | .data-table.hidden { display: none; }
+      | .data-table th, .data-table td { border: 1px solid #e0e0e0; padding: 0.5rem; text-align: right; }
+      | .data-table th { background-color: #f8f8f8; font-weight: bold; }
+      | [data-chart-target='legend'] { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280; }
+      | .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+      | .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+      | .profile-header { display: flex; justify-content: space-between; align-items: center; }
+      | .profile-form { margin-top: 1.5rem; padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fdfdfd; }
+      | .profile-form.hidden { display: none; }
+      | .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+      | .form-group { display: flex; flex-direction: column; }
+      | .form-group label { font-weight: bold; margin-bottom: 0.5rem; font-size: 0.9rem; }
+      | .form-group input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+      | .button { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 1.5rem; }
+      | hr { border: none; border-top: 1px solid #e0e0e0; margin: 2rem 0; }
   body
     header
       h1 Simple Foresight: A Radical Act of Simplification
@@ -21,7 +39,7 @@ html
         |  · 
         a href="/simple/" Simple
 
-  div data-controller="profile"
+    div data-controller="profile"
       h2.profile-header
         | Financial Profile
         span.toggle data-action="click->profile#toggleEditor" (Edit)
@@ -113,27 +131,8 @@ html
       == profile.to_json
 
     / Load Stimulus, controllers, and the application entrypoint
-  - base = request.script_name
-  script src="#{base}/js/stimulus.umd.js"
-  script src="#{base}/js/chart_controller.js"
-  script src="#{base}/js/profile_controller.js"
-  script src="#{base}/js/application.js"
-
-    style
-      | .toggle { font-size: 0.8rem; font-weight: normal; color: #3b82f6; cursor: pointer; }
-      | .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-      | .data-table.hidden { display: none; }
-      | .data-table th, .data-table td { border: 1px solid #e0e0e0; padding: 0.5rem; text-align: right; }
-      | .data-table th { background-color: #f8f8f8; font-weight: bold; }
-      | [data-chart-target='legend'] { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280; }
-      | .legend-item { display: flex; align-items: center; gap: 0.5rem; }
-      | .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
-      | .profile-header { display: flex; justify-content: space-between; align-items: center; }
-      | .profile-form { margin-top: 1.5rem; padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fdfdfd; }
-      | .profile-form.hidden { display: none; }
-      | .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
-      | .form-group { display: flex; flex-direction: column; }
-      | .form-group label { font-weight: bold; margin-bottom: 0.5rem; font-size: 0.9rem; }
-      | .form-group input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
-      | .button { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 1.5rem; }
-      | hr { border: none; border-top: 1px solid #e0e0e0; margin: 2rem 0; }
+    - base = request.script_name
+    script src="#{base}/js/stimulus.umd.js"
+    script src="#{base}/js/chart_controller.js"
+    script src="#{base}/js/profile_controller.js"
+    script src="#{base}/js/application.js"

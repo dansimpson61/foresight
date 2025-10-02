@@ -14,6 +14,11 @@ module Foresight
       slim :home
     end
 
+    # Redirect legacy favicon path to our SVG to avoid 404 noise
+    get '/favicon.ico' do
+      redirect to('/favicon.svg'), 301
+    end
+
     get '/ui' do
       svc = Foresight::PlanService.new
       @strategies = svc.list_strategies
