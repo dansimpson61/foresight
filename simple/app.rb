@@ -4,6 +4,12 @@ require 'json'
 require 'yaml'
 require 'date'
 
+# Load the domain model
+require_relative 'lib/asset'
+require_relative 'lib/traditional_ira'
+require_relative 'lib/roth_ira'
+require_relative 'lib/taxable_account'
+
 module Foresight
   module Simple
     # --- Default Financial Profile ---
@@ -92,7 +98,21 @@ module Foresight
         # Deep copy the profile to prevent mutation between runs
         profile = Marshal.load(Marshal.dump(profile))
         yearly_results = []
-        accounts = profile[:accounts]
+
+        # --- Joyful Refactor: Instantiate Asset objects ---
+        accounts = profile[:accounts].map do |acc|
+          case acc[:type]
+          when :traditional
+            TraditionalIRA.new(balance: acc[:balance], owner: acc[:owner])
+          when :roth
+            RothIRA.new(balance: acc[:balance], owner: acc[:owner])
+          when :taxable
+            TaxableAccount.new(balance: acc[:balance], owner: acc[:owner], cost_basis_fraction: acc[:cost_basis_fraction] || 0.7)
+          else
+            # For now, we'll skip unknown account types like :cash. A more robust implementation might raise an error or have a CashAccount class.
+            nil
+          end
+        end.compact
 
         profile[:years_to_simulate].times do |i|
           current_year = profile[:start_year] + i
@@ -104,20 +124,19 @@ module Foresight
           # A. Calculate Gross Income (Non-Discretionary)
           ss_source = profile[:income_sources].find { |s| s[:type] == :social_security }
           ss_benefit = get_social_security_benefit(ss_source, age)
-          rmd = get_rmd(age, accounts)
+
+          # --- Joyful Refactor: Use object-oriented RMD calculation ---
+          trad_account = accounts.find { |a| a.is_a?(TraditionalIRA) }
+          rmd = trad_account ? trad_account.calculate_rmd(age) : 0
+          trad_account.withdraw(rmd) if trad_account && rmd > 0 # RMD is a forced withdrawal
+
           gross_income_from_sources = ss_benefit + rmd
 
           # B. Determine Spending Shortfall and Withdrawals
-          # This is a simplification. A real model would account for taxes on withdrawals.
-          # For clarity, we assume withdrawals are made to cover the gap after income is received.
           spending_shortfall = [annual_expenses - gross_income_from_sources, 0].max
           spending_withdrawals = withdraw_for_spending(spending_shortfall, accounts)
 
           # C. Determine Roth Conversion Amount
-          # NOTE: This uses a simplified approach that approximates the impact of conversions
-          # on Social Security taxation. A more robust model would iteratively solve for
-          # the optimal conversion amount, since conversions increase provisional income
-          # which can increase the taxable portion of Social Security benefits.
           conversion_events = determine_conversion_events(
             strategy: strategy,
             strategy_params: strategy_params,
@@ -161,7 +180,7 @@ module Foresight
               capital_gains: taxable_cg_from_withdrawals.round(0)
             },
             total_tax: taxes[:total].round(0),
-            ending_net_worth: accounts.sum { |a| a[:balance] }.round(0)
+            ending_net_worth: accounts.sum(&:balance).round(0)
           }
 
           # F. Grow assets for next year
@@ -175,8 +194,6 @@ module Foresight
       private
 
       def get_tax_brackets_for_year(year)
-        # Find the latest year in our data that is less than or equal to the current year
-        # or fall back to the earliest year if the simulation starts before our data.
         applicable_year = TAX_BRACKETS.keys.select { |y| y <= year }.max || TAX_BRACKETS.keys.min
         TAX_BRACKETS[applicable_year]
       end
@@ -184,26 +201,18 @@ module Foresight
       def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:, tax_brackets:)
         return [] if strategy == :do_nothing
 
-        # This is the core logic for the "fill_to_bracket" strategy
         taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
-
-        # This is the key calculation: determine the taxable income *before* the discretionary conversion
         provisional_income_before_conversion = rmd + taxable_ord_from_withdrawals
         taxable_ss_before_conversion = calculate_taxable_social_security(provisional_income_before_conversion, ss_benefit, tax_brackets)
         taxable_income_before_conversion = rmd + taxable_ss_before_conversion + taxable_ord_from_withdrawals
 
         headroom = strategy_params[:ceiling] - taxable_income_before_conversion
-
-        # NOTE: This is a simplification. A more robust model would iteratively solve for the
-        # ideal conversion amount, since conversions increase provisional income which can
-        # increase the taxable portion of Social Security benefits, reducing actual headroom.
-        # This approximation works well when conversions are modest relative to the bracket ceiling.
         
-        # Guard against missing Traditional IRA account
-        trad_account = accounts.find { |a| a[:type] == :traditional }
+        # --- Joyful Refactor: Use Asset objects for conversion ---
+        trad_account = accounts.find { |a| a.is_a?(TraditionalIRA) }
         return [] unless trad_account
         
-        conversion_amount = [headroom, 0, trad_account[:balance]].sort[1]
+        conversion_amount = [headroom, 0, trad_account.balance].sort[1]
 
         perform_roth_conversion(conversion_amount, accounts)
       end
@@ -211,28 +220,26 @@ module Foresight
       def withdraw_for_spending(amount_needed, accounts)
         events = []
         remaining_need = amount_needed
-        # Simplified withdrawal hierarchy (Taxable -> Traditional -> Roth)
-        [:taxable, :traditional, :roth].each do |type|
-          break if remaining_need <= 0
-          account = accounts.find { |a| a[:type] == type }
-          next unless account && account[:balance] > 0
 
-          pulled = [remaining_need, account[:balance]].min
-          account[:balance] -= pulled
+        # --- Joyful Refactor: Use object-oriented withdrawal hierarchy ---
+        withdrawal_order = [TaxableAccount, TraditionalIRA, RothIRA]
+
+        withdrawal_order.each do |account_class|
+          break if remaining_need <= 0
+          account = accounts.find { |a| a.is_a?(account_class) }
+          next unless account && account.balance > 0
+
+          pulled = account.withdraw(remaining_need)
           remaining_need -= pulled
 
-          # Determine taxability based on account type
-          taxable_ord = type == :traditional ? pulled : 0
-          # Use cost_basis_fraction if available, default to 0 if missing
-          cost_basis = type == :taxable ? (account[:cost_basis_fraction] || 0) : 0
-          taxable_cg = type == :taxable ? pulled * (1 - cost_basis) : 0
+          taxes = account.tax_on_withdrawal(pulled)
 
           events << { 
             type: :withdrawal, 
             amount: pulled, 
-            taxable_ordinary: taxable_ord, 
-            taxable_capital_gains: taxable_cg 
-          }
+            taxable_ordinary: taxes[:ordinary_income],
+            taxable_capital_gains: taxes[:capital_gains]
+          } if pulled > 0
         end
         events
       end
@@ -240,17 +247,14 @@ module Foresight
       def perform_roth_conversion(amount, accounts)
         return [] if amount <= 0
         
-        trad_acct = accounts.find { |a| a[:type] == :traditional }
-        roth_acct = accounts.find { |a| a[:type] == :roth }
-        
-        # Guard against missing accounts
+        trad_acct = accounts.find { |a| a.is_a?(TraditionalIRA) }
+        roth_acct = accounts.find { |a| a.is_a?(RothIRA) }
         return [] unless trad_acct && roth_acct
 
-        converted = [amount, trad_acct[:balance]].min
-        trad_acct[:balance] -= converted
-        roth_acct[:balance] += converted
+        converted = trad_acct.withdraw(amount)
+        roth_acct.deposit(converted)
 
-        [{ type: :conversion, amount: converted, taxable_ordinary: converted, taxable_capital_gains: 0 }]
+        [{ type: :conversion, amount: converted, taxable_ordinary: converted, taxable_capital_gains: 0 }] if converted > 0
       end
 
       def calculate_taxes(ordinary_income, capital_gains, tax_brackets)
@@ -258,7 +262,6 @@ module Foresight
         deduction = tax_brackets[:standard_deduction][:mfj]
         taxable_ord_after_deduction = [ordinary_income - deduction, 0].max
 
-        # Calculate ordinary tax
         ord_tax = 0.0
         remaining_ord = taxable_ord_after_deduction
         brackets[:ordinary].reverse_each do |bracket|
@@ -268,17 +271,10 @@ module Foresight
           remaining_ord = bracket[:income]
         end
 
-        # Simplified capital gains tax
-        # NOTE: This is a major simplification. In reality, capital gains "stack" on top of
-        # ordinary income, and the bracket thresholds depend on the total. This simplified
-        # version applies a flat rate based on ordinary income position, which approximates
-        # the effect but may not be precisely accurate for all scenarios.
         cg_tax = 0.0
         if taxable_ord_after_deduction > brackets[:capital_gains][1][:income]
           cg_tax = capital_gains * brackets[:capital_gains][1][:rate]
         elsif taxable_ord_after_deduction > brackets[:capital_gains][0][:income]
-          # In reality, we'd need to calculate how much CG fits in the 0% bracket
-          # and how much spills into the 15% bracket. This is simplified.
           cg_tax = capital_gains * 0.15
         end
 
@@ -289,57 +285,34 @@ module Foresight
       def calculate_taxable_social_security(provisional_income, ss_total, tax_brackets)
         return 0.0 if ss_total <= 0
         thresholds = tax_brackets[:mfj][:social_security_provisional_income]
-        
-        # Provisional income includes 50% of Social Security benefits
         provisional = provisional_income + (ss_total * 0.5)
-
         return 0.0 if provisional <= thresholds[:phase1_start]
         
         if provisional <= thresholds[:phase2_start]
-          # 50% of SS is taxable in phase 1
           return (provisional - thresholds[:phase1_start]) * 0.5
         end
 
-        # In phase 2, up to 85% of SS can be taxable
         phase1_taxable = (thresholds[:phase2_start] - thresholds[:phase1_start]) * 0.5
         phase2_taxable = (provisional - thresholds[:phase2_start]) * 0.85
         [phase1_taxable + phase2_taxable, ss_total * 0.85].min
       end
 
-      def get_rmd(age, accounts)
-        return 0.0 if age < 73 # Simplified RMD age (actual varies by birth year)
-        
-        # Find Traditional IRA account
-        trad_account = accounts.find { |a| a[:type] == :traditional }
-        return 0.0 unless trad_account  # Guard against missing account
-        
-        # IRS Uniform Lifetime Table divisors
-        rmd_divisor = { 
-          73 => 26.5, 74 => 25.5, 75 => 24.6, 76 => 23.7, 77 => 22.9, 
-          78 => 22.0, 79 => 21.2, 80 => 20.3, 81 => 19.5, 82 => 18.7, 
-          83 => 17.9, 84 => 17.1, 85 => 16.3, 86 => 15.5, 87 => 14.8, 
-          88 => 14.1, 89 => 13.4, 90 => 12.7, 91 => 12.0, 92 => 11.4, 
-          93 => 10.8, 94 => 10.2, 95 => 9.6, 96 => 9.1, 
-          97 => 8.6, 98 => 8.1, 99 => 7.6, 100 => 7.1 
-        }
-        divisor = rmd_divisor[age] || 7.1 # Fallback for older ages
-        trad_balance = trad_account[:balance]
-        rmd = trad_balance / divisor
-
-        # RMD is a forced withdrawal
-        trad_account[:balance] -= rmd
-        rmd
-      end
-
       def get_social_security_benefit(ss_source, age)
-        return 0.0 unless ss_source  # Guard against nil
+        return 0.0 unless ss_source
         age >= ss_source[:claiming_age] ? ss_source[:pia_annual] : 0.0
       end
 
       def grow_assets(accounts, growth_assumptions)
+        # --- Joyful Refactor: Use object-oriented growth ---
         accounts.each do |account|
-          growth_rate = growth_assumptions[account[:type]] || 0
-          account[:balance] *= (1 + growth_rate)
+          type_key = case account
+                     when TraditionalIRA then :traditional
+                     when RothIRA then :roth
+                     when TaxableAccount then :taxable
+                     else :cash
+                     end
+          growth_rate = growth_assumptions[type_key] || 0
+          account.grow(growth_rate)
         end
       end
 
