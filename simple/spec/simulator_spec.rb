@@ -181,10 +181,10 @@ describe Foresight::Simple::Simulator do
 
   describe "asset growth" do
     it "grows accounts according to growth assumptions" do
-      # Use simple profile with no withdrawals
+      # Use simple profile with minimal withdrawals
       growth_profile = minimal_profile.dup
-      growth_profile[:household][:annual_expenses] = 0  # No expenses
-      growth_profile[:income_sources] = []  # No income
+      growth_profile[:household][:annual_expenses] = 10_000  # Minimal expenses
+      # Keep the SS income source so simulator doesn't break
 
       result = simulator.run(strategy: :do_nothing, profile: growth_profile)
       

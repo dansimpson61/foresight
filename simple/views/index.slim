@@ -55,6 +55,39 @@ html
           h3 Personal Information
           .form-grid
             .form-group
+              label Date of Birth
+              input type="date" data-profile-target="dateOfBirth" value=profile[:members][0][:date_of_birth]
+              .form-help Current age: #{Time.now.year - Date.parse(profile[:members][0][:date_of_birth]).year}
+
+        / Account Balances
+        .form-section
+          h3 Account Balances
+          .form-grid
+            .form-group
+              label Traditional IRA Balance
+              input type="number" data-profile-target="traditionalBalance" value=profile[:accounts].find{|a| a[:type] == :traditional}[:balance]
+              .form-help Pre-tax retirement savings
+            
+            .form-group
+              label Roth IRA Balance
+              input type="number" data-profile-target="rothBalance" value=profile[:accounts].find{|a| a[:type] == :roth}[:balance]
+              .form-help After-tax retirement savings
+            
+            .form-group
+              label Taxable Account Balance
+              input type="number" data-profile-target="taxableBalance" value=profile[:accounts].find{|a| a[:type] == :taxable}[:balance]
+              .form-help Brokerage account
+            
+            .form-group
+              label Cash/Emergency Fund
+              input type="number" data-profile-target="cashBalance" value=profile[:accounts].find{|a| a[:type] == :cash}[:balance]
+              .form-help Liquid savings
+
+        / Income Sources
+        .form-section
+          h3 Income Sources
+          .form-grid
+            .form-group
               label Social Security (Annual PIA)
               input type="number" data-profile-target="piaAnnual" value=profile[:income_sources].find{|s| s[:type] == :social_security}[:pia_annual]
               .form-help Primary Insurance Amount at full retirement age
@@ -160,36 +193,36 @@ html
     hr
 
     / Results Display
-    .results-grid
+    .results-grid data-controller="results"
       .strategy-card
         h2 Do Nothing Strategy
         .metric
           span.metric-label Cumulative Taxes Paid:
-          span.metric-value = format_currency(do_nothing_results[:aggregate][:cumulative_taxes])
+          span.metric-value data-results-target="doNothingTaxes" = format_currency(do_nothing_results[:aggregate][:cumulative_taxes])
         .metric
           span.metric-label Ending Net Worth:
-          span.metric-value = format_currency(do_nothing_results[:aggregate][:ending_net_worth])
+          span.metric-value data-results-target="doNothingNetWorth" = format_currency(do_nothing_results[:aggregate][:ending_net_worth])
         .metric
           span.metric-label Total Gross Income:
-          span.metric-value = format_currency(do_nothing_results[:aggregate][:total_gross_income])
+          span.metric-value data-results-target="doNothingIncome" = format_currency(do_nothing_results[:aggregate][:total_gross_income])
         .metric
           span.metric-label Total Expenses:
-          span.metric-value = format_currency(do_nothing_results[:aggregate][:total_expenses])
+          span.metric-value data-results-target="doNothingExpenses" = format_currency(do_nothing_results[:aggregate][:total_expenses])
 
       .strategy-card
         h2 Fill to Bracket Strategy
         .metric
           span.metric-label Cumulative Taxes Paid:
-          span.metric-value = format_currency(fill_bracket_results[:aggregate][:cumulative_taxes])
+          span.metric-value data-results-target="fillBracketTaxes" = format_currency(fill_bracket_results[:aggregate][:cumulative_taxes])
         .metric
           span.metric-label Ending Net Worth:
-          span.metric-value = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
+          span.metric-value data-results-target="fillBracketNetWorth" = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
         .metric
           span.metric-label Total Gross Income:
-          span.metric-value = format_currency(fill_bracket_results[:aggregate][:total_gross_income])
+          span.metric-value data-results-target="fillBracketIncome" = format_currency(fill_bracket_results[:aggregate][:total_gross_income])
         .metric
           span.metric-label Total Expenses:
-          span.metric-value = format_currency(fill_bracket_results[:aggregate][:total_expenses])
+          span.metric-value data-results-target="fillBracketExpenses" = format_currency(fill_bracket_results[:aggregate][:total_expenses])
 
     / Chart Visualization
     div data-controller="chart"
@@ -232,37 +265,5 @@ html
     script src="#{base}/js/chart_controller.js"
     script src="#{base}/js/profile_controller.js"
     script src="#{base}/js/simulation_controller.js"
-    script src="#{base}/js/application.js" Date of Birth
-              input type="date" data-profile-target="dateOfBirth" value=profile[:members][0][:date_of_birth]
-              .form-help Current age: #{Time.now.year - Date.parse(profile[:members][0][:date_of_birth]).year}
-
-        / Account Balances
-        .form-section
-          h3 Account Balances
-          .form-grid
-            .form-group
-              label Traditional IRA Balance
-              input type="number" data-profile-target="traditionalBalance" value=profile[:accounts].find{|a| a[:type] == :traditional}[:balance]
-              .form-help Pre-tax retirement savings
-            
-            .form-group
-              label Roth IRA Balance
-              input type="number" data-profile-target="rothBalance" value=profile[:accounts].find{|a| a[:type] == :roth}[:balance]
-              .form-help After-tax retirement savings
-            
-            .form-group
-              label Taxable Account Balance
-              input type="number" data-profile-target="taxableBalance" value=profile[:accounts].find{|a| a[:type] == :taxable}[:balance]
-              .form-help Brokerage account
-            
-            .form-group
-              label Cash/Emergency Fund
-              input type="number" data-profile-target="cashBalance" value=profile[:accounts].find{|a| a[:type] == :cash}[:balance]
-              .form-help Liquid savings
-
-        / Income Sources
-        .form-section
-          h3 Income Sources
-          .form-grid
-            .form-group
-              label
+    script src="#{base}/js/results_controller.js"
+    script src="#{base}/js/application.js"

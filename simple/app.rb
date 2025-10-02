@@ -102,7 +102,8 @@ module Foresight
           tax_brackets = get_tax_brackets_for_year(current_year)
 
           # A. Calculate Gross Income (Non-Discretionary)
-          ss_benefit = get_social_security_benefit(profile[:income_sources].first, age)
+          ss_source = profile[:income_sources].find { |s| s[:type] == :social_security }
+          ss_benefit = get_social_security_benefit(ss_source, age)
           rmd = get_rmd(age, accounts)
           gross_income_from_sources = ss_benefit + rmd
 
@@ -197,7 +198,12 @@ module Foresight
         # ideal conversion amount, since conversions increase provisional income which can
         # increase the taxable portion of Social Security benefits, reducing actual headroom.
         # This approximation works well when conversions are modest relative to the bracket ceiling.
-        conversion_amount = [headroom, 0, accounts.find { |a| a[:type] == :traditional }[:balance]].sort[1]
+        
+        # Guard against missing Traditional IRA account
+        trad_account = accounts.find { |a| a[:type] == :traditional }
+        return [] unless trad_account
+        
+        conversion_amount = [headroom, 0, trad_account[:balance]].sort[1]
 
         perform_roth_conversion(conversion_amount, accounts)
       end
@@ -217,7 +223,9 @@ module Foresight
 
           # Determine taxability based on account type
           taxable_ord = type == :traditional ? pulled : 0
-          taxable_cg = type == :taxable ? pulled * (1 - account[:cost_basis_fraction]) : 0
+          # Use cost_basis_fraction if available, default to 0 if missing
+          cost_basis = type == :taxable ? (account[:cost_basis_fraction] || 0) : 0
+          taxable_cg = type == :taxable ? pulled * (1 - cost_basis) : 0
 
           events << { 
             type: :withdrawal, 
@@ -231,8 +239,12 @@ module Foresight
 
       def perform_roth_conversion(amount, accounts)
         return [] if amount <= 0
+        
         trad_acct = accounts.find { |a| a[:type] == :traditional }
         roth_acct = accounts.find { |a| a[:type] == :roth }
+        
+        # Guard against missing accounts
+        return [] unless trad_acct && roth_acct
 
         converted = [amount, trad_acct[:balance]].min
         trad_acct[:balance] -= converted
@@ -297,6 +309,10 @@ module Foresight
       def get_rmd(age, accounts)
         return 0.0 if age < 73 # Simplified RMD age (actual varies by birth year)
         
+        # Find Traditional IRA account
+        trad_account = accounts.find { |a| a[:type] == :traditional }
+        return 0.0 unless trad_account  # Guard against missing account
+        
         # IRS Uniform Lifetime Table divisors
         rmd_divisor = { 
           73 => 26.5, 74 => 25.5, 75 => 24.6, 76 => 23.7, 77 => 22.9, 
@@ -307,15 +323,16 @@ module Foresight
           97 => 8.6, 98 => 8.1, 99 => 7.6, 100 => 7.1 
         }
         divisor = rmd_divisor[age] || 7.1 # Fallback for older ages
-        trad_balance = accounts.find { |a| a[:type] == :traditional }[:balance]
+        trad_balance = trad_account[:balance]
         rmd = trad_balance / divisor
 
         # RMD is a forced withdrawal
-        accounts.find { |a| a[:type] == :traditional }[:balance] -= rmd
+        trad_account[:balance] -= rmd
         rmd
       end
 
       def get_social_security_benefit(ss_source, age)
+        return 0.0 unless ss_source  # Guard against nil
         age >= ss_source[:claiming_age] ? ss_source[:pia_annual] : 0.0
       end
 
