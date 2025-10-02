@@ -113,10 +113,11 @@ html
       == profile.to_json
 
     / Load Stimulus, controllers, and the application entrypoint
-  script src="/simple/js/stimulus.umd.js"
-  script src="/simple/js/chart_controller.js"
-  script src="/simple/js/profile_controller.js"
-  script src="/simple/js/application.js"
+  - base = request.script_name
+  script src="#{base}/js/stimulus.umd.js"
+  script src="#{base}/js/chart_controller.js"
+  script src="#{base}/js/profile_controller.js"
+  script src="#{base}/js/application.js"
 
     style
       | .toggle { font-size: 0.8rem; font-weight: normal; color: #3b82f6; cursor: pointer; }
