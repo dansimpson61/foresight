@@ -4,10 +4,12 @@ require 'bundler/setup'
 require 'rack'
 require_relative './app/ui'
 require_relative './app/api'
+require_relative './simple/app'
 
 # Route UI at root, and send API endpoints to the API app.
 run Rack::URLMap.new(
 	'/plan' => Foresight::API,
 	'/strategies' => Foresight::API,
+	'/simple' => Foresight::Simple::UI,
 	'/' => Foresight::UI
 )
