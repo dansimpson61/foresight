@@ -55,7 +55,9 @@ Foresight is proudly built with a minimalist, joyful stack:
             ```bash
             bin/dev-both
             ```
-            Open: `http://127.0.0.1:9292/ui` (Main) and `http://127.0.0.1:9292/simple/` (Simple)
+            Open: `http://127.0.0.1:9292/` for a landing page with links to both UIs
+            - Classic: `http://127.0.0.1:9292/ui`
+            - Simple: `http://127.0.0.1:9292/simple/`
 
 ## Key Endpoints
 

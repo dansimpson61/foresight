@@ -8,6 +8,10 @@ module Foresight
   class UI < Sinatra::Base
     set :views, File.expand_path('../../views', __FILE__)
 
+    get '/' do
+      slim :home
+    end
+
     get '/ui' do
       svc = Foresight::PlanService.new
       @strategies = svc.list_strategies
