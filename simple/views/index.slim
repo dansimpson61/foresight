@@ -113,7 +113,7 @@ html
                 option value="single" selected=(profile[:household][:filing_status] == 'single') Single
               .form-help Tax filing status
 
-        button.button type="button" data-action="click->profile#save" Save Profile & Update Results
+        button.button type="button" data-action="click->profile#save" data-profile-target="saveButton" Save Profile & Update Results
 
     hr
 

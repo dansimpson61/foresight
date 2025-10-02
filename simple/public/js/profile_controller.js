@@ -11,7 +11,8 @@ class ProfileController extends Stimulus.Controller {
     "piaAnnual",
     "claimingAge",
     "annualExpenses",
-    "filingStatus"
+    "filingStatus",
+    "saveButton" // Target the save button
   ]
 
   toggleEditor() {
@@ -19,24 +20,15 @@ class ProfileController extends Stimulus.Controller {
   }
 
   save() {
-    // Build the complete profile from form inputs
     const profile = this.buildProfileFromForm();
-
-    // Re-run the simulation with the updated profile
     this.rerunSimulation(profile);
-    
-    // Close the editor
     this.formTarget.classList.add('hidden');
   }
 
   buildProfileFromForm() {
-    // Start with the base profile structure from the page
     const baseProfile = JSON.parse(document.getElementById('default-profile-data').textContent);
-
-    // Update with form values
     baseProfile.members[0].date_of_birth = this.dateOfBirthTarget.value;
     
-    // Update account balances - preserving all account properties
     const trad = baseProfile.accounts.find(a => a.type === 'traditional');
     const roth = baseProfile.accounts.find(a => a.type === 'roth');
     const taxable = baseProfile.accounts.find(a => a.type === 'taxable');
@@ -47,14 +39,12 @@ class ProfileController extends Stimulus.Controller {
     if (taxable) taxable.balance = parseFloat(this.taxableBalanceTarget.value);
     if (cash) cash.balance = parseFloat(this.cashBalanceTarget.value);
 
-    // Update income sources
     const ss = baseProfile.income_sources.find(s => s.type === 'social_security');
     if (ss) {
       ss.pia_annual = parseFloat(this.piaAnnualTarget.value);
       ss.claiming_age = parseInt(this.claimingAgeTarget.value, 10);
     }
 
-    // Update household
     baseProfile.household.annual_expenses = parseFloat(this.annualExpensesTarget.value);
     baseProfile.household.filing_status = this.filingStatusTarget.value;
 
@@ -62,6 +52,13 @@ class ProfileController extends Stimulus.Controller {
   }
 
   async rerunSimulation(profile) {
+    const button = this.saveButtonTarget;
+    const originalText = button.textContent;
+
+    // Provide joyful feedback to the user
+    button.disabled = true;
+    button.textContent = 'Calculating...';
+
     try {
       const response = await fetch('/run', {
         method: 'POST',
@@ -90,6 +87,10 @@ class ProfileController extends Stimulus.Controller {
     } catch (error) {
       console.error('Error running simulation:', error);
       alert('Failed to update simulation. Please check your inputs and try again.');
+    } finally {
+      // Always restore the button to its original state
+      button.disabled = false;
+      button.textContent = originalText;
     }
   }
 }
