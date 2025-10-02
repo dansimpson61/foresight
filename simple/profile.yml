@@ -1,6 +1,6 @@
 start_year: 2024
 years_to_simulate: 30
-inflation_rate: 0.03
+inflation_rate: 0.00
 growth_assumptions:
   traditional: 0.04
   roth: 0.05
