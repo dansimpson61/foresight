@@ -6,4 +6,5 @@ window.addEventListener('DOMContentLoaded', () => {
   application.register("profile", ProfileController);
   application.register("simulation", SimulationController);
   application.register("results", ResultsController);
+  application.register("net-worth-chart", NetWorthChartController);
 });
