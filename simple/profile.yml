@@ -18,22 +18,33 @@ household:
 members:
   - name: 'Pat'
     date_of_birth: '1964-05-01'
+    role: 'primary'
+  - name: 'Sam'
+    date_of_birth: '1966-03-15'
+    role: 'spouse'
 accounts:
   - type: :traditional
     owner: 'Pat'
     balance: 1000000
+  - type: :traditional
+    owner: 'Sam'
+    balance: 300000
   - type: :roth
     owner: 'Pat'
     balance: 250000
   - type: :taxable
-    owner: 'Pat'
+    owner: 'joint'
     balance: 500000
     cost_basis_fraction: 0.6
   - type: :cash
-    owner: 'Pat'
+    owner: 'joint'
     balance: 100000
 income_sources:
   - type: :social_security
     recipient: 'Pat'
     pia_annual: 40000
     claiming_age: 70
+  - type: :social_security
+    recipient: 'Sam'
+    pia_annual: 28000
+    claiming_age: 68

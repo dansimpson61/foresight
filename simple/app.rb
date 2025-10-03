@@ -96,13 +96,10 @@ module Foresight
     # --- Simulation Engine ---
     class Simulator
       def run(strategy:, strategy_params: {}, profile: DEFAULT_PROFILE)
-        # Deep copy the profile to prevent mutation between runs
         profile = Marshal.load(Marshal.dump(profile))
         yearly_results = []
 
-        # --- Joyful Refactor: Instantiate Asset objects ---
         accounts = profile[:accounts].map do |acc|
-          # The definitive, joyful fix: convert the string type from JSON into a symbol for the case statement.
           case acc[:type].to_sym
           when :traditional
             TraditionalIRA.new(balance: acc[:balance], owner: acc[:owner])
@@ -111,26 +108,35 @@ module Foresight
           when :taxable
             TaxableAccount.new(balance: acc[:balance], owner: acc[:owner], cost_basis_fraction: acc[:cost_basis_fraction] || 0.7)
           else
-            # For now, we'll skip unknown account types like :cash. A more robust implementation might raise an error or have a CashAccount class.
             nil
           end
         end.compact
 
         profile[:years_to_simulate].times do |i|
           current_year = profile[:start_year] + i
-          person = profile[:members].first
-          age = get_age(person[:date_of_birth], current_year)
           annual_expenses = profile[:household][:annual_expenses]
           tax_brackets = get_tax_brackets_for_year(current_year)
 
-          # A. Calculate Gross Income (Non-Discretionary)
-          ss_source = profile[:income_sources].find { |s| s[:type] == :social_security }
-          ss_benefit = get_social_security_benefit(ss_source, age)
+          # --- Joyful Refactor: Multi-person logic ---
+          ages = profile[:members].each_with_object({}) do |member, h|
+            h[member[:name]] = get_age(member[:date_of_birth], current_year)
+          end
+          primary_person_age = ages[profile[:members].first[:name]]
 
-          # --- Joyful Refactor: Use object-oriented RMD calculation ---
-          trad_account = accounts.find { |a| a.is_a?(TraditionalIRA) }
-          rmd = trad_account ? trad_account.calculate_rmd(age) : 0
-          trad_account.withdraw(rmd) if trad_account && rmd > 0 # RMD is a forced withdrawal
+          # A. Calculate Gross Income (Non-Discretionary)
+          # Social Security for all members
+          ss_benefit = profile[:income_sources].select { |s| s[:type] == :social_security }.sum do |ss_source|
+            recipient_age = ages[ss_source[:recipient]]
+            recipient_age >= ss_source[:claiming_age] ? ss_source[:pia_annual] : 0
+          end
+
+          # RMDs for all traditional accounts based on owner's age
+          rmd = accounts.select { |a| a.is_a?(TraditionalIRA) }.sum do |trad_account|
+            owner_age = ages[trad_account.owner]
+            rmd_amount = trad_account.calculate_rmd(owner_age)
+            trad_account.withdraw(rmd_amount) # RMD is a forced withdrawal
+            rmd_amount
+          end
 
           gross_income_from_sources = ss_benefit + rmd
 
@@ -153,7 +159,6 @@ module Foresight
           withdrawals_for_spending_amount = spending_withdrawals.sum { |e| e[:amount] }
           total_gross_income = gross_income_from_sources + withdrawals_for_spending_amount
 
-          # Finalize Taxable Income
           taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
           taxable_cg_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_capital_gains] }
           conversion_amount = conversion_events.sum { |e| e[:amount] }
@@ -166,7 +171,7 @@ module Foresight
 
           # E. Record results
           yearly_results << {
-            year: current_year, age: age,
+            year: current_year, age: primary_person_age,
             annual_expenses: annual_expenses.round(0),
             total_gross_income: total_gross_income.round(0),
             income_sources: { 
@@ -184,9 +189,9 @@ module Foresight
             total_tax: taxes[:total].round(0),
             ending_net_worth: accounts.sum(&:balance).round(0),
             ending_balances: {
-              traditional: (accounts.find { |a| a.is_a?(TraditionalIRA) }&.balance || 0).round(0),
-              roth: (accounts.find { |a| a.is_a?(RothIRA) }&.balance || 0).round(0),
-              taxable: (accounts.find { |a| a.is_a?(TaxableAccount) }&.balance || 0).round(0)
+              traditional: (accounts.select { |a| a.is_a?(TraditionalIRA) }.sum(&:balance) || 0).round(0),
+              roth: (accounts.select { |a| a.is_a?(RothIRA) }.sum(&:balance) || 0).round(0),
+              taxable: (accounts.select { |a| a.is_a?(TaxableAccount) }.sum(&:balance) || 0).round(0)
             }
           }
 
@@ -215,11 +220,10 @@ module Foresight
 
         headroom = strategy_params[:ceiling] - taxable_income_before_conversion
         
-        # --- Joyful Refactor: Use Asset objects for conversion ---
-        trad_account = accounts.find { |a| a.is_a?(TraditionalIRA) }
-        return [] unless trad_account
+        total_trad_balance = accounts.select { |a| a.is_a?(TraditionalIRA) }.sum(&:balance)
+        return [] if total_trad_balance <= 0
         
-        conversion_amount = [headroom, 0, trad_account.balance].sort[1]
+        conversion_amount = [headroom, 0, total_trad_balance].sort[1]
 
         perform_roth_conversion(conversion_amount, accounts)
       end
@@ -227,26 +231,27 @@ module Foresight
       def withdraw_for_spending(amount_needed, accounts)
         events = []
         remaining_need = amount_needed
-
-        # --- Joyful Refactor: Use object-oriented withdrawal hierarchy ---
         withdrawal_order = [TaxableAccount, TraditionalIRA, RothIRA]
 
         withdrawal_order.each do |account_class|
           break if remaining_need <= 0
-          account = accounts.find { |a| a.is_a?(account_class) }
-          next unless account && account.balance > 0
+          # Find all accounts of the class type and withdraw from them. A more complex system might prioritize joint vs individual.
+          accounts.select { |a| a.is_a?(account_class) }.each do |account|
+            break if remaining_need <= 0
+            next unless account.balance > 0
 
-          pulled = account.withdraw(remaining_need)
-          remaining_need -= pulled
+            pulled = account.withdraw(remaining_need)
+            remaining_need -= pulled
 
-          taxes = account.tax_on_withdrawal(pulled)
+            taxes = account.tax_on_withdrawal(pulled)
 
-          events << { 
-            type: :withdrawal, 
-            amount: pulled, 
-            taxable_ordinary: taxes[:ordinary_income],
-            taxable_capital_gains: taxes[:capital_gains]
-          } if pulled > 0
+            events << {
+              type: :withdrawal,
+              amount: pulled,
+              taxable_ordinary: taxes[:ordinary_income],
+              taxable_capital_gains: taxes[:capital_gains]
+            } if pulled > 0
+          end
         end
         events
       end
@@ -254,14 +259,27 @@ module Foresight
       def perform_roth_conversion(amount, accounts)
         return [] if amount <= 0
         
-        trad_acct = accounts.find { |a| a.is_a?(TraditionalIRA) }
         roth_acct = accounts.find { |a| a.is_a?(RothIRA) }
-        return [] unless trad_acct && roth_acct
+        return [] unless roth_acct
 
-        converted = trad_acct.withdraw(amount)
-        roth_acct.deposit(converted)
+        trad_accounts = accounts.select { |a| a.is_a?(TraditionalIRA) }
+        return [] if trad_accounts.empty?
 
-        [{ type: :conversion, amount: converted, taxable_ordinary: converted, taxable_capital_gains: 0 }] if converted > 0
+        amount_to_convert = amount
+        converted_total = 0
+
+        # Simple strategy: pull from first available Traditional account.
+        trad_accounts.each do |trad_acct|
+          break if amount_to_convert <= 0
+
+          converted_from_this_acct = trad_acct.withdraw(amount_to_convert)
+          roth_acct.deposit(converted_from_this_acct)
+
+          amount_to_convert -= converted_from_this_acct
+          converted_total += converted_from_this_acct
+        end
+
+        [{ type: :conversion, amount: converted_total, taxable_ordinary: converted_total, taxable_capital_gains: 0 }] if converted_total > 0
       end
 
       def calculate_taxes(ordinary_income, capital_gains, tax_brackets)
@@ -304,13 +322,7 @@ module Foresight
         [phase1_taxable + phase2_taxable, ss_total * 0.85].min
       end
 
-      def get_social_security_benefit(ss_source, age)
-        return 0.0 unless ss_source
-        age >= ss_source[:claiming_age] ? ss_source[:pia_annual] : 0.0
-      end
-
       def grow_assets(accounts, growth_assumptions)
-        # --- Joyful Refactor: Use object-oriented growth ---
         accounts.each do |account|
           type_key = case account
                      when TraditionalIRA then :traditional

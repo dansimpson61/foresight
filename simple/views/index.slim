@@ -38,6 +38,9 @@ html
       | hr { border: none; border-top: 1px solid #e0e0e0; margin: 2rem 0; }
       | .limitation-note { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin: 1rem 0; border-radius: 4px; font-size: 0.9rem; }
       | .limitation-note strong { color: #92400e; }
+      | .account-entry, .income-entry { border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem; }
+      | .account-entry:first-child, .income-entry:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+      | .account-entry h4, .income-entry h4 { font-size: 1rem; margin-bottom: 1rem; color: #666; }
   body
     header
       h1 Simple Foresight: A Radical Act of Simplification
@@ -53,49 +56,52 @@ html
         / Personal Information
         .form-section
           h3 Personal Information
-          .form-grid
-            .form-group
-              label Date of Birth
-              input type="date" data-profile-target="dateOfBirth" value=profile[:members][0][:date_of_birth]
-              .form-help Current age: #{Time.now.year - Date.parse(profile[:members][0][:date_of_birth]).year}
+          - profile[:members].each_with_index do |member, index|
+            .income-entry
+              h4 = member[:name]
+              .form-grid
+                .form-group
+                  label Date of Birth
+                  input type="date" data-profile-target="dateOfBirth" value=member[:date_of_birth] data-index=index
+                  .form-help Current age: #{Time.now.year - Date.parse(member[:date_of_birth]).year}
 
         / Account Balances
         .form-section
           h3 Account Balances
-          .form-grid
-            .form-group
-              label Traditional IRA Balance
-              input type="number" data-profile-target="traditionalBalance" value=profile[:accounts].find{|a| a[:type] == :traditional}[:balance]
-              .form-help Pre-tax retirement savings
-            
-            .form-group
-              label Roth IRA Balance
-              input type="number" data-profile-target="rothBalance" value=profile[:accounts].find{|a| a[:type] == :roth}[:balance]
-              .form-help After-tax retirement savings
-            
-            .form-group
-              label Taxable Account Balance
-              input type="number" data-profile-target="taxableBalance" value=profile[:accounts].find{|a| a[:type] == :taxable}[:balance]
-              .form-help Brokerage account
-            
-            .form-group
-              label Cash/Emergency Fund
-              input type="number" data-profile-target="cashBalance" value=profile[:accounts].find{|a| a[:type] == :cash}[:balance]
-              .form-help Liquid savings
+          - profile[:accounts].each_with_index do |account, index|
+            .account-entry
+              h4 = "#{account[:type].to_s.capitalize} Account"
+              .form-grid
+                .form-group
+                  label Balance
+                  input type="number" data-profile-target="accountBalance" value=account[:balance] data-index=index
+                .form-group
+                  label Owner
+                  select data-profile-target="accountOwner" data-index=index
+                    - (profile[:members].map { |m| m[:name] } + ['joint']).each do |owner_name|
+                      option value=owner_name selected=(account[:owner] == owner_name) = owner_name.capitalize
+                - if account[:type] == :taxable
+                  .form-group
+                    label Cost Basis Fraction
+                    input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-index=index
+                    .form-help e.g., 0.6 = 60%
 
         / Income Sources
         .form-section
           h3 Income Sources
-          .form-grid
-            .form-group
-              label Social Security (Annual PIA)
-              input type="number" data-profile-target="piaAnnual" value=profile[:income_sources].find{|s| s[:type] == :social_security}[:pia_annual]
-              .form-help Primary Insurance Amount at full retirement age
-            
-            .form-group
-              label SS Claiming Age
-              input type="number" min="62" max="70" data-profile-target="claimingAge" value=profile[:income_sources].find{|s| s[:type] == :social_security}[:claiming_age]
-              .form-help Age when you'll start collecting (62-70)
+          - profile[:income_sources].each_with_index do |source, index|
+            - if source[:type] == :social_security
+              .income-entry
+                h4 = "Social Security for #{source[:recipient]}"
+                .form-grid
+                  .form-group
+                    label Annual PIA
+                    input type="number" data-profile-target="piaAnnual" value=source[:pia_annual] data-index=index
+                    .form-help Primary Insurance Amount
+                  .form-group
+                    label Claiming Age
+                    input type="number" min="62" max="70" data-profile-target="claimingAge" value=source[:claiming_age] data-index=index
+                    .form-help Age to start collecting
 
         / Tax & Household
         .form-section

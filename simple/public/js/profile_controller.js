@@ -1,18 +1,18 @@
 // A Stimulus controller to manage the editable financial profile
 // No localStorage - embracing ephemerality and honesty
+// A Stimulus controller to manage the editable financial profile
 class ProfileController extends Stimulus.Controller {
   static targets = [
     "form",
-    "dateOfBirth",
-    "traditionalBalance",
-    "rothBalance",
-    "taxableBalance",
-    "cashBalance",
-    "piaAnnual",
-    "claimingAge",
+    "dateOfBirth",      // Now multiple targets
+    "accountBalance",   // Now multiple targets
+    "accountOwner",     // New multiple targets
+    "accountCostBasis", // New multiple targets
+    "piaAnnual",        // Now multiple targets
+    "claimingAge",      // Now multiple targets
     "annualExpenses",
     "filingStatus",
-    "saveButton" // Target the save button
+    "saveButton"
   ]
 
   toggleEditor() {
@@ -26,25 +26,43 @@ class ProfileController extends Stimulus.Controller {
   }
 
   buildProfileFromForm() {
+    // Start with the base profile structure to maintain all original data
     const baseProfile = JSON.parse(document.getElementById('default-profile-data').textContent);
-    baseProfile.members[0].date_of_birth = this.dateOfBirthTarget.value;
-    
-    const trad = baseProfile.accounts.find(a => a.type === 'traditional');
-    const roth = baseProfile.accounts.find(a => a.type === 'roth');
-    const taxable = baseProfile.accounts.find(a => a.type === 'taxable');
-    const cash = baseProfile.accounts.find(a => a.type === 'cash');
-    
-    if (trad) trad.balance = parseFloat(this.traditionalBalanceTarget.value);
-    if (roth) roth.balance = parseFloat(this.rothBalanceTarget.value);
-    if (taxable) taxable.balance = parseFloat(this.taxableBalanceTarget.value);
-    if (cash) cash.balance = parseFloat(this.cashBalanceTarget.value);
 
-    const ss = baseProfile.income_sources.find(s => s.type === 'social_security');
-    if (ss) {
-      ss.pia_annual = parseFloat(this.piaAnnualTarget.value);
-      ss.claiming_age = parseInt(this.claimingAgeTarget.value, 10);
-    }
+    // Update members from the form
+    this.dateOfBirthTargets.forEach(input => {
+      const index = parseInt(input.dataset.index, 10);
+      baseProfile.members[index].date_of_birth = input.value;
+    });
 
+    // Update accounts from the form
+    this.accountBalanceTargets.forEach(input => {
+      const index = parseInt(input.dataset.index, 10);
+      baseProfile.accounts[index].balance = parseFloat(input.value);
+    });
+    this.accountOwnerTargets.forEach(select => {
+      const index = parseInt(select.dataset.index, 10);
+      baseProfile.accounts[index].owner = select.value;
+    });
+    this.accountCostBasisTargets.forEach(input => {
+      const index = parseInt(input.dataset.index, 10);
+      // Ensure the key exists before assigning
+      if ('cost_basis_fraction' in baseProfile.accounts[index]) {
+        baseProfile.accounts[index].cost_basis_fraction = parseFloat(input.value);
+      }
+    });
+
+    // Update income sources from the form
+    this.piaAnnualTargets.forEach(input => {
+      const index = parseInt(input.dataset.index, 10);
+      baseProfile.income_sources[index].pia_annual = parseFloat(input.value);
+    });
+    this.claimingAgeTargets.forEach(input => {
+      const index = parseInt(input.dataset.index, 10);
+      baseProfile.income_sources[index].claiming_age = parseInt(input.value, 10);
+    });
+
+    // Update household info
     baseProfile.household.annual_expenses = parseFloat(this.annualExpensesTarget.value);
     baseProfile.household.filing_status = this.filingStatusTarget.value;
 
