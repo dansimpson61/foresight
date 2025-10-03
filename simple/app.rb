@@ -62,7 +62,8 @@ module Foresight
 
         # Extract profile, strategy, and parameters
         # Handle both old format (just profile) and new format (with strategy/params)
-        profile = payload[:profile] || payload
+        profile_data = payload[:profile] || payload
+        profile = Foresight::Simple.symbolize_keys(profile_data) # Joyful fix: ensure all keys and values are symbolized correctly
         strategy = payload[:strategy] || :fill_to_bracket
         strategy_params = payload[:strategy_params] || { ceiling: 94_300 }
 
