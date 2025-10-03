@@ -133,6 +133,8 @@ module Foresight
           # RMDs for all traditional accounts based on owner's age
           rmd = accounts.select { |a| a.is_a?(TraditionalIRA) }.sum do |trad_account|
             owner_age = ages[trad_account.owner]
+            next 0 unless owner_age # Joyful fix: Skip RMD calc if owner is not a person (e.g., 'joint')
+
             rmd_amount = trad_account.calculate_rmd(owner_age)
             trad_account.withdraw(rmd_amount) # RMD is a forced withdrawal
             rmd_amount
