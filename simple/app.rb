@@ -102,7 +102,8 @@ module Foresight
 
         # --- Joyful Refactor: Instantiate Asset objects ---
         accounts = profile[:accounts].map do |acc|
-          case acc[:type]
+          # The definitive, joyful fix: convert the string type from JSON into a symbol for the case statement.
+          case acc[:type].to_sym
           when :traditional
             TraditionalIRA.new(balance: acc[:balance], owner: acc[:owner])
           when :roth
