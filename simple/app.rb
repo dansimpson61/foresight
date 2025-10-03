@@ -182,7 +182,12 @@ module Foresight
               capital_gains: taxable_cg_from_withdrawals.round(0)
             },
             total_tax: taxes[:total].round(0),
-            ending_net_worth: accounts.sum(&:balance).round(0)
+            ending_net_worth: accounts.sum(&:balance).round(0),
+            ending_balances: {
+              traditional: (accounts.find { |a| a.is_a?(TraditionalIRA) }&.balance || 0).round(0),
+              roth: (accounts.find { |a| a.is_a?(RothIRA) }&.balance || 0).round(0),
+              taxable: (accounts.find { |a| a.is_a?(TaxableAccount) }&.balance || 0).round(0)
+            }
           }
 
           # F. Grow assets for next year

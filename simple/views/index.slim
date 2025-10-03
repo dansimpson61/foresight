@@ -251,6 +251,14 @@ html
               td = format_currency(row[:total_tax])
               td = format_currency(row[:ending_net_worth])
 
+    hr
+
+    / Net Worth Visualization
+    div data-controller="net-worth-chart"
+      h2 Ending Net Worth by Account Type
+      #net-worth-chart-container style="width: 100%; height: 400px; position: relative;"
+        canvas data-net-worth-chart-target="canvas"
+
     / Embed data for JavaScript
     script id="simulation-data" type="application/json"
       == { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
@@ -266,4 +274,5 @@ html
     script src="#{base}/js/profile_controller.js"
     script src="#{base}/js/simulation_controller.js"
     script src="#{base}/js/results_controller.js"
+    script src="#{base}/js/net_worth_chart_controller.js"
     script src="#{base}/js/application.js"
