@@ -4,12 +4,12 @@
 class ProfileController extends Stimulus.Controller {
   static targets = [
     "form",
-    "dateOfBirth",      // Now multiple targets
-    "accountBalance",   // Now multiple targets
-    "accountOwner",     // New multiple targets
-    "accountCostBasis", // New multiple targets
-    "piaAnnual",        // Now multiple targets
-    "claimingAge",      // Now multiple targets
+    "memberName",
+    "dateOfBirth",
+    "accountBalance",
+    "accountCostBasis",
+    "piaAnnual",
+    "claimingAge",
     "annualExpenses",
     "filingStatus",
     "saveButton"
@@ -26,39 +26,37 @@ class ProfileController extends Stimulus.Controller {
   }
 
   buildProfileFromForm() {
-    // Start with the base profile structure to maintain all original data
     const baseProfile = JSON.parse(document.getElementById('default-profile-data').textContent);
 
-    // Update members from the form
+    // Update members from the form using their data-member-index
+    this.memberNameTargets.forEach(input => {
+      const index = parseInt(input.dataset.memberIndex, 10);
+      baseProfile.members[index].name = input.value;
+    });
     this.dateOfBirthTargets.forEach(input => {
-      const index = parseInt(input.dataset.index, 10);
+      const index = parseInt(input.dataset.memberIndex, 10);
       baseProfile.members[index].date_of_birth = input.value;
     });
 
-    // Update accounts from the form
+    // Update accounts from the form using their data-account-index
     this.accountBalanceTargets.forEach(input => {
-      const index = parseInt(input.dataset.index, 10);
+      const index = parseInt(input.dataset.accountIndex, 10);
       baseProfile.accounts[index].balance = parseFloat(input.value);
     });
-    this.accountOwnerTargets.forEach(select => {
-      const index = parseInt(select.dataset.index, 10);
-      baseProfile.accounts[index].owner = select.value;
-    });
     this.accountCostBasisTargets.forEach(input => {
-      const index = parseInt(input.dataset.index, 10);
-      // Ensure the key exists before assigning
+      const index = parseInt(input.dataset.accountIndex, 10);
       if ('cost_basis_fraction' in baseProfile.accounts[index]) {
         baseProfile.accounts[index].cost_basis_fraction = parseFloat(input.value);
       }
     });
 
-    // Update income sources from the form
+    // Update income sources from the form using their data-source-index
     this.piaAnnualTargets.forEach(input => {
-      const index = parseInt(input.dataset.index, 10);
+      const index = parseInt(input.dataset.sourceIndex, 10);
       baseProfile.income_sources[index].pia_annual = parseFloat(input.value);
     });
     this.claimingAgeTargets.forEach(input => {
-      const index = parseInt(input.dataset.index, 10);
+      const index = parseInt(input.dataset.sourceIndex, 10);
       baseProfile.income_sources[index].claiming_age = parseInt(input.value, 10);
     });
 
