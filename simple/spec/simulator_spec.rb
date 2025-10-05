@@ -5,10 +5,12 @@ require 'minitest/autorun'
 require 'minitest/spec'
 require_relative '../app'
 
-describe Foresight::Simple::Simulator do
-  let(:simulator) { Foresight::Simple::Simulator.new }
-  
-  let(:minimal_profile) do
+class SimulatorSpec < Minitest::Test
+  def simulator
+    @simulator ||= Foresight::Simple::Simulator.new
+  end
+
+  def minimal_profile
     {
       start_year: 2024,
       years_to_simulate: 5,
@@ -37,31 +39,19 @@ describe Foresight::Simple::Simulator do
     }
   end
 
-  describe "do_nothing strategy" do
-    it "performs no conversions" do
-      result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
-      
-      total_conversions = result[:yearly].sum do |year| 
-        year[:taxable_income_breakdown][:conversions]
-      end
-      
-      assert_equal 0, total_conversions, "Do nothing strategy should not convert any funds"
-    end
-
-    it "maintains traditional IRA balance (minus RMDs and growth)" do
-      result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
-      
-      # Before age 73, Traditional balance should only grow
-      first_year = result[:yearly].first
-      assert first_year[:age] < 73, "First year should be before RMD age"
-      
-      # Traditional balance should have grown from growth rate
-      # (We can't easily test exact value without duplicating logic, but we can verify it grew)
-    end
+  def test_do_nothing_performs_no_conversions
+    result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
+    total_conversions = result[:yearly].sum { |year| year[:taxable_income_breakdown][:conversions] }
+    assert_equal 0, total_conversions, "Do nothing strategy should not convert any funds"
   end
 
-  describe "fill_to_bracket strategy" do
-    it "converts funds when below the ceiling" do
+  def test_do_nothing_traditional_balance_context
+    result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
+    first_year = result[:yearly].first
+    assert first_year[:age] < 73, "First year should be before RMD age"
+  end
+
+  def test_fill_to_bracket_converts_when_below_the_ceiling
       result = simulator.run(
         strategy: :fill_to_bracket, 
         strategy_params: { ceiling: 94_300 },
@@ -73,9 +63,9 @@ describe Foresight::Simple::Simulator do
       end
       
       assert total_conversions > 0, "Fill to bracket should perform conversions"
-    end
+  end
 
-    it "respects the traditional IRA balance limit" do
+  def test_fill_to_bracket_respects_traditional_balance_limit
       # Profile with small traditional balance
       small_trad_profile = minimal_profile.dup
       small_trad_profile[:accounts] = minimal_profile[:accounts].map do |acct|
@@ -98,11 +88,9 @@ describe Foresight::Simple::Simulator do
       end
 
       assert total_conversions <= 10_000, "Cannot convert more than available balance"
-    end
   end
 
-  describe "RMD calculations" do
-    it "starts RMDs at age 73" do
+  def test_rmd_starts_at_age_73
       # Profile for someone turning 73
       rmd_profile = minimal_profile.dup
       rmd_profile[:members] = [{ name: 'Elder', date_of_birth: '1951-01-01' }]
@@ -116,9 +104,9 @@ describe Foresight::Simple::Simulator do
       
       # Should have RMD income
       assert year_73[:income_sources][:rmd] > 0, "Should have RMD at age 73"
-    end
+  end
 
-    it "has no RMDs before age 73" do
+  def test_no_rmds_before_age_73
       result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
       
       # All years should be before age 73 in our minimal profile
@@ -127,11 +115,9 @@ describe Foresight::Simple::Simulator do
           assert_equal 0, year[:income_sources][:rmd], "No RMD before age 73"
         end
       end
-    end
   end
 
-  describe "Social Security behavior" do
-    it "starts benefits at claiming age" do
+  def test_social_security_starts_benefits_at_claiming_age
       result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
       
       result[:yearly].each do |year|
@@ -141,31 +127,27 @@ describe Foresight::Simple::Simulator do
           assert_equal 30_000, year[:income_sources][:social_security], "Full SS after claiming"
         end
       end
-    end
   end
 
-  describe "aggregate results" do
-    it "calculates cumulative taxes correctly" do
+  def test_aggregate_calculates_cumulative_taxes_correctly
       result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
       
       manual_sum = result[:yearly].sum { |y| y[:total_tax] }
       
       assert_equal manual_sum.round(0), result[:aggregate][:cumulative_taxes],
         "Aggregate cumulative taxes should match sum of yearly taxes"
-    end
+  end
 
-    it "reports final year's net worth" do
+  def test_aggregate_reports_final_year_net_worth
       result = simulator.run(strategy: :do_nothing, profile: minimal_profile)
       
       last_year_nw = result[:yearly].last[:ending_net_worth]
       
       assert_equal last_year_nw, result[:aggregate][:ending_net_worth],
         "Aggregate net worth should match final year"
-    end
   end
 
-  describe "withdrawal hierarchy" do
-    it "withdraws from taxable account first" do
+  def test_withdraws_from_taxable_first_when_covering_shortfall
       # Profile where expenses exceed income sources
       withdrawal_profile = minimal_profile.dup
       withdrawal_profile[:household][:annual_expenses] = 90_000
@@ -179,11 +161,9 @@ describe Foresight::Simple::Simulator do
       
       # Should have withdrawn for spending (90k expenses - 30k SS = 60k shortfall)
       assert first_year[:income_sources][:withdrawals] > 0, "Should withdraw to cover shortfall"
-    end
   end
 
-  describe "asset growth" do
-    it "grows accounts according to growth assumptions" do
+  def test_grows_accounts_according_to_growth_assumptions
       # Use simple profile with minimal withdrawals
       growth_profile = minimal_profile.dup
       growth_profile[:household][:annual_expenses] = 10_000  # Minimal expenses
@@ -195,6 +175,5 @@ describe Foresight::Simple::Simulator do
       last_nw = result[:yearly].last[:ending_net_worth]
       
       assert last_nw > first_nw, "Net worth should grow with positive returns"
-    end
   end
 end

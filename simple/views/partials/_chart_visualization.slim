@@ -1,0 +1,26 @@
+/ Chart Visualization
+div data-controller="chart"
+  h2
+    | Annual Income & Tax Details
+  span.toggle data-action="click->chart#toggle" (Show Table)
+
+  #chart-container
+    canvas data-chart-target="canvas"
+
+  / Data table (hidden by default)
+  table.data-table.hidden data-chart-target="table"
+    thead
+      tr
+        th Year
+        th Age
+        th Total Gross Income
+        th Total Tax
+        th Ending Net Worth
+    tbody
+      - fill_bracket_results[:yearly].each do |row|
+        tr
+          td = row[:year]
+          td = row[:age]
+          td = format_currency(row[:total_gross_income])
+          td = format_currency(row[:total_tax])
+          td = format_currency(row[:ending_net_worth])

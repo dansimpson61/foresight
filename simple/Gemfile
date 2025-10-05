@@ -9,3 +9,7 @@ group :test do
   gem 'minitest'
   gem 'rack-test'
 end
+
+group :development, :test do
+  gem 'slim_lint', require: false
+end

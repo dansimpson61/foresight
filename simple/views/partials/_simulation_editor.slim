@@ -1,0 +1,65 @@
+/ Simulation Editor
+div.editor-section data-controller="simulation"
+  div.editor-header
+  h2
+      | Simulation Parameters
+      span.toggle data-action="click->simulation#toggleEditor" ✎ Edit
+
+  form.editor-form.hidden data-simulation-target="form"
+    .form-section
+      h3 Simulation Settings
+      .form-grid
+        .form-group
+          label Years to Simulate
+          input type="number" min="1" max="50" data-simulation-target="yearsToSimulate" value=profile[:years_to_simulate]
+          .form-help How many years into the future (1-50)
+
+        .form-group
+          label Start Year
+          input type="number" data-simulation-target="startYear" value=profile[:start_year]
+          .form-help First year of simulation
+
+        .form-group
+          label Inflation Rate
+          input type="number" step="0.001" data-simulation-target="inflationRate" value=profile[:inflation_rate]
+          .form-help Annual inflation (e.g., 0.03 = 3%)
+
+    .form-section
+      h3 Growth Rate Assumptions
+      .form-grid
+        .form-group
+          label Traditional IRA Growth
+          input type="number" step="0.001" data-simulation-target="traditionalGrowth" value=profile[:growth_assumptions][:traditional]
+          .form-help Annual return (e.g., 0.06 = 6%)
+
+        .form-group
+          label Roth IRA Growth
+          input type="number" step="0.001" data-simulation-target="rothGrowth" value=profile[:growth_assumptions][:roth]
+          .form-help Annual return (e.g., 0.06 = 6%)
+
+        .form-group
+          label Taxable Account Growth
+          input type="number" step="0.001" data-simulation-target="taxableGrowth" value=profile[:growth_assumptions][:taxable]
+          .form-help Annual return (e.g., 0.05 = 5%)
+
+        .form-group
+          label Cash Growth
+          input type="number" step="0.001" data-simulation-target="cashGrowth" value=profile[:growth_assumptions][:cash]
+          .form-help Annual return (e.g., 0.01 = 1%)
+
+    .form-section
+      h3 Conversion Strategy
+      .form-grid
+        .form-group
+          label Strategy
+          select data-simulation-target="strategy"
+            option value="do_nothing" Do Nothing (No Conversions)
+            option value="fill_to_bracket" selected Fill to Tax Bracket
+          .form-help Which conversion strategy to test
+
+        .form-group
+          label Target Tax Bracket Ceiling
+          input type="number" data-simulation-target="bracketCeiling" value="94300"
+          .form-help Convert up to this taxable income level
+
+    button.button type="button" data-action="click->simulation#save" Apply Settings & Re-run

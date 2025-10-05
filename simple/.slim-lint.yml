@@ -1,0 +1,11 @@
+linters:
+  LineLength:
+    enabled: false
+  TrailingWhitespace:
+    enabled: true
+  TrailingBlankLines:
+    enabled: false
+  RedundantDiv:
+    enabled: false
+  RuboCop:
+    enabled: false

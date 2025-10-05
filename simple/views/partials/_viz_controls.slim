@@ -1,0 +1,13 @@
+/ Visualization Controls
+div data-controller="viz"
+  h3
+    | Visualization
+    span.viz-badge data-viz-target="badge"
+      | fill_to_bracket
+  div
+    label style="margin-right: 1rem;"
+      input(type="radio" name="viz_strategy" value="fill_to_bracket" checked data-action="change->viz#choose" data-viz-target="radio")
+      |  Fill to Bracket
+    label
+      input(type="radio" name="viz_strategy" value="do_nothing" data-action="change->viz#choose" data-viz-target="radio")
+      |  Do Nothing

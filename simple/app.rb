@@ -14,6 +14,7 @@ require_relative 'lib/policies/withdrawal_policy'
   require_relative 'lib/flows/flow'
   require_relative 'lib/flows/rmd_flow'
   require_relative 'lib/flows/conversion_flow'
+  require_relative 'lib/decisions/fill_to_bracket_decision'
 
 module Foresight
   module Simple
@@ -233,19 +234,17 @@ module Foresight
   def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:, tax_brackets:, flows_applied: [])
         return [] if strategy == :do_nothing
 
-        taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
-        provisional_income_before_conversion = rmd + taxable_ord_from_withdrawals
-  taxable_ss_before_conversion = TaxPolicy.taxable_social_security(provisional_income_before_conversion, ss_benefit, tax_brackets)
-        taxable_income_before_conversion = rmd + taxable_ss_before_conversion + taxable_ord_from_withdrawals
+    ceiling = strategy_params[:ceiling]
+    amount = Decisions::FillToBracketDecision.propose_conversion_amount(
+      rmd: rmd,
+      ss_benefit: ss_benefit,
+      spending_withdrawals: spending_withdrawals,
+      tax_brackets: tax_brackets,
+      accounts: accounts,
+      ceiling: ceiling
+    )
 
-        headroom = strategy_params[:ceiling] - taxable_income_before_conversion
-        
-        total_trad_balance = accounts.select { |a| a.is_a?(TraditionalIRA) }.sum(&:balance)
-        return [] if total_trad_balance <= 0
-        
-        conversion_amount = [headroom, 0, total_trad_balance].sort[1]
-
-        perform_roth_conversion(conversion_amount, accounts, flows_applied: flows_applied)
+    perform_roth_conversion(amount, accounts, flows_applied: flows_applied)
       end
 
       # WithdrawalPolicy now provides withdrawal behavior

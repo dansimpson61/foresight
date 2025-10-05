@@ -1,0 +1,6 @@
+/ Embed data for JavaScript
+script id="simulation-data" type="application/json"
+  == { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
+
+script id="default-profile-data" type="application/json"
+  == profile.to_json

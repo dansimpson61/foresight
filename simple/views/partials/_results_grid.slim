@@ -1,0 +1,31 @@
+/ Results Display
+.results-grid data-controller="results"
+  .strategy-card
+    h2 Do Nothing Strategy
+    .metric
+      span.metric-label Cumulative Taxes Paid:
+      span.metric-value data-results-target="doNothingTaxes" = format_currency(do_nothing_results[:aggregate][:cumulative_taxes])
+    .metric
+      span.metric-label Ending Net Worth:
+      span.metric-value data-results-target="doNothingNetWorth" = format_currency(do_nothing_results[:aggregate][:ending_net_worth])
+    .metric
+      span.metric-label Total Gross Income:
+      span.metric-value data-results-target="doNothingIncome" = format_currency(do_nothing_results[:aggregate][:total_gross_income])
+    .metric
+      span.metric-label Total Expenses:
+      span.metric-value data-results-target="doNothingExpenses" = format_currency(do_nothing_results[:aggregate][:total_expenses])
+
+  .strategy-card
+    h2 Fill to Bracket Strategy
+    .metric
+      span.metric-label Cumulative Taxes Paid:
+      span.metric-value data-results-target="fillBracketTaxes" = format_currency(fill_bracket_results[:aggregate][:cumulative_taxes])
+    .metric
+      span.metric-label Ending Net Worth:
+      span.metric-value data-results-target="fillBracketNetWorth" = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
+    .metric
+      span.metric-label Total Gross Income:
+      span.metric-value data-results-target="fillBracketIncome" = format_currency(fill_bracket_results[:aggregate][:total_gross_income])
+    .metric
+      span.metric-label Total Expenses:
+      span.metric-value data-results-target="fillBracketExpenses" = format_currency(fill_bracket_results[:aggregate][:total_expenses])

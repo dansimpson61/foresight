@@ -1,0 +1,40 @@
+/ Flows Debug Panel
+div data-controller="flows"
+  h2
+    | Flows Applied (per year)
+  span.toggle data-action="click->flows#toggle" (Show Panel)
+
+  .accordion-panel.hidden data-flows-target="panel"
+    h3 Do Nothing Strategy
+    table.data-table
+      thead
+        tr
+          th style="text-align:left" Year
+          th style="text-align:left" Flows
+      tbody
+        - do_nothing_results[:yearly].each do |row|
+          tr
+            td style="text-align:left" = row[:year]
+            td style="text-align:left"
+              - if row[:flows_applied] && !row[:flows_applied].empty?
+                - row[:flows_applied].each do |f|
+                  div = "#{f[:type]}: $#{f[:amount].round(0)} (#{f[:tax_character]})"
+              - else
+                | —
+
+    h3 Fill to Bracket Strategy
+    table.data-table
+      thead
+        tr
+          th style="text-align:left" Year
+          th style="text-align:left" Flows
+      tbody
+        - fill_bracket_results[:yearly].each do |row|
+          tr
+            td style="text-align:left" = row[:year]
+            td style="text-align:left"
+              - if row[:flows_applied] && !row[:flows_applied].empty?
+                - row[:flows_applied].each do |f|
+                  div = "#{f[:type]}: $#{f[:amount].round(0)} (#{f[:tax_character]})"
+              - else
+                | —

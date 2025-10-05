@@ -1,0 +1,95 @@
+/ Profile Editor
+div.editor-section data-controller="profile"
+  div.editor-header
+  h2
+      | Your Financial Profile
+  span.toggle data-action="click->profile#toggleEditor" ✎ Edit
+
+  form.editor-form.hidden data-profile-target="form"
+    / Accordion UI
+    div data-controller="accordion"
+      - profile[:members].each_with_index do |member, member_index|
+        div.accordion-header data-action="click->accordion#toggle" = "#{member[:name]}'s Details"
+        div.accordion-panel.hidden
+          / Personal Information
+          .form-section
+            h3 Personal Information
+            .form-grid
+              .form-group
+                label Name
+                input type="text" data-profile-target="memberName" value=member[:name] data-member-index=member_index
+              .form-group
+                label Date of Birth
+                input type="date" data-profile-target="dateOfBirth" value=member[:date_of_birth] data-member-index=member_index
+                .form-help Current age: #{Time.now.year - Date.parse(member[:date_of_birth]).year}
+
+          / Individual Accounts
+          .form-section
+            h3 Individual Accounts
+            - profile[:accounts].each_with_index do |account, account_index|
+              - if account[:owner] == member[:name]
+                .account-entry
+                  h4 = "#{account[:type].to_s.capitalize} Account"
+                  .form-grid
+                    .form-group
+                      label Balance
+                      input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
+                    - if account[:type] == :taxable
+                      .form-group
+                        label Cost Basis Fraction
+                        input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
+                        .form-help e.g., 0.6 = 60%
+
+          / Individual Income Sources
+          .form-section
+            h3 Individual Income
+            - profile[:income_sources].each_with_index do |source, source_index|
+              - if source[:recipient] == member[:name]
+                .income-entry
+                  h4 = "Social Security"
+                  .form-grid
+                    .form-group
+                      label Annual PIA
+                      input type="number" data-profile-target="piaAnnual" value=source[:pia_annual] data-source-index=source_index
+                      .form-help Primary Insurance Amount
+                    .form-group
+                      label Claiming Age
+                      input type="number" min="62" max="70" data-profile-target="claimingAge" value=source[:claiming_age] data-source-index=source_index
+                      .form-help Age to start collecting
+
+    / Joint & Household Panel
+    div.accordion-header data-action="click->accordion#toggle" Joint & Household
+    div.accordion-panel.hidden
+      / Joint Accounts
+      .form-section
+        h3 Joint Accounts
+        - profile[:accounts].each_with_index do |account, account_index|
+          - if account[:owner] == 'joint'
+            .account-entry
+              h4 = "#{account[:type].to_s.capitalize} Account"
+              .form-grid
+                .form-group
+                  label Balance
+                  input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
+                - if account[:type] == :taxable
+                  .form-group
+                    label Cost Basis Fraction
+                    input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
+                    .form-help e.g., 0.6 = 60%
+
+      / Household Settings
+      .form-section
+        h3 Household Settings
+        .form-grid
+          .form-group
+            label Annual Expenses
+            input type="number" data-profile-target="annualExpenses" value=profile[:household][:annual_expenses]
+            .form-help Your estimated annual spending needs
+          .form-group
+            label Filing Status
+            select data-profile-target="filingStatus"
+              option value="mfj" selected=(profile[:household][:filing_status] == 'mfj') Married Filing Jointly
+              option value="single" selected=(profile[:household][:filing_status] == 'single') Single
+            .form-help Tax filing status
+
+    button.button type="button" data-action="click->profile#save" data-profile-target="saveButton" Save Profile & Update Results
