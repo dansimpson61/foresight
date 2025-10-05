@@ -1,5 +1,7 @@
 # ============================================================================
-# ASSETS - Things you own that have value
+# ASSETS - Things you own that have value.
+# Minimal contract: state (balance, owner, taxability) + grow/withdraw/deposit,
+# and a tax_on_withdrawal(amount) method implemented by subclasses.
 # ============================================================================
 
 class Asset

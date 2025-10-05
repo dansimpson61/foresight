@@ -1,5 +1,6 @@
 require_relative 'asset'
 
+# TaxableAccount - taxable; withdrawals realize capital gains based on cost basis fraction.
 class TaxableAccount < Asset
   attr_reader :cost_basis_fraction
 

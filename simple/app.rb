@@ -9,6 +9,9 @@ require_relative 'lib/asset'
 require_relative 'lib/traditional_ira'
 require_relative 'lib/roth_ira'
 require_relative 'lib/taxable_account'
+  require_relative 'lib/flows/flow'
+  require_relative 'lib/flows/rmd_flow'
+  require_relative 'lib/flows/conversion_flow'
 
 module Foresight
   module Simple
@@ -54,6 +57,12 @@ module Foresight
           do_nothing_results: do_nothing_results,
           fill_bracket_results: fill_bracket_results
         }
+      end
+
+      # Lightweight Mermaid viewer for object hierarchy diagrams
+      get '/diagrams' do
+        content = File.read(File.expand_path('../../docs/Object_Hierarchy.md', __dir__)) rescue "# Diagrams\n\nNo diagram file found."
+        slim :diagrams, locals: { markdown: content }
       end
 
       post '/run' do
@@ -116,6 +125,7 @@ module Foresight
           current_year = profile[:start_year] + i
           annual_expenses = profile[:household][:annual_expenses]
           tax_brackets = get_tax_brackets_for_year(current_year)
+          flows_applied = []
 
           # --- Joyful Refactor: Multi-person logic ---
           ages = profile[:members].each_with_object({}) do |member, h|
@@ -127,16 +137,20 @@ module Foresight
           # Social Security for all members
           ss_benefit = profile[:income_sources].select { |s| s[:type] == :social_security }.sum do |ss_source|
             recipient_age = ages[ss_source[:recipient]]
-            recipient_age >= ss_source[:claiming_age] ? ss_source[:pia_annual] : 0
+            (recipient_age && recipient_age >= ss_source[:claiming_age]) ? ss_source[:pia_annual] : 0
           end
 
           # RMDs for all traditional accounts based on owner's age
           rmd = accounts.select { |a| a.is_a?(TraditionalIRA) }.sum do |trad_account|
-            owner_age = ages[trad_account.owner]
-            next 0 unless owner_age # Joyful fix: Skip RMD calc if owner is not a person (e.g., 'joint')
+            owner_age = ages[trad_account.owner] || primary_person_age
+            next 0 unless owner_age # Skip RMD calc if no age context at all
 
             rmd_amount = trad_account.calculate_rmd(owner_age)
-            trad_account.withdraw(rmd_amount) # RMD is a forced withdrawal
+            next 0 if rmd_amount <= 0
+            # Use Flow abstraction to apply the RMD and trace it
+            rmd_flow = RMDFlow.new(amount: rmd_amount, account: trad_account)
+            flows_applied << { type: :rmd, amount: rmd_amount, tax_character: rmd_flow.tax_character, owner: trad_account.owner }
+            rmd_flow.apply(nil)
             rmd_amount
           end
 
@@ -154,7 +168,8 @@ module Foresight
             rmd: rmd,
             ss_benefit: ss_benefit,
             spending_withdrawals: spending_withdrawals,
-            tax_brackets: tax_brackets
+            tax_brackets: tax_brackets,
+            flows_applied: flows_applied
           )
 
           # D. Finalize Financial Picture for the Year
@@ -194,7 +209,8 @@ module Foresight
               traditional: (accounts.select { |a| a.is_a?(TraditionalIRA) }.sum(&:balance) || 0).round(0),
               roth: (accounts.select { |a| a.is_a?(RothIRA) }.sum(&:balance) || 0).round(0),
               taxable: (accounts.select { |a| a.is_a?(TaxableAccount) }.sum(&:balance) || 0).round(0)
-            }
+            },
+            flows_applied: flows_applied
           }
 
           # F. Grow assets for next year
@@ -212,7 +228,7 @@ module Foresight
         TAX_BRACKETS[applicable_year]
       end
 
-      def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:, tax_brackets:)
+  def determine_conversion_events(strategy:, strategy_params:, accounts:, rmd:, ss_benefit:, spending_withdrawals:, tax_brackets:, flows_applied: [])
         return [] if strategy == :do_nothing
 
         taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
@@ -227,7 +243,7 @@ module Foresight
         
         conversion_amount = [headroom, 0, total_trad_balance].sort[1]
 
-        perform_roth_conversion(conversion_amount, accounts)
+        perform_roth_conversion(conversion_amount, accounts, flows_applied: flows_applied)
       end
 
       def withdraw_for_spending(amount_needed, accounts)
@@ -258,7 +274,7 @@ module Foresight
         events
       end
 
-      def perform_roth_conversion(amount, accounts)
+      def perform_roth_conversion(amount, accounts, flows_applied: [])
         return [] if amount <= 0
         
         roth_acct = accounts.find { |a| a.is_a?(RothIRA) }
@@ -274,8 +290,14 @@ module Foresight
         trad_accounts.each do |trad_acct|
           break if amount_to_convert <= 0
 
-          converted_from_this_acct = trad_acct.withdraw(amount_to_convert)
-          roth_acct.deposit(converted_from_this_acct)
+          # Use Flow abstraction to apply conversion between accounts
+          before_trad = trad_acct.balance
+          conv_flow = ConversionFlow.new(amount: amount_to_convert, from_account: trad_acct, to_account: roth_acct)
+          conv_flow.apply(nil)
+          converted_from_this_acct = before_trad - trad_acct.balance
+          if converted_from_this_acct > 0
+            flows_applied << { type: :conversion, amount: converted_from_this_acct, tax_character: conv_flow.tax_character, from: trad_acct.owner, to: roth_acct.owner }
+          end
 
           amount_to_convert -= converted_from_this_acct
           converted_total += converted_from_this_acct

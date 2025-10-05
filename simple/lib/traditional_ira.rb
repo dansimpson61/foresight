@@ -5,6 +5,7 @@ class TraditionalIRA < Asset
     super(balance: balance, owner: owner, taxability: :tax_deferred)
   end
 
+  # TraditionalIRA - tax-deferred; withdrawals are ordinary income; subject to RMDs.
   def tax_on_withdrawal(amount)
     { ordinary_income: amount, capital_gains: 0 }
   end

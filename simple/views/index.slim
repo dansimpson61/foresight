@@ -283,6 +283,47 @@ html
 
     hr
 
+    / Flows Debug Panel
+    div data-controller="flows"
+      h2
+        | Flows Applied (per year)
+        span.toggle data-action="click->flows#toggle" (Show Panel)
+      
+      .accordion-panel.hidden data-flows-target="panel"
+        h3 Do Nothing Strategy
+        table.data-table
+          thead
+            tr
+              th style="text-align:left" Year
+              th style="text-align:left" Flows
+          tbody
+            - do_nothing_results[:yearly].each do |row|
+              tr
+                td style="text-align:left" = row[:year]
+                td style="text-align:left"
+                  - if row[:flows_applied] && !row[:flows_applied].empty?
+                    - row[:flows_applied].each do |f|
+                      div = "#{f[:type]}: $#{f[:amount].round(0)} (#{f[:tax_character]})"
+                  - else
+                    | —
+
+        h3 Fill to Bracket Strategy
+        table.data-table
+          thead
+            tr
+              th style="text-align:left" Year
+              th style="text-align:left" Flows
+          tbody
+            - fill_bracket_results[:yearly].each do |row|
+              tr
+                td style="text-align:left" = row[:year]
+                td style="text-align:left"
+                  - if row[:flows_applied] && !row[:flows_applied].empty?
+                    - row[:flows_applied].each do |f|
+                      div = "#{f[:type]}: $#{f[:amount].round(0)} (#{f[:tax_character]})"
+                  - else
+                    | —
+
     / Net Worth Visualization
     div data-controller="net-worth-chart"
       h2 Ending Net Worth by Account Type
@@ -306,4 +347,61 @@ html
     script src="#{base}/js/results_controller.js"
     script src="#{base}/js/net_worth_chart_controller.js"
     script src="#{base}/js/accordion_controller.js"
+  script src="#{base}/js/flows_controller.js"
     script src="#{base}/js/application.js"
+    / Safety inline bootstrap in case application.js fails to run due to load timing
+    script
+      | (function(){
+      |   function start(){
+      |     if (!window.__stimulusAppStarted && window.Stimulus && Stimulus.Application){
+      |       try{
+      |         var app = Stimulus.Application.start();
+      |         app.register('chart', ChartController);
+      |         app.register('profile', ProfileController);
+      |         app.register('simulation', SimulationController);
+      |         app.register('results', ResultsController);
+      |         app.register('net-worth-chart', NetWorthChartController);
+      |         app.register('accordion', AccordionController);
+      |         app.register('flows', FlowsController);
+      |         window.__stimulusAppStarted = true;
+      |         console.warn('[Foresight] Fallback bootstrap used');
+      |         var badge = document.createElement('div');
+      |         badge.textContent = 'Controllers: started (fallback)';
+      |         badge.style.position = 'fixed';
+      |         badge.style.bottom = '8px';
+      |         badge.style.left = '8px';
+      |         badge.style.padding = '4px 8px';
+      |         badge.style.background = '#f59e0b';
+      |         badge.style.color = 'white';
+      |         badge.style.fontSize = '12px';
+      |         badge.style.borderRadius = '4px';
+      |         badge.style.zIndex = '9999';
+      |         badge.style.opacity = '0.85';
+      |         document.body.appendChild(badge);
+      |       }catch(e){ console.error('[Foresight] Fallback bootstrap failed', e); }
+      |     }
+      |   }
+      |   if (document.readyState === 'loading'){
+      |     document.addEventListener('DOMContentLoaded', start);
+      |   } else {
+      |     start();
+      |   }
+      | })();
+
+    / Tiny footer toggle for controller status badge
+    script
+      | (function(){
+      |   var link = document.createElement('a');
+      |   link.href = '#';
+      |   link.textContent = 'toggle status badge';
+      |   link.style.position='fixed'; link.style.bottom='8px'; link.style.right='8px';
+      |   link.style.fontSize='12px'; link.style.color='#6b7280'; link.style.textDecoration='underline';
+      |   link.addEventListener('click', function(e){
+      |     e.preventDefault();
+      |     var badges = Array.from(document.querySelectorAll('div')).filter(function(d){
+      |       return /Controllers: started/.test(d.textContent);
+      |     });
+      |     badges.forEach(function(b){ b.style.display = (b.style.display === 'none' ? '' : 'none'); });
+      |   });
+      |   document.body.appendChild(link);
+      | })();

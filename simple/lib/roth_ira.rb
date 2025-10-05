@@ -1,5 +1,6 @@
 require_relative 'asset'
 
+# RothIRA - tax-free growth; withdrawals assumed tax-free in this simplified model; no RMDs.
 class RothIRA < Asset
   def initialize(balance:, owner:)
     super(balance: balance, owner: owner, taxability: :tax_free)
