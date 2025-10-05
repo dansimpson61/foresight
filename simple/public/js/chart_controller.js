@@ -14,8 +14,9 @@ class ChartController extends Stimulus.Controller {
       { key: 'conversions',     label: 'Roth Conversions',color: '#3b82f6', source: 'taxable_income_breakdown' }
     ];
 
-    this.update = this.update.bind(this);
-    window.addEventListener('profile:updated', this.update);
+  this.update = this.update.bind(this);
+  window.addEventListener('profile:updated', this.update);
+  window.addEventListener('simulation:updated', this.update);
 
     this.render();
   }
@@ -25,11 +26,16 @@ class ChartController extends Stimulus.Controller {
       this.chart.destroy();
     }
     window.removeEventListener('profile:updated', this.update);
+    window.removeEventListener('simulation:updated', this.update);
   }
 
   update(event) {
     const results = event.detail.results;
-    this.chartData = results.fill_bracket_results.yearly;
+    const strategy = (event.detail && event.detail.strategy) || 'fill_to_bracket';
+    const yearly = strategy === 'do_nothing' 
+      ? results.do_nothing_results.yearly 
+      : results.fill_bracket_results.yearly;
+    this.chartData = yearly;
     this.render();
     this.updateTable(this.chartData);
   }

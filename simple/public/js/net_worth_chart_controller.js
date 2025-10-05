@@ -13,8 +13,9 @@ class NetWorthChartController extends Stimulus.Controller {
       { key: 'traditional', label: 'Traditional', color: '#f97316' }
     ];
 
-    this.update = this.update.bind(this);
-    window.addEventListener('profile:updated', this.update);
+  this.update = this.update.bind(this);
+  window.addEventListener('profile:updated', this.update);
+  window.addEventListener('simulation:updated', this.update);
 
     this.render();
   }
@@ -23,12 +24,17 @@ class NetWorthChartController extends Stimulus.Controller {
     if (this.chart) {
       this.chart.destroy();
     }
-    window.removeEventListener('profile:updated', this.update);
+  window.removeEventListener('profile:updated', this.update);
+  window.removeEventListener('simulation:updated', this.update);
   }
 
   update(event) {
     const results = event.detail.results;
-    this.chartData = results.fill_bracket_results.yearly;
+    const strategy = (event.detail && event.detail.strategy) || 'fill_to_bracket';
+    const yearly = strategy === 'do_nothing' 
+      ? results.do_nothing_results.yearly 
+      : results.fill_bracket_results.yearly;
+    this.chartData = yearly;
     this.render();
   }
 
