@@ -13,4 +13,5 @@ group :development, :test do
 	gem 'capybara', '~> 3.40'
 	gem 'cuprite'
 	gem 'rack-test', '~> 2.1'
+  gem 'minitest', '~> 5.22'
 end

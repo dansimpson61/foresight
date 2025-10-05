@@ -9,6 +9,7 @@ require_relative 'lib/asset'
 require_relative 'lib/traditional_ira'
 require_relative 'lib/roth_ira'
 require_relative 'lib/taxable_account'
+require_relative 'lib/policies/tax_policy'
   require_relative 'lib/flows/flow'
   require_relative 'lib/flows/rmd_flow'
   require_relative 'lib/flows/conversion_flow'
@@ -181,10 +182,10 @@ module Foresight
           conversion_amount = conversion_events.sum { |e| e[:amount] }
 
           provisional_income = rmd + taxable_ord_from_withdrawals + conversion_amount
-          final_taxable_ss = calculate_taxable_social_security(provisional_income, ss_benefit, tax_brackets)
+          final_taxable_ss = TaxPolicy.taxable_social_security(provisional_income, ss_benefit, tax_brackets)
 
           total_ordinary_income = rmd + final_taxable_ss + taxable_ord_from_withdrawals + conversion_amount
-          taxes = calculate_taxes(total_ordinary_income, taxable_cg_from_withdrawals, tax_brackets)
+          taxes = TaxPolicy.calculate_taxes(total_ordinary_income, taxable_cg_from_withdrawals, tax_brackets)
 
           # E. Record results
           yearly_results << {
@@ -233,7 +234,7 @@ module Foresight
 
         taxable_ord_from_withdrawals = spending_withdrawals.sum { |e| e[:taxable_ordinary] }
         provisional_income_before_conversion = rmd + taxable_ord_from_withdrawals
-        taxable_ss_before_conversion = calculate_taxable_social_security(provisional_income_before_conversion, ss_benefit, tax_brackets)
+  taxable_ss_before_conversion = TaxPolicy.taxable_social_security(provisional_income_before_conversion, ss_benefit, tax_brackets)
         taxable_income_before_conversion = rmd + taxable_ss_before_conversion + taxable_ord_from_withdrawals
 
         headroom = strategy_params[:ceiling] - taxable_income_before_conversion
@@ -306,45 +307,7 @@ module Foresight
         [{ type: :conversion, amount: converted_total, taxable_ordinary: converted_total, taxable_capital_gains: 0 }] if converted_total > 0
       end
 
-      def calculate_taxes(ordinary_income, capital_gains, tax_brackets)
-        brackets = tax_brackets[:mfj]
-        deduction = tax_brackets[:standard_deduction][:mfj]
-        taxable_ord_after_deduction = [ordinary_income - deduction, 0].max
-
-        ord_tax = 0.0
-        remaining_ord = taxable_ord_after_deduction
-        brackets[:ordinary].reverse_each do |bracket|
-          next if remaining_ord <= bracket[:income]
-          taxable_at_this_rate = remaining_ord - bracket[:income]
-          ord_tax += taxable_at_this_rate * bracket[:rate]
-          remaining_ord = bracket[:income]
-        end
-
-        cg_tax = 0.0
-        if taxable_ord_after_deduction > brackets[:capital_gains][1][:income]
-          cg_tax = capital_gains * brackets[:capital_gains][1][:rate]
-        elsif taxable_ord_after_deduction > brackets[:capital_gains][0][:income]
-          cg_tax = capital_gains * 0.15
-        end
-
-        total = ord_tax + cg_tax
-        { federal: ord_tax, capital_gains: cg_tax, total: total }
-      end
-
-      def calculate_taxable_social_security(provisional_income, ss_total, tax_brackets)
-        return 0.0 if ss_total <= 0
-        thresholds = tax_brackets[:mfj][:social_security_provisional_income]
-        provisional = provisional_income + (ss_total * 0.5)
-        return 0.0 if provisional <= thresholds[:phase1_start]
-        
-        if provisional <= thresholds[:phase2_start]
-          return (provisional - thresholds[:phase1_start]) * 0.5
-        end
-
-        phase1_taxable = (thresholds[:phase2_start] - thresholds[:phase1_start]) * 0.5
-        phase2_taxable = (provisional - thresholds[:phase2_start]) * 0.85
-        [phase1_taxable + phase2_taxable, ss_total * 0.85].min
-      end
+      # TaxPolicy now provides tax calculations
 
       def grow_assets(accounts, growth_assumptions)
         accounts.each do |account|

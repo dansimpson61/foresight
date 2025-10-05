@@ -1,0 +1,138 @@
+doctype html
+html
+  head
+    title Simple Foresight
+    link rel="icon" type="image/svg+xml" href="/favicon.svg"
+    style
+      | body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; background-color: #fdfdfd; }
+      | h1, h2 { color: #111; }
+      | .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+      | .strategy-card { padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fff; }
+      | .strategy-card h2 { margin-top: 0; }
+      | .metric { margin-bottom: 0.5rem; }
+      | .metric-label { font-weight: bold; }
+      | #chart-container { width: 100%; height: 400px; }
+      | .toggle { font-size: 0.8rem; font-weight: normal; color: #3b82f6; cursor: pointer; }
+      | .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+      | .data-table.hidden { display: none; }
+      | .data-table th, .data-table td { border: 1px solid #e0e0e0; padding: 0.5rem; text-align: right; }
+      | .data-table th { background-color: #f8f8f8; font-weight: bold; }
+      | [data-chart-target='legend'] { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280; }
+      | .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+      | .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+      | .profile-header { display: flex; justify-content: space-between; align-items: center; }
+      | .profile-form { margin-top: 1.5rem; padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fdfdfd; }
+      | .profile-form.hidden { display: none; }
+      | .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+      | .form-group { display: flex; flex-direction: column; }
+      | .form-group label { font-weight: bold; margin-bottom: 0.5rem; font-size: 0.9rem; }
+      | .form-group input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+      | .button { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 1.5rem; }
+      | hr { border: none; border-top: 1px solid #e0e0e0; margin: 2rem 0; }
+  body
+    header
+      h1 Simple Foresight: A Radical Act of Simplification
+      nav
+        a href="/" Home
+        |  · 
+        a href="/ui" Classic
+        |  · 
+        a href="/simple/" Simple
+
+    div data-controller="profile"
+      h2.profile-header
+        | Financial Profile
+        span.toggle data-action="click->profile#toggleEditor" (Edit)
+
+      form.profile-form.hidden data-profile-target="form"
+        .form-grid
+          .form-group
+            label for="annual_expenses" Annual Expenses
+            input type="number" data-profile-target="annualExpenses" value=profile_for_view[:annual_expenses]
+          .form-group
+            label for="traditional_balance" Traditional IRA Balance
+            input type="number" data-profile-target="traditionalBalance" value=profile_for_view[:traditional_balance]
+          .form-group
+            label for="roth_balance" Roth IRA Balance
+            input type="number" data-profile-target="rothBalance" value=profile_for_view[:roth_balance]
+          .form-group
+            label for="taxable_balance" Taxable Account Balance
+            input type="number" data-profile-target="taxableBalance" value=profile_for_view[:taxable_balance]
+          .form-group
+            label for="pia_annual" Social Security (Annual)
+            input type="number" data-profile-target="piaAnnual" value=profile_for_view[:pia_annual]
+
+        button.button type="button" data-action="click->profile#save" Save & Re-run Simulation
+
+    hr
+
+    .results-grid
+      .strategy-card
+        h2 Do Nothing Strategy
+        .metric
+          span.metric-label Cumulative Taxes Paid:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:cumulative_taxes])
+        .metric
+          span.metric-label Ending Net Worth:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:ending_net_worth])
+        .metric
+          span.metric-label Total Gross Income:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:total_gross_income])
+        .metric
+          span.metric-label Total Expenses:
+          span.metric-value = format_currency(do_nothing_results[:aggregate][:total_expenses])
+
+      .strategy-card
+        h2 Fill to Bracket Strategy
+        .metric
+          span.metric-label Cumulative Taxes Paid:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:cumulative_taxes])
+        .metric
+          span.metric-label Ending Net Worth:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:ending_net_worth])
+        .metric
+          span.metric-label Total Gross Income:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:total_gross_income])
+        .metric
+          span.metric-label Total Expenses:
+          span.metric-value = format_currency(fill_bracket_results[:aggregate][:total_expenses])
+
+    div data-controller="chart"
+      h2
+        | Annual Income & Tax Details
+        span.toggle data-action="click->chart#toggle"
+          |  (Details)
+      #chart-container data-chart-target="container"
+      div data-chart-target="legend"
+
+      / Embed data for JavaScript
+      script id="simulation-data" type="application/json"
+        == { do_nothing: do_nothing_results[:yearly], fill_bracket: fill_bracket_results[:yearly] }.to_json
+
+      table.data-table data-chart-target="table"
+        thead
+          tr
+            th Year
+            th Age
+            th Total Gross Income
+            th Total Tax
+            th Ending Net Worth
+        tbody
+          - fill_bracket_results[:yearly].each do |row|
+            tr
+              td = row[:year]
+              td = row[:age]
+              td = format_currency(row[:total_gross_income])
+              td = format_currency(row[:total_tax])
+              td = format_currency(row[:ending_net_worth])
+
+    / Embed default profile data for the editor
+    script id="default-profile-data" type="application/json"
+      == profile.to_json
+
+    / Load Stimulus, controllers, and the application entrypoint
+    - base = request.script_name
+    script src="#{base}/js/stimulus.umd.js"
+    script src="#{base}/js/chart_controller.js"
+    script src="#{base}/js/profile_controller.js"
+    script src="#{base}/js/application.js"

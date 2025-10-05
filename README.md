@@ -59,6 +59,13 @@ Foresight is proudly built with a minimalist, joyful stack:
             - Classic: `http://127.0.0.1:9292/ui`
             - Simple: `http://127.0.0.1:9292/simple/`
 
+### For AI contributors
+
+If you’re an AI agent contributing to this repo, please start with the onboarding guide and quick checklist:
+
+- docs/AI_Agent_Onboarding.md
+- docs/AI_Agent_Checklist.md
+
 ## Key Endpoints
 
 *   `GET /ui`: The primary user interface for running simulations.
@@ -84,3 +91,10 @@ The project is under active development. See the [`CHANGELOG.md`](./CHANGELOG.md
 To extract either app later:
 - Simple app can be copied as a standalone Rack app using `simple/config.ru`.
 - Main app remains standalone via `config.ru` at the repo root.
+
+## Namaste
+
+- Focus on the 'simple' app. Understand the parent ''foresight' app to be well-intentioned but poorly executed, too complex, too heavy, too convuluted. The parent app is a model and a cautionary tale, a beloved ancestor from whom we can learn but whom we must not emulate or imitate, a truly loving parent who wants us to be better in every way. Do not hesitate to ask questions if you struggle to understand anything.
+
+- Be simple. Be as good as bread.
+  
