@@ -10,6 +10,7 @@ require_relative 'lib/traditional_ira'
 require_relative 'lib/roth_ira'
 require_relative 'lib/taxable_account'
 require_relative 'lib/policies/tax_policy'
+require_relative 'lib/policies/withdrawal_policy'
   require_relative 'lib/flows/flow'
   require_relative 'lib/flows/rmd_flow'
   require_relative 'lib/flows/conversion_flow'
@@ -159,7 +160,7 @@ module Foresight
 
           # B. Determine Spending Shortfall and Withdrawals
           spending_shortfall = [annual_expenses - gross_income_from_sources, 0].max
-          spending_withdrawals = withdraw_for_spending(spending_shortfall, accounts)
+          spending_withdrawals = WithdrawalPolicy.withdraw_for_spending(spending_shortfall, accounts)
 
           # C. Determine Roth Conversion Amount
           conversion_events = determine_conversion_events(
@@ -247,33 +248,7 @@ module Foresight
         perform_roth_conversion(conversion_amount, accounts, flows_applied: flows_applied)
       end
 
-      def withdraw_for_spending(amount_needed, accounts)
-        events = []
-        remaining_need = amount_needed
-        withdrawal_order = [TaxableAccount, TraditionalIRA, RothIRA]
-
-        withdrawal_order.each do |account_class|
-          break if remaining_need <= 0
-          # Find all accounts of the class type and withdraw from them. A more complex system might prioritize joint vs individual.
-          accounts.select { |a| a.is_a?(account_class) }.each do |account|
-            break if remaining_need <= 0
-            next unless account.balance > 0
-
-            pulled = account.withdraw(remaining_need)
-            remaining_need -= pulled
-
-            taxes = account.tax_on_withdrawal(pulled)
-
-            events << {
-              type: :withdrawal,
-              amount: pulled,
-              taxable_ordinary: taxes[:ordinary_income],
-              taxable_capital_gains: taxes[:capital_gains]
-            } if pulled > 0
-          end
-        end
-        events
-      end
+      # WithdrawalPolicy now provides withdrawal behavior
 
       def perform_roth_conversion(amount, accounts, flows_applied: [])
         return [] if amount <= 0

@@ -12,7 +12,8 @@
 
   try {
     // Register all controllers
-    application.register("chart", ChartController);
+  application.register("chart", ChartController);
+  application.register("viz", VizController);
     application.register("profile", ProfileController);
     application.register("simulation", SimulationController);
     application.register("results", ResultsController);

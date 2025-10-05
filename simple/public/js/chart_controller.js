@@ -4,7 +4,8 @@ class ChartController extends Stimulus.Controller {
 
   connect() {
     const chartJSON = JSON.parse(document.getElementById('simulation-data').textContent);
-    this.chartData = chartJSON.fill_bracket;
+    this.latestResults = { do_nothing_results: { yearly: chartJSON.do_nothing }, fill_bracket_results: { yearly: chartJSON.fill_bracket } };
+    this.chartData = this.latestResults.fill_bracket_results.yearly;
     this.tableTarget.classList.add('hidden');
 
     this.chartConfig = [
@@ -15,8 +16,16 @@ class ChartController extends Stimulus.Controller {
     ];
 
   this.update = this.update.bind(this);
-  window.addEventListener('profile:updated', this.update);
-  window.addEventListener('simulation:updated', this.update);
+    window.addEventListener('profile:updated', this.update);
+    window.addEventListener('simulation:updated', this.update);
+    this.handleViz = (e) => {
+      const strategy = (e && e.detail && e.detail.strategy) || 'fill_to_bracket';
+      const yearly = strategy === 'do_nothing' ? this.latestResults.do_nothing_results.yearly : this.latestResults.fill_bracket_results.yearly;
+      this.chartData = yearly;
+      this.render();
+      this.updateTable(this.chartData);
+    };
+    window.addEventListener('visualization:changed', this.handleViz);
 
     this.render();
   }
@@ -27,15 +36,14 @@ class ChartController extends Stimulus.Controller {
     }
     window.removeEventListener('profile:updated', this.update);
     window.removeEventListener('simulation:updated', this.update);
+    window.removeEventListener('visualization:changed', this.handleViz);
   }
 
   update(event) {
     const results = event.detail.results;
+    this.latestResults = results;
     const strategy = (event.detail && event.detail.strategy) || 'fill_to_bracket';
-    const yearly = strategy === 'do_nothing' 
-      ? results.do_nothing_results.yearly 
-      : results.fill_bracket_results.yearly;
-    this.chartData = yearly;
+    this.chartData = strategy === 'do_nothing' ? results.do_nothing_results.yearly : results.fill_bracket_results.yearly;
     this.render();
     this.updateTable(this.chartData);
   }
