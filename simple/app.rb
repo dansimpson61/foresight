@@ -14,7 +14,9 @@ require_relative 'lib/policies/withdrawal_policy'
   require_relative 'lib/flows/flow'
   require_relative 'lib/flows/rmd_flow'
   require_relative 'lib/flows/conversion_flow'
+  require_relative 'lib/flows/social_security_flow'
   require_relative 'lib/decisions/fill_to_bracket_decision'
+  require_relative 'lib/decisions/claim_ss_decision'
 
 module Foresight
   module Simple
@@ -64,8 +66,23 @@ module Foresight
 
       # Lightweight Mermaid viewer for object hierarchy diagrams
       get '/diagrams' do
-        content = File.read(File.expand_path('../../docs/Object_Hierarchy.md', __dir__)) rescue "# Diagrams\n\nNo diagram file found."
+        # Prefer repo-root docs path: ../docs/Object_Hierarchy.md relative to simple/
+        candidates = [
+          File.expand_path('../docs/Object_Hierarchy.md', __dir__),
+          File.expand_path('../../docs/Object_Hierarchy.md', __dir__)
+        ]
+        path = candidates.find { |p| File.exist?(p) }
+        content = if path && File.file?(path)
+          File.read(path)
+        else
+          "# Diagrams\n\nNo diagram file found."
+        end
         slim :diagrams, locals: { markdown: content }
+      end
+
+      # Redirect ICO favicon requests to our SVG icon to avoid 404s
+      get '/favicon.ico' do
+        redirect to('/favicon.svg')
       end
 
       post '/run' do
@@ -137,10 +154,15 @@ module Foresight
           primary_person_age = ages[profile[:members].first[:name]]
 
           # A. Calculate Gross Income (Non-Discretionary)
-          # Social Security for all members
-          ss_benefit = profile[:income_sources].select { |s| s[:type] == :social_security }.sum do |ss_source|
-            recipient_age = ages[ss_source[:recipient]]
-            (recipient_age && recipient_age >= ss_source[:claiming_age]) ? ss_source[:pia_annual] : 0
+          # Social Security for all members via decision + flow (pure, additive)
+          ss_flows = Decisions::ClaimSSDecision.decide_for_year(
+            ages: ages,
+            income_sources: profile[:income_sources]
+          )
+          ss_benefit = ss_flows.sum(&:amount)
+          ss_flows.each do |flow|
+            flows_applied << { type: :social_security, amount: flow.amount, tax_character: flow.tax_character, recipient: flow.recipient }
+            flow.apply(nil)
           end
 
           # RMDs for all traditional accounts based on owner's age
@@ -162,6 +184,14 @@ module Foresight
           # B. Determine Spending Shortfall and Withdrawals
           spending_shortfall = [annual_expenses - gross_income_from_sources, 0].max
           spending_withdrawals = WithdrawalPolicy.withdraw_for_spending(spending_shortfall, accounts)
+          # Trace withdrawals as flows for observability (additive-only)
+          spending_withdrawals.each do |e|
+            flows_applied << {
+              type: :withdrawal,
+              amount: e[:amount],
+              tax_character: (e[:taxable_ordinary].to_f > 0 ? :ordinary : (e[:taxable_capital_gains].to_f > 0 ? :capital_gains : :none))
+            }
+          end
 
           # C. Determine Roth Conversion Amount
           conversion_events = determine_conversion_events(

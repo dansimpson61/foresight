@@ -12,26 +12,16 @@ html
     script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"
     script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"
     script
-      | mermaid.initialize({ startOnLoad: false, theme: 'default' });
+      | mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
   body
     .container
       .header
         h1 Object Hierarchies
         a href="/" Back
       p.note This page renders Mermaid diagrams found inside docs/Object_Hierarchy.md (```mermaid blocks).
+      button#rerender type="button" style="margin: 0.5rem 0;" Re-render diagrams
+      .error-banner id="error" style="display:none; color:#b91c1c; background:#fee2e2; padding:0.5rem 0.75rem; border-radius:6px;" Mermaid failed to render. See console for details.
       #content
-    script
-      | const md = `#{markdown}`;
-      | const html = marked.parse(md);
-      | document.getElementById('content').innerHTML = html;
-      | // Activate Mermaid on rendered code blocks tagged as mermaid
-      | const codeBlocks = document.querySelectorAll('pre code.language-mermaid');
-      | codeBlocks.forEach((block) => {
-      |   const parent = block.parentElement;
-      |   const graph = block.textContent;
-      |   const container = document.createElement('div');
-      |   container.className = 'mermaid';
-      |   container.textContent = graph;
-      |   parent.replaceWith(container);
-      | });
-      | mermaid.run({ querySelector: '.mermaid' });
+  / Embed markdown as JSON payload for external script (unescaped)
+  script type="application/json" id="md-data"== markdown.to_json
+  script src="/js/diagrams.js"

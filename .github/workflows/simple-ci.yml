@@ -1,0 +1,43 @@
+name: Simple App CI
+
+on:
+  push:
+    paths:
+      - 'simple/**'
+      - '.github/workflows/simple-ci.yml'
+  pull_request:
+    paths:
+      - 'simple/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: simple
+
+      - name: Install dependencies
+        working-directory: simple
+        run: |
+          bundle install --jobs 4 --retry 3
+
+      - name: Slim lint (non-blocking for now)
+        working-directory: simple
+        continue-on-error: true
+        run: |
+          bundle exec slim-lint views
+
+      - name: Run tests
+        working-directory: simple
+        run: |
+          # Run view and decision tests explicitly; then run simulator
+          bundle exec ruby spec/views_spec.rb
+          bundle exec ruby spec/decisions/fill_to_bracket_decision_spec.rb
+          bundle exec ruby spec/simulator_spec.rb

@@ -4,7 +4,7 @@ Welcome! This guide orients AI coding agents to contribute joyfully and effectiv
 
 - The Ode to Joy development philosophy (root: `Ode to Joy - Ruby and Sinatra.txt`)
 - High-level intent docs (folder: `docs/`)
-- The radically simplified embedded app (folder: `simple/`)
+- The focus of our current attention: a radically simplified embedded app (folder: `simple/`)
 
 Keep changes small, intention-revealing, and delightful to read and maintain.
 
@@ -17,7 +17,7 @@ Build software that is technically sound, human-centered, and aesthetically faci
 - Minimalism: Prefer the least code that cleanly solves the problem. The best JavaScript is the least JavaScript.
 - Cohesion: Small, focused classes/methods; avoid needless abstractions.
 - Object-oriented: Encapsulated, self-knowing objects expose only what they choose to expose and only on their own terms.
-- Polymorphism: Objects clearly and simply adapt to their context, expressing flexible behaviors rooted in a single source of truth—inviting reuse and delight, never surprise.
+- Polymorphism: Objects can take on multiple forms and behaviors, allowing flexible and reusable code.
 - Tests as confidence: A tiny, readable test is better than a comment.
 - Joyful ergonomics: Thoughtful naming, graceful error handling, concise logs.
 

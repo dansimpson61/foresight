@@ -1,13 +1,13 @@
 # Medium-Distance Plan: Simple App Evolution
 
 Checklist (tick as we go)
-- [ ] Phase 0: Asset audit (docs + tests)
-- [ ] Phase 1: Flow base + RMD/Conversion flows
-- [ ] Phase 2: Extract TaxPolicy
-- [ ] Phase 3: Extract WithdrawalPolicy
-- [ ] Phase 4: Decisions (FillToBracket)
-- [ ] Phase 5: Social Security flow + claiming decision
-- [ ] Phase 6: Docs refresh
+[x] Phase 0: Asset audit (docs + tests)
+[x] Phase 1: Flow base + RMD/Conversion flows
+[x] Phase 2: Extract TaxPolicy
+[x] Phase 3: Extract WithdrawalPolicy
+[x] Phase 4: Decisions (FillToBracket)
+[x] Phase 5: Social Security flow + claiming decision
+[x] Phase 6: Docs refresh
 
 This plan guides a careful, incremental evolution to the Asset / Flow (behavioral) / Decision (value-driven) -> Simulation model. We proceed in small, test-backed steps, documenting and committing as we go.
 
