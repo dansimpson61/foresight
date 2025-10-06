@@ -18,10 +18,8 @@ household:
 members:
   - name: 'Pat'
     date_of_birth: '1964-05-01'
-    role: 'primary'
   - name: 'Sam'
     date_of_birth: '1966-03-15'
-    role: 'spouse'
 accounts:
   - type: :traditional
     owner: 'Pat'

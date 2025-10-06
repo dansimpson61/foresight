@@ -1,12 +1,25 @@
 # WithdrawalPolicy: pure helper to withdraw funds to cover a shortfall
 # Contract: withdraw_for_spending(amount_needed, accounts) -> array of events
-# Respects the current order: Taxable -> Traditional -> Roth
+# Respects either a provided order (symbols/strings) or the default: Taxable -> Traditional -> Roth
 class WithdrawalPolicy
   class << self
-    def withdraw_for_spending(amount_needed, accounts)
+    def withdraw_for_spending(amount_needed, accounts, order: nil)
       events = []
       remaining_need = amount_needed
-      withdrawal_order = [TaxableAccount, TraditionalIRA, RothIRA]
+      type_map = {
+        'taxable' => TaxableAccount,
+        :taxable => TaxableAccount,
+        'traditional' => TraditionalIRA,
+        :traditional => TraditionalIRA,
+        'roth' => RothIRA,
+        :roth => RothIRA
+      }
+      if order && order.respond_to?(:each)
+        mapped = order.map { |t| type_map[t] }.compact
+        withdrawal_order = mapped.empty? ? [TaxableAccount, TraditionalIRA, RothIRA] : mapped
+      else
+        withdrawal_order = [TaxableAccount, TraditionalIRA, RothIRA]
+      end
 
       withdrawal_order.each do |account_class|
         break if remaining_need <= 0

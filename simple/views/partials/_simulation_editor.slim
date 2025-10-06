@@ -53,13 +53,19 @@ div.editor-section data-controller="simulation"
         .form-group
           label Strategy
           select data-simulation-target="strategy"
-            option value="do_nothing" Do Nothing (No Conversions)
-            option value="fill_to_bracket" selected Fill to Tax Bracket
+            - current = (defined?(strategy) && strategy) ? strategy.to_s : 'fill_to_bracket'
+            option value="do_nothing" selected=(current == 'do_nothing') Do Nothing (No Conversions)
+            option value="fill_to_bracket" selected=(current == 'fill_to_bracket') Fill to Tax Bracket
           .form-help Which conversion strategy to test
 
         .form-group
           label Target Tax Bracket Ceiling
-          input type="number" data-simulation-target="bracketCeiling" value="94300"
+          - ceiling = (defined?(strategy_params) && strategy_params && strategy_params[:ceiling]) ? strategy_params[:ceiling] : 94300
+          input type="number" data-simulation-target="bracketCeiling" value=ceiling
           .form-help Convert up to this taxable income level
 
-    button.button type="button" data-action="click->simulation#save" Apply Settings & Re-run
+    .button-row
+      button.button type="button" data-action="click->simulation#save" Apply Settings & Re-run
+      button.button.secondary type="button" data-action="click->simulation#resetDefaults" Reset to Defaults
+      button.button.secondary type="button" data-action="click->simulation#saveAsDefaults" Save as Defaults
+      button.button.secondary.danger type="button" data-action="click->simulation#clearServerDefaults" Clear Server Defaults

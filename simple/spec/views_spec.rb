@@ -38,5 +38,14 @@ class ViewsSpec < Minitest::Test
     # A couple of expected headings should be present
     assert_includes body, 'Your Financial Profile'
     assert_includes body, 'Annual Income & Tax Details'
+
+    # Profile editor contains key household fields
+    assert_includes body, 'State (2-letter)'
+    assert_includes body, 'Emergency Fund Floor'
+    assert_includes body, 'Withdrawal Hierarchy'
+
+    # Simulation editor contains key knobs
+    assert_includes body, 'Simulation Parameters'
+    assert_includes body, 'Target Tax Bracket Ceiling'
   end
 end

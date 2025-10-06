@@ -29,4 +29,22 @@ describe WithdrawalPolicy do
     total = events.sum { |e| e[:amount] }
     _(total).must_equal 1_000
   end
+
+  it 'honors a custom withdrawal order' do
+    taxable = TaxableAccount.new(balance: 10_000, owner: 'Pat', cost_basis_fraction: 0.6)
+    trad = TraditionalIRA.new(balance: 5_000, owner: 'Pat')
+    roth = RothIRA.new(balance: 5_000, owner: 'Pat')
+
+    # Custom order: Roth first, then Taxable, then Traditional
+    events = WithdrawalPolicy.withdraw_for_spending(8_000, [taxable, trad, roth], order: [:roth, :taxable, :traditional])
+    total = events.sum { |e| e[:amount] }
+
+    _(total).must_equal 8_000
+    # Should have withdrawn from Roth first
+    _(roth.balance).must_equal 0
+    # Then from Taxable to complete the need
+    _(taxable.balance).must_equal 7_000
+    # Traditional untouched
+    _(trad.balance).must_equal 5_000
+  end
 end

@@ -1,0 +1,80 @@
+{
+  "profile": {
+    "start_year": 2025,
+    "years_to_simulate": 30,
+    "inflation_rate": 0,
+    "growth_assumptions": {
+      "traditional": 0.04,
+      "roth": 0.05,
+      "taxable": 0.03,
+      "cash": 0.01
+    },
+    "household": {
+      "filing_status": "mfj",
+      "state": "NY",
+      "annual_expenses": 100000,
+      "emergency_fund_floor": 50000,
+      "withdrawal_hierarchy": [
+        "traditional",
+        "taxable",
+        "roth"
+      ]
+    },
+    "members": [
+      {
+        "name": "dan",
+        "date_of_birth": "1964-05-01"
+      },
+      {
+        "name": "norine",
+        "date_of_birth": "1966-03-15"
+      }
+    ],
+    "accounts": [
+      {
+        "type": "traditional",
+        "owner": "dan",
+        "balance": 1000000
+      },
+      {
+        "type": "traditional",
+        "owner": "dan",
+        "balance": 300000
+      },
+      {
+        "type": "roth",
+        "owner": "dan",
+        "balance": 250000
+      },
+      {
+        "type": "taxable",
+        "owner": "joint",
+        "balance": 500000,
+        "cost_basis_fraction": 0.6
+      },
+      {
+        "type": "cash",
+        "owner": "joint",
+        "balance": 100000
+      }
+    ],
+    "income_sources": [
+      {
+        "type": "social_security",
+        "recipient": "dan",
+        "pia_annual": 40000,
+        "claiming_age": 70
+      },
+      {
+        "type": "social_security",
+        "recipient": "dan",
+        "pia_annual": 28000,
+        "claiming_age": 68
+      }
+    ]
+  },
+  "strategy": "fill_to_bracket",
+  "strategy_params": {
+    "ceiling": 94300
+  }
+}

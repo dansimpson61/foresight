@@ -3,6 +3,7 @@ require 'slim'
 require 'json'
 require 'yaml'
 require 'date'
+require 'securerandom'
 
 # Load the domain model
 require_relative 'lib/asset'
@@ -17,6 +18,7 @@ require_relative 'lib/policies/withdrawal_policy'
   require_relative 'lib/flows/social_security_flow'
   require_relative 'lib/decisions/fill_to_bracket_decision'
   require_relative 'lib/decisions/claim_ss_decision'
+  require_relative 'lib/persistence'
 
 module Foresight
   module Simple
@@ -36,32 +38,95 @@ module Foresight
       end
     end
 
+    # Deep merge for Hash/Array that preserves defaults unless explicitly overridden.
+    # Arrays: if incoming array is nil or empty, keep base; otherwise replace (we avoid partial merging arrays for simplicity).
+    def self.deep_merge(base, overrides)
+      return base if overrides.nil?
+      case [base, overrides]
+      in [Hash => h1, Hash => h2]
+        (h1.keys | h2.keys).each_with_object({}) do |key, acc|
+          acc[key] = deep_merge(h1[key], h2[key])
+        end
+      in [Array => a1, Array => a2]
+        a2.nil? || a2.empty? ? a1 : a2
+      else
+        overrides.nil? ? base : overrides
+      end
+    end
+
     ROOT_DIR = File.expand_path(__dir__)
     DEFAULT_PROFILE = symbolize_keys(YAML.load_file(File.join(ROOT_DIR, 'profile.yml')))
     TAX_BRACKETS   = symbolize_keys(YAML.load_file(File.join(ROOT_DIR, 'tax_brackets.yml')))
 
     class UI < Sinatra::Base
-      set :root, File.expand_path('..', __FILE__)
+  set :root, File.expand_path('..', __FILE__)
       set :views, File.expand_path('views', __dir__)
       set :public_folder, File.expand_path('public', __dir__)
+  enable :sessions
+  set :session_secret, ENV['SESSION_SECRET'] || SecureRandom.hex(32)
       enable :static
 
       # --- The Application ---
       get '/' do
-        # Run simulations with the default profile for the initial page load
-        do_nothing_results = run_simulation(strategy: :do_nothing, profile: DEFAULT_PROFILE)
+        # Determine session key
+        session[:key] ||= Persistence.generate_key
+  persisted = Persistence.load(session[:key])
+  global_defaults = Persistence.load('defaults')
+        # Preserve baked-in defaults when persisted/defaults are partial by deep-merging
+        effective_profile = Foresight::Simple.deep_merge(
+          DEFAULT_PROFILE,
+          Foresight::Simple.deep_merge(global_defaults && global_defaults[:profile], persisted && persisted[:profile])
+        )
+  effective_strategy = (persisted && persisted[:strategy]) || (global_defaults && global_defaults[:strategy]) || :fill_to_bracket
+  effective_strategy_params = (persisted && persisted[:strategy_params]) || (global_defaults && global_defaults[:strategy_params]) || { ceiling: 94_300 }
+
+        # Run simulations with the effective (persisted or default) profile
+        do_nothing_results = run_simulation(strategy: :do_nothing, profile: effective_profile)
         fill_bracket_results = run_simulation(
-          strategy: :fill_to_bracket, 
-          strategy_params: { ceiling: 94_300 }, 
-          profile: DEFAULT_PROFILE
+          strategy: effective_strategy, 
+          strategy_params: effective_strategy_params, 
+          profile: effective_profile
         )
 
         # Pass results and complete profile to the view
         slim :index, locals: {
-          profile: DEFAULT_PROFILE,
+          profile: effective_profile,
+          strategy: effective_strategy,
+          strategy_params: effective_strategy_params,
           do_nothing_results: do_nothing_results,
           fill_bracket_results: fill_bracket_results
         }
+      end
+
+      # Reset this session to global defaults (or baked-in defaults if none saved)
+      post '/reset_defaults' do
+        content_type :json
+        session[:key] ||= Persistence.generate_key
+        # Remove session save by overwriting with nils; next GET will pick up global defaults
+        Persistence.save(session[:key], { profile: nil, strategy: nil, strategy_params: nil })
+        { status: 'ok' }.to_json
+      end
+
+      # Save the provided profile and simulation params as the global defaults
+      post '/save_defaults' do
+        content_type :json
+        payload = JSON.parse(request.body.read, symbolize_names: true)
+  incoming = Foresight::Simple.symbolize_keys(payload[:profile] || {})
+  profile = Foresight::Simple.deep_merge(DEFAULT_PROFILE, incoming)
+        strategy = (payload[:strategy] || :fill_to_bracket).to_sym
+        strategy_params = payload[:strategy_params] || { ceiling: 94_300 }
+        payload_to_save = { profile: profile, strategy: strategy, strategy_params: strategy_params }
+        Persistence.save('defaults', payload_to_save)
+        # Mirror to legacy path outside of test to maximize survivability across env changes
+        Persistence.save_legacy('defaults', payload_to_save) unless Persistence.env == 'test'
+        { status: 'ok' }.to_json
+      end
+
+      # Clear global defaults entirely (used by tests and recovery)
+      post '/clear_defaults' do
+        content_type :json
+        ok = Persistence.delete('defaults')
+        { status: ok ? 'ok' : 'error' }.to_json
       end
 
       # Lightweight Mermaid viewer for object hierarchy diagrams
@@ -87,12 +152,13 @@ module Foresight
 
       post '/run' do
         content_type :json
-        payload = JSON.parse(request.body.read, symbolize_names: true)
+  payload = JSON.parse(request.body.read, symbolize_names: true)
 
         # Extract profile, strategy, and parameters
         # Handle both old format (just profile) and new format (with strategy/params)
         profile_data = payload[:profile] || payload
-        profile = Foresight::Simple.symbolize_keys(profile_data) # Joyful fix: ensure all keys and values are symbolized correctly
+  raw_profile = Foresight::Simple.symbolize_keys(profile_data)
+  profile = Foresight::Simple.deep_merge(DEFAULT_PROFILE, raw_profile)
         strategy = payload[:strategy] || :fill_to_bracket
         strategy_params = payload[:strategy_params] || { ceiling: 94_300 }
 
@@ -103,6 +169,13 @@ module Foresight
           strategy_params: strategy_params, 
           profile: profile
         )
+
+        # Persist the submitted settings for this session
+        Persistence.save(session[:key], {
+          profile: profile,
+          strategy: strategy.to_sym,
+          strategy_params: strategy_params
+        })
 
         {
           do_nothing_results: do_nothing_results,
@@ -183,7 +256,8 @@ module Foresight
 
           # B. Determine Spending Shortfall and Withdrawals
           spending_shortfall = [annual_expenses - gross_income_from_sources, 0].max
-          spending_withdrawals = WithdrawalPolicy.withdraw_for_spending(spending_shortfall, accounts)
+          custom_order = profile.dig(:household, :withdrawal_hierarchy)
+          spending_withdrawals = WithdrawalPolicy.withdraw_for_spending(spending_shortfall, accounts, order: custom_order)
           # Trace withdrawals as flows for observability (additive-only)
           spending_withdrawals.each do |e|
             flows_applied << {

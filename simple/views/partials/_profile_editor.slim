@@ -58,16 +58,66 @@ div.editor-section data-controller="profile"
                       .form-help Age to start collecting
 
     / Joint & Household Panel
-    div.accordion-header data-action="click->accordion#toggle" Joint & Household
-    div.accordion-panel.hidden
-      / Joint Accounts
-      .form-section
-        h3 Joint Accounts
-        - profile[:accounts].each_with_index do |account, account_index|
-          - if account[:owner] == 'joint'
+    div data-controller="accordion"
+      div.accordion-header data-action="click->accordion#toggle" Joint & Household
+      div.accordion-panel.hidden
+        / Joint Accounts
+        .form-section
+          h3 Joint Accounts
+          - profile[:accounts].each_with_index do |account, account_index|
+            - if account[:owner] == 'joint'
+              .account-entry
+                h4 = "#{account[:type].to_s.capitalize} Account"
+                .form-grid
+                  .form-group
+                    label Balance
+                    input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
+                  - if account[:type] == :taxable
+                    .form-group
+                      label Cost Basis Fraction
+                      input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
+                      .form-help e.g., 0.6 = 60%
+
+        / Household Settings
+        .form-section
+          h3 Household Settings
+          .form-grid
+            .form-group
+              label Annual Expenses
+              input type="number" data-profile-target="annualExpenses" value=profile[:household][:annual_expenses]
+              .form-help Your estimated annual spending needs
+            .form-group
+              label State (2-letter)
+              input type="text" maxlength="2" data-profile-target="householdState" value=profile[:household][:state]
+              .form-help For future state tax support
+            .form-group
+              label Filing Status
+              select data-profile-target="filingStatus"
+                option value="mfj" selected=(profile[:household][:filing_status] == 'mfj') Married Filing Jointly
+                option value="single" selected=(profile[:household][:filing_status] == 'single') Single
+              .form-help Tax filing status
+            .form-group
+              label Emergency Fund Floor
+              input type="number" data-profile-target="emergencyFundFloor" value=profile[:household][:emergency_fund_floor]
+              .form-help Keep at least this amount in cash
+            .form-group
+              label Withdrawal Hierarchy
+              input type="text" placeholder=":taxable, :traditional, :roth" data-profile-target="withdrawalHierarchy" value=(profile[:household][:withdrawal_hierarchy] ? profile[:household][:withdrawal_hierarchy].map(&:to_s).join(', ') : '')
+              .form-help Comma-separated (e.g., :taxable, :traditional, :roth)
+
+        / All Accounts (Owner Reassignment)
+        .form-section
+          h3 All Accounts (Owner Reassignment)
+          - owners = (profile[:members].map { |m| m[:name] } + ['joint']).uniq
+          - profile[:accounts].each_with_index do |account, account_index|
             .account-entry
               h4 = "#{account[:type].to_s.capitalize} Account"
               .form-grid
+                .form-group
+                  label Owner
+                  select data-profile-target="accountOwner" data-account-index=account_index
+                    - owners.each do |owner_name|
+                      option value=owner_name selected=(account[:owner] == owner_name) = owner_name
                 .form-group
                   label Balance
                   input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
@@ -77,19 +127,28 @@ div.editor-section data-controller="profile"
                     input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
                     .form-help e.g., 0.6 = 60%
 
-      / Household Settings
-      .form-section
-        h3 Household Settings
-        .form-grid
-          .form-group
-            label Annual Expenses
-            input type="number" data-profile-target="annualExpenses" value=profile[:household][:annual_expenses]
-            .form-help Your estimated annual spending needs
-          .form-group
-            label Filing Status
-            select data-profile-target="filingStatus"
-              option value="mfj" selected=(profile[:household][:filing_status] == 'mfj') Married Filing Jointly
-              option value="single" selected=(profile[:household][:filing_status] == 'single') Single
-            .form-help Tax filing status
+        / All Income Sources (Recipient Reassignment)
+        .form-section
+          h3 All Income Sources (Recipient Reassignment)
+          - recipients = profile[:members].map { |m| m[:name] }
+          - profile[:income_sources].each_with_index do |source, source_index|
+            .income-entry
+              h4 = "Social Security"
+              .form-grid
+                .form-group
+                  label Recipient
+                  select data-profile-target="incomeRecipient" data-source-index=source_index
+                    - recipients.each do |rname|
+                      option value=rname selected=(source[:recipient] == rname) = rname
+                .form-group
+                  label Annual PIA
+                  input type="number" data-profile-target="piaAnnual" value=source[:pia_annual] data-source-index=source_index
+                .form-group
+                  label Claiming Age
+                  input type="number" min="62" max="70" data-profile-target="claimingAge" value=source[:claiming_age] data-source-index=source_index
 
-    button.button type="button" data-action="click->profile#save" data-profile-target="saveButton" Save Profile & Update Results
+    .button-row
+      button.button type="button" data-action="click->profile#save" data-profile-target="saveButton" Save Profile & Update Results
+      button.button.secondary type="button" data-action="click->profile#resetDefaults" Reset to Defaults
+      button.button.secondary type="button" data-action="click->profile#saveAsDefaults" Save as Defaults
+      button.button.secondary.danger type="button" data-action="click->profile#clearServerDefaults" Clear Server Defaults
