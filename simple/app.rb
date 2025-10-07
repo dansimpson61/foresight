@@ -68,17 +68,14 @@ module Foresight
 
       # --- The Application ---
       get '/' do
-        # Determine session key
-        session[:key] ||= Persistence.generate_key
-  persisted = Persistence.load(session[:key])
-  global_defaults = Persistence.load('defaults')
-        # Preserve baked-in defaults when persisted/defaults are partial by deep-merging
+        # Single source of truth: global defaults (or baked-in if none).
+        global_defaults = Persistence.load('defaults')
         effective_profile = Foresight::Simple.deep_merge(
           DEFAULT_PROFILE,
-          Foresight::Simple.deep_merge(global_defaults && global_defaults[:profile], persisted && persisted[:profile])
+          global_defaults && global_defaults[:profile]
         )
-  effective_strategy = (persisted && persisted[:strategy]) || (global_defaults && global_defaults[:strategy]) || :fill_to_bracket
-  effective_strategy_params = (persisted && persisted[:strategy_params]) || (global_defaults && global_defaults[:strategy_params]) || { ceiling: 94_300 }
+        effective_strategy = (global_defaults && global_defaults[:strategy]) || :fill_to_bracket
+        effective_strategy_params = (global_defaults && global_defaults[:strategy_params]) || { ceiling: 94_300 }
 
         # Run simulations with the effective (persisted or default) profile
         do_nothing_results = run_simulation(strategy: :do_nothing, profile: effective_profile)
@@ -98,12 +95,9 @@ module Foresight
         }
       end
 
-      # Reset this session to global defaults (or baked-in defaults if none saved)
+      # Reset to global defaults (stateless per session)
       post '/reset_defaults' do
         content_type :json
-        session[:key] ||= Persistence.generate_key
-        # Remove session save by overwriting with nils; next GET will pick up global defaults
-        Persistence.save(session[:key], { profile: nil, strategy: nil, strategy_params: nil })
         { status: 'ok' }.to_json
       end
 
@@ -162,7 +156,7 @@ module Foresight
 
       post '/run' do
         content_type :json
-  payload = JSON.parse(request.body.read, symbolize_names: true)
+        payload = JSON.parse(request.body.read, symbolize_names: true)
 
         # Extract profile, strategy, and parameters
         # Handle both old format (just profile) and new format (with strategy/params)
@@ -179,13 +173,6 @@ module Foresight
           strategy_params: strategy_params, 
           profile: profile
         )
-
-        # Persist the submitted settings for this session
-        Persistence.save(session[:key], {
-          profile: profile,
-          strategy: strategy.to_sym,
-          strategy_params: strategy_params
-        })
 
         {
           do_nothing_results: do_nothing_results,

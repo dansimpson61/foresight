@@ -16,18 +16,7 @@ class SimulationController extends Stimulus.Controller {
 
   connect() {
     // Load persisted profile and simulation strategy params to prefill
-    const store = window.FSUtils && FSUtils.storage;
-    const persisted = store ? store.loadJSON('foresight:simple:profile') : null;
-    if (persisted) {
-      document.getElementById('default-profile-data').textContent = JSON.stringify(persisted);
-    }
-    const sim = store ? store.loadJSON('foresight:simple:simulation') : null;
-    if (sim) {
-      if (sim.strategy) this.strategyTarget.value = sim.strategy;
-      if (sim.strategy_params && typeof sim.strategy_params.ceiling === 'number') {
-        this.bracketCeilingTarget.value = sim.strategy_params.ceiling;
-      }
-    }
+    // No client-side persistence; use server-provided defaults embedded in the page
   }
 
   toggleEditor(event) {
@@ -89,19 +78,7 @@ class SimulationController extends Stimulus.Controller {
         detail: { results, profile, strategy, strategyParams } 
       });
       window.dispatchEvent(event);
-      // Persist simulation selections for better UX continuity
-      if (window.FSUtils && FSUtils.storage) {
-        FSUtils.storage.saveJSON('foresight:simple:simulation', { strategy, strategy_params: strategyParams });
-        FSUtils.storage.saveJSON('foresight:simple:profile', profile);
-      } else {
-        try {
-          localStorage.setItem('foresight:simple:simulation', JSON.stringify({ strategy, strategy_params: strategyParams }));
-          localStorage.setItem('foresight:simple:profile', JSON.stringify(profile));
-        } catch (e) {
-          console.warn('Could not persist simulation settings.', e);
-        }
-      }
-      
+      // No client persistence; keep state server-side only
     } catch (error) {
       console.error('Error running simulation:', error);
       alert('Failed to update simulation. Please check your inputs and try again.');
@@ -115,12 +92,6 @@ class SimulationController extends Stimulus.Controller {
       } else {
         const res = await fetch('/reset_defaults', { method: 'POST' });
         if (!res.ok) throw new Error('Failed to reset defaults');
-      }
-      if (window.FSUtils && FSUtils.storage) {
-        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
-      } else {
-        localStorage.removeItem('foresight:simple:profile');
-        localStorage.removeItem('foresight:simple:simulation');
       }
       window.location.reload();
     } catch (e) {
@@ -155,12 +126,6 @@ class SimulationController extends Stimulus.Controller {
       } else {
         const res = await fetch('/clear_defaults', { method: 'POST' });
         if (!res.ok) throw new Error('Failed to clear server defaults');
-      }
-      if (window.FSUtils && FSUtils.storage) {
-        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
-      } else {
-        localStorage.removeItem('foresight:simple:profile');
-        localStorage.removeItem('foresight:simple:simulation');
       }
       window.location.reload();
     } catch (e) {

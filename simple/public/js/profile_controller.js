@@ -21,11 +21,7 @@ class ProfileController extends Stimulus.Controller {
   ]
 
   connect() {
-    // Load persisted profile if present
-    const stored = (window.FSUtils && FSUtils.storage) ? FSUtils.storage.loadJSON('foresight:simple:profile') : null;
-    if (stored) {
-      document.getElementById('default-profile-data').textContent = JSON.stringify(stored);
-    }
+    // No client-side persistence; use server-provided defaults embedded in the page
   }
 
   toggleEditor(event) {
@@ -48,19 +44,8 @@ class ProfileController extends Stimulus.Controller {
 
   async resetDefaults() {
     try {
-      if (window.FSUtils && FSUtils.fetchJson) {
-        await FSUtils.fetchJson('/reset_defaults', {});
-      } else {
-        const res = await fetch('/reset_defaults', { method: 'POST' });
-        if (!res.ok) throw new Error('Failed to reset defaults');
-      }
-      // Clear local persistence too
-      if (window.FSUtils && FSUtils.storage) {
-        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
-      } else {
-        localStorage.removeItem('foresight:simple:profile');
-        localStorage.removeItem('foresight:simple:simulation');
-      }
+      if (window.FSUtils && FSUtils.fetchJson) { await FSUtils.fetchJson('/reset_defaults', {}); }
+      else { const res = await fetch('/reset_defaults', { method: 'POST' }); if (!res.ok) throw new Error('Failed to reset defaults'); }
       // Reload page to pick up defaults
       window.location.reload();
     } catch (e) {
@@ -86,19 +71,8 @@ class ProfileController extends Stimulus.Controller {
 
   async clearServerDefaults() {
     try {
-      if (window.FSUtils && FSUtils.fetchJson) {
-        await FSUtils.fetchJson('/clear_defaults', {});
-      } else {
-        const res = await fetch('/clear_defaults', { method: 'POST' });
-        if (!res.ok) throw new Error('Failed to clear server defaults');
-      }
-      // Also clear localStorage for a clean slate
-      if (window.FSUtils && FSUtils.storage) {
-        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
-      } else {
-        localStorage.removeItem('foresight:simple:profile');
-        localStorage.removeItem('foresight:simple:simulation');
-      }
+      if (window.FSUtils && FSUtils.fetchJson) { await FSUtils.fetchJson('/clear_defaults', {}); }
+      else { const res = await fetch('/clear_defaults', { method: 'POST' }); if (!res.ok) throw new Error('Failed to clear server defaults'); }
       window.location.reload();
     } catch (e) {
       alert('Could not clear server defaults.');
@@ -180,12 +154,7 @@ class ProfileController extends Stimulus.Controller {
         detail: { results, profile } 
       });
       window.dispatchEvent(event);
-      // Persist profile after successful update
-      if (window.FSUtils && FSUtils.storage) {
-        FSUtils.storage.saveJSON('foresight:simple:profile', profile);
-      } else {
-        try { localStorage.setItem('foresight:simple:profile', JSON.stringify(profile)); } catch (e) { console.warn('Could not persist profile.', e); }
-      }
+      // No client persistence; keep state server-side only
       
     } catch (error) {
       console.error('Error running simulation:', error);
