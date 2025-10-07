@@ -1,9 +1,14 @@
 // A simple Stimulus controller to manage the accordion UI for the profile editor
 class AccordionController extends Stimulus.Controller {
-
   toggle(event) {
-    // Find the panel that is the next element after the clicked header
-    const panel = event.currentTarget.nextElementSibling;
-    panel.classList.toggle('hidden');
+    const header = event.currentTarget;
+    const panel = header.nextElementSibling;
+    if (!panel) return;
+    if (window.FSUtils && FSUtils.toggleExpanded) {
+      FSUtils.toggleExpanded(panel, header);
+    } else {
+      const isHidden = panel.classList.toggle('hidden');
+      header.setAttribute('aria-expanded', String(!isHidden));
+    }
   }
 }

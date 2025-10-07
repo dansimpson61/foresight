@@ -3,9 +3,9 @@ div.editor-section data-controller="simulation"
   div.editor-header
   h2
       | Simulation Parameters
-      span.toggle data-action="click->simulation#toggleEditor" ✎ Edit
+  button.toggle type="button" aria-expanded="false" aria-controls="simulation-editor-form" data-action="click->simulation#toggleEditor" ✎ Edit
 
-  form.editor-form.hidden data-simulation-target="form"
+  form#simulation-editor-form.editor-form.hidden data-simulation-target="form"
     .form-section
       h3 Simulation Settings
       .form-grid
@@ -68,4 +68,4 @@ div.editor-section data-controller="simulation"
       button.button type="button" data-action="click->simulation#save" Apply Settings & Re-run
       button.button.secondary type="button" data-action="click->simulation#resetDefaults" Reset to Defaults
       button.button.secondary type="button" data-action="click->simulation#saveAsDefaults" Save as Defaults
-      button.button.secondary.danger type="button" data-action="click->simulation#clearServerDefaults" Clear Server Defaults
+      button.button.danger type="button" data-action="click->simulation#clearServerDefaults" Clear Server Defaults

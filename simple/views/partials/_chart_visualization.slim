@@ -2,13 +2,13 @@
 div data-controller="chart"
   h2
     | Annual Income & Tax Details
-  span.toggle data-action="click->chart#toggle" (Show Table)
+  button.toggle type="button" aria-controls="annual-table" aria-expanded="false" data-action="click->chart#toggle" (Show Table)
 
   #chart-container
     canvas data-chart-target="canvas"
 
   / Data table (hidden by default)
-  table.data-table.hidden data-chart-target="table"
+  table#annual-table.data-table.hidden data-chart-target="table"
     thead
       tr
         th Year

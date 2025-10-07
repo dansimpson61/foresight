@@ -16,27 +16,30 @@ class SimulationController extends Stimulus.Controller {
 
   connect() {
     // Load persisted profile and simulation strategy params to prefill
-    try {
-      const rawProfile = localStorage.getItem('foresight:simple:profile');
-      if (rawProfile) {
-        const persisted = JSON.parse(rawProfile);
-        document.getElementById('default-profile-data').textContent = JSON.stringify(persisted);
+    const store = window.FSUtils && FSUtils.storage;
+    const persisted = store ? store.loadJSON('foresight:simple:profile') : null;
+    if (persisted) {
+      document.getElementById('default-profile-data').textContent = JSON.stringify(persisted);
+    }
+    const sim = store ? store.loadJSON('foresight:simple:simulation') : null;
+    if (sim) {
+      if (sim.strategy) this.strategyTarget.value = sim.strategy;
+      if (sim.strategy_params && typeof sim.strategy_params.ceiling === 'number') {
+        this.bracketCeilingTarget.value = sim.strategy_params.ceiling;
       }
-      const rawSim = localStorage.getItem('foresight:simple:simulation');
-      if (rawSim) {
-        const sim = JSON.parse(rawSim);
-        if (sim.strategy) this.strategyTarget.value = sim.strategy;
-        if (sim.strategy_params && typeof sim.strategy_params.ceiling === 'number') {
-          this.bracketCeilingTarget.value = sim.strategy_params.ceiling;
-        }
-      }
-    } catch (e) {
-      console.warn('Could not load persisted simulation settings.', e);
     }
   }
 
-  toggleEditor() {
-    this.formTarget.classList.toggle('hidden');
+  toggleEditor(event) {
+    if (window.FSUtils && FSUtils.toggleExpanded) {
+      FSUtils.toggleExpanded(this.formTarget, event && event.currentTarget);
+    } else {
+      this.formTarget.classList.toggle('hidden');
+      if (event && event.currentTarget) {
+        const expanded = !this.formTarget.classList.contains('hidden');
+        event.currentTarget.setAttribute('aria-expanded', String(expanded));
+      }
+    }
   }
 
   save() {
@@ -77,24 +80,9 @@ class SimulationController extends Stimulus.Controller {
         ? { ceiling: parseInt(this.bracketCeilingTarget.value, 10) }
         : {};
 
-      const response = await fetch('/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          profile: profile,
-          strategy: strategy,
-          strategy_params: strategyParams
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const results = await response.json();
+      const results = (window.FSUtils && FSUtils.fetchJson)
+        ? await FSUtils.fetchJson('/run', { profile, strategy, strategy_params: strategyParams })
+        : await (async () => { const r = await fetch('/run', { method:'POST', headers: { 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify({ profile, strategy, strategy_params: strategyParams }) }); if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`); return r.json(); })();
 
       // Dispatch event to update visualizations
       const event = new CustomEvent('simulation:updated', { 
@@ -102,11 +90,16 @@ class SimulationController extends Stimulus.Controller {
       });
       window.dispatchEvent(event);
       // Persist simulation selections for better UX continuity
-      try {
-        localStorage.setItem('foresight:simple:simulation', JSON.stringify({ strategy, strategy_params: strategyParams }));
-        localStorage.setItem('foresight:simple:profile', JSON.stringify(profile));
-      } catch (e) {
-        console.warn('Could not persist simulation settings.', e);
+      if (window.FSUtils && FSUtils.storage) {
+        FSUtils.storage.saveJSON('foresight:simple:simulation', { strategy, strategy_params: strategyParams });
+        FSUtils.storage.saveJSON('foresight:simple:profile', profile);
+      } else {
+        try {
+          localStorage.setItem('foresight:simple:simulation', JSON.stringify({ strategy, strategy_params: strategyParams }));
+          localStorage.setItem('foresight:simple:profile', JSON.stringify(profile));
+        } catch (e) {
+          console.warn('Could not persist simulation settings.', e);
+        }
       }
       
     } catch (error) {
@@ -117,10 +110,18 @@ class SimulationController extends Stimulus.Controller {
 
   async resetDefaults() {
     try {
-      const res = await fetch('/reset_defaults', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to reset defaults');
-      localStorage.removeItem('foresight:simple:profile');
-      localStorage.removeItem('foresight:simple:simulation');
+      if (window.FSUtils && FSUtils.fetchJson) {
+        await FSUtils.fetchJson('/reset_defaults', {});
+      } else {
+        const res = await fetch('/reset_defaults', { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to reset defaults');
+      }
+      if (window.FSUtils && FSUtils.storage) {
+        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
+      } else {
+        localStorage.removeItem('foresight:simple:profile');
+        localStorage.removeItem('foresight:simple:simulation');
+      }
       window.location.reload();
     } catch (e) {
       alert('Could not reset defaults.');
@@ -135,12 +136,12 @@ class SimulationController extends Stimulus.Controller {
       const strategyParams = strategy === 'fill_to_bracket' 
         ? { ceiling: parseInt(this.bracketCeilingTarget.value, 10) }
         : {};
-      const res = await fetch('/save_defaults', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, strategy, strategy_params: strategyParams })
-      });
-      if (!res.ok) throw new Error('Failed to save defaults');
+      if (window.FSUtils && FSUtils.fetchJson) {
+        await FSUtils.fetchJson('/save_defaults', { profile, strategy, strategy_params: strategyParams });
+      } else {
+        const res = await fetch('/save_defaults', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile, strategy, strategy_params: strategyParams }) });
+        if (!res.ok) throw new Error('Failed to save defaults');
+      }
       alert('Defaults saved for this server.');
     } catch (e) {
       alert('Could not save defaults.');
@@ -149,10 +150,18 @@ class SimulationController extends Stimulus.Controller {
 
   async clearServerDefaults() {
     try {
-      const res = await fetch('/clear_defaults', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to clear server defaults');
-      localStorage.removeItem('foresight:simple:profile');
-      localStorage.removeItem('foresight:simple:simulation');
+      if (window.FSUtils && FSUtils.fetchJson) {
+        await FSUtils.fetchJson('/clear_defaults', {});
+      } else {
+        const res = await fetch('/clear_defaults', { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to clear server defaults');
+      }
+      if (window.FSUtils && FSUtils.storage) {
+        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
+      } else {
+        localStorage.removeItem('foresight:simple:profile');
+        localStorage.removeItem('foresight:simple:simulation');
+      }
       window.location.reload();
     } catch (e) {
       alert('Could not clear server defaults.');

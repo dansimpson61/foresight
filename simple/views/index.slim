@@ -6,30 +6,36 @@ html
     - base = request.script_name
     link rel="stylesheet" href="#{base}/css/app.css"
   body
+    a.sr-only href="#main" Skip to main content
     header
       h1 Simple Foresight: A Radical Act of Simplification
-  == render :slim, :'partials/_profile_editor', locals: { profile: profile }
+      - if params[:dev] == '1'
+        p
+          a.dev-link href="/simple/tokens.html" rel="nofollow" Tokens
+  
+    main id="main"
+      == render :slim, :'partials/_profile_editor', locals: { profile: profile }
 
-    hr
+      hr
 
-  == render :slim, :'partials/_simulation_editor', locals: { profile: profile, strategy: strategy, strategy_params: strategy_params }
+      == render :slim, :'partials/_simulation_editor', locals: { profile: profile, strategy: strategy, strategy_params: strategy_params }
 
-  == render :slim, :'partials/_limitations_note'
+      == render :slim, :'partials/_limitations_note'
 
-    hr
+      hr
 
-  == render :slim, :'partials/_results_grid', locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
+      == render :slim, :'partials/_results_grid', locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
 
-  == render :slim, :'partials/_viz_controls'
+      == render :slim, :'partials/_viz_controls'
 
-  == render :slim, :'partials/_chart_visualization', locals: { fill_bracket_results: fill_bracket_results }
+      == render :slim, :'partials/_chart_visualization', locals: { fill_bracket_results: fill_bracket_results }
 
-    hr
+      hr
 
-  == render :slim, :'partials/_flows_panel', locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
+      == render :slim, :'partials/_flows_panel', locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
 
-  == render :slim, :'partials/_net_worth_chart'
+      == render :slim, :'partials/_net_worth_chart'
 
-  == render :slim, :'partials/_data_scripts', locals: { profile: profile, do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
+      == render :slim, :'partials/_data_scripts', locals: { profile: profile, do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
 
-  == render :slim, :'partials/_scripts'
+      == render :slim, :'partials/_scripts'

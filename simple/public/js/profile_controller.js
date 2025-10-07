@@ -22,19 +22,22 @@ class ProfileController extends Stimulus.Controller {
 
   connect() {
     // Load persisted profile if present
-    try {
-      const raw = localStorage.getItem('foresight:simple:profile');
-      if (raw) {
-        const persisted = JSON.parse(raw);
-        document.getElementById('default-profile-data').textContent = JSON.stringify(persisted);
-      }
-    } catch (e) {
-      console.warn('Could not load persisted profile; using embedded default.', e);
+    const stored = (window.FSUtils && FSUtils.storage) ? FSUtils.storage.loadJSON('foresight:simple:profile') : null;
+    if (stored) {
+      document.getElementById('default-profile-data').textContent = JSON.stringify(stored);
     }
   }
 
-  toggleEditor() {
-    this.formTarget.classList.toggle('hidden');
+  toggleEditor(event) {
+    if (window.FSUtils && FSUtils.toggleExpanded) {
+      FSUtils.toggleExpanded(this.formTarget, event && event.currentTarget);
+    } else {
+      this.formTarget.classList.toggle('hidden');
+      if (event && event.currentTarget) {
+        const expanded = !this.formTarget.classList.contains('hidden');
+        event.currentTarget.setAttribute('aria-expanded', String(expanded));
+      }
+    }
   }
 
   save() {
@@ -45,11 +48,19 @@ class ProfileController extends Stimulus.Controller {
 
   async resetDefaults() {
     try {
-      const res = await fetch('/reset_defaults', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to reset defaults');
+      if (window.FSUtils && FSUtils.fetchJson) {
+        await FSUtils.fetchJson('/reset_defaults', {});
+      } else {
+        const res = await fetch('/reset_defaults', { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to reset defaults');
+      }
       // Clear local persistence too
-      localStorage.removeItem('foresight:simple:profile');
-      localStorage.removeItem('foresight:simple:simulation');
+      if (window.FSUtils && FSUtils.storage) {
+        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
+      } else {
+        localStorage.removeItem('foresight:simple:profile');
+        localStorage.removeItem('foresight:simple:simulation');
+      }
       // Reload page to pick up defaults
       window.location.reload();
     } catch (e) {
@@ -61,12 +72,12 @@ class ProfileController extends Stimulus.Controller {
     try {
       const profile = this.buildProfileFromForm();
       const payload = { profile, strategy: 'fill_to_bracket', strategy_params: { ceiling: 94300 } };
-      const res = await fetch('/save_defaults', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error('Failed to save defaults');
+      if (window.FSUtils && FSUtils.fetchJson) {
+        await FSUtils.fetchJson('/save_defaults', payload);
+      } else {
+        const res = await fetch('/save_defaults', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Failed to save defaults');
+      }
       alert('Defaults saved for this server.');
     } catch (e) {
       alert('Could not save defaults.');
@@ -75,11 +86,19 @@ class ProfileController extends Stimulus.Controller {
 
   async clearServerDefaults() {
     try {
-      const res = await fetch('/clear_defaults', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to clear server defaults');
+      if (window.FSUtils && FSUtils.fetchJson) {
+        await FSUtils.fetchJson('/clear_defaults', {});
+      } else {
+        const res = await fetch('/clear_defaults', { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to clear server defaults');
+      }
       // Also clear localStorage for a clean slate
-      localStorage.removeItem('foresight:simple:profile');
-      localStorage.removeItem('foresight:simple:simulation');
+      if (window.FSUtils && FSUtils.storage) {
+        FSUtils.storage.remove(['foresight:simple:profile', 'foresight:simple:simulation']);
+      } else {
+        localStorage.removeItem('foresight:simple:profile');
+        localStorage.removeItem('foresight:simple:simulation');
+      }
       window.location.reload();
     } catch (e) {
       alert('Could not clear server defaults.');
@@ -151,22 +170,9 @@ class ProfileController extends Stimulus.Controller {
     button.textContent = 'Calculating...';
 
     try {
-      const response = await fetch('/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ profile: profile })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const results = await response.json();
+      const results = (window.FSUtils && FSUtils.fetchJson)
+        ? await FSUtils.fetchJson('/run', { profile })
+        : await (async () => { const r = await fetch('/run', { method:'POST', headers: { 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify({ profile }) }); if (!r.ok) { const t = await r.text(); console.error('Server error:', t); throw new Error(`HTTP error! status: ${r.status}`);} return r.json(); })();
       console.log('Received results:', results);
 
       // Dispatch event to update all visualizations
@@ -175,10 +181,10 @@ class ProfileController extends Stimulus.Controller {
       });
       window.dispatchEvent(event);
       // Persist profile after successful update
-      try {
-        localStorage.setItem('foresight:simple:profile', JSON.stringify(profile));
-      } catch (e) {
-        console.warn('Could not persist profile.', e);
+      if (window.FSUtils && FSUtils.storage) {
+        FSUtils.storage.saveJSON('foresight:simple:profile', profile);
+      } else {
+        try { localStorage.setItem('foresight:simple:profile', JSON.stringify(profile)); } catch (e) { console.warn('Could not persist profile.', e); }
       }
       
     } catch (error) {

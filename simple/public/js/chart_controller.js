@@ -9,10 +9,10 @@ class ChartController extends Stimulus.Controller {
     this.tableTarget.classList.add('hidden');
 
     this.chartConfig = [
-      { key: 'social_security', label: 'Social Security', color: '#a3e635', source: 'income_sources' },
-      { key: 'rmd',             label: 'RMDs',            color: '#6b7280', source: 'income_sources' },
-      { key: 'withdrawals',     label: 'Withdrawals',     color: '#f97316', source: 'income_sources' },
-      { key: 'conversions',     label: 'Roth Conversions',color: '#3b82f6', source: 'taxable_income_breakdown' }
+      { key: 'social_security', label: 'Social Security', color: 'rgba(163, 230, 53, 0.4)', border: '#7fb235', source: 'income_sources' },
+      { key: 'rmd',             label: 'RMDs',            color: 'rgba(107, 114, 128, 0.25)', border: '#6b7280', source: 'income_sources' },
+      { key: 'withdrawals',     label: 'Withdrawals',     color: 'rgba(249, 115, 22, 0.25)', border: '#ef7f1a', source: 'income_sources' },
+      { key: 'conversions',     label: 'Roth Conversions',color: 'rgba(37, 99, 235, 0.25)', border: '#2563eb', source: 'taxable_income_breakdown' }
     ];
 
   this.update = this.update.bind(this);
@@ -20,7 +20,7 @@ class ChartController extends Stimulus.Controller {
     window.addEventListener('simulation:updated', this.update);
     this.handleViz = (e) => {
       const strategy = (e && e.detail && e.detail.strategy) || 'fill_to_bracket';
-      const yearly = strategy === 'do_nothing' ? this.latestResults.do_nothing_results.yearly : this.latestResults.fill_bracket_results.yearly;
+      const yearly = (window.FSUtils && FSUtils.pickYearly) ? FSUtils.pickYearly(this.latestResults, strategy) : (strategy === 'do_nothing' ? this.latestResults.do_nothing_results.yearly : this.latestResults.fill_bracket_results.yearly);
       this.chartData = yearly;
       this.render();
       this.updateTable(this.chartData);
@@ -31,9 +31,7 @@ class ChartController extends Stimulus.Controller {
   }
 
   disconnect() {
-    if (this.chart) {
-      this.chart.destroy();
-    }
+    if (window.FSUtils && FSUtils.safeDestroy) { FSUtils.safeDestroy(this.chart); } else { if (this.chart) this.chart.destroy(); }
     window.removeEventListener('profile:updated', this.update);
     window.removeEventListener('simulation:updated', this.update);
     window.removeEventListener('visualization:changed', this.handleViz);
@@ -43,7 +41,7 @@ class ChartController extends Stimulus.Controller {
     const results = event.detail.results;
     this.latestResults = results;
     const strategy = (event.detail && event.detail.strategy) || 'fill_to_bracket';
-    this.chartData = strategy === 'do_nothing' ? results.do_nothing_results.yearly : results.fill_bracket_results.yearly;
+    this.chartData = (window.FSUtils && FSUtils.pickYearly) ? FSUtils.pickYearly(results, strategy) : (strategy === 'do_nothing' ? results.do_nothing_results.yearly : results.fill_bracket_results.yearly);
     this.render();
     this.updateTable(this.chartData);
   }
@@ -65,106 +63,60 @@ class ChartController extends Stimulus.Controller {
   }
 
   formatCurrency(number) {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD', 
-      minimumFractionDigits: 0, 
-      maximumFractionDigits: 0 
-    }).format(number);
+    return (FSUtils && FSUtils.formatCurrency) ? FSUtils.formatCurrency(number) : number;
   }
 
-  toggle() {
-    this.tableTarget.classList.toggle('hidden');
+  toggle(event) {
+    if (window.FSUtils && FSUtils.toggleExpanded) {
+      FSUtils.toggleExpanded(this.tableTarget, event && event.currentTarget);
+    } else {
+      this.tableTarget.classList.toggle('hidden');
+      if (event && event.currentTarget) {
+        const expanded = !this.tableTarget.classList.contains('hidden');
+        event.currentTarget.setAttribute('aria-expanded', String(expanded));
+      }
+    }
   }
 
   render() {
     // Destroy existing chart if it exists
-    if (this.chart) {
-      this.chart.destroy();
-    }
+    if (window.FSUtils && FSUtils.safeDestroy) { FSUtils.safeDestroy(this.chart); } else { if (this.chart) this.chart.destroy(); }
 
     // Prepare datasets for stacked area chart
-    const datasets = this.chartConfig.map(config => {
-      return {
-        label: config.label,
-        data: this.chartData.map(d => d[config.source][config.key] || 0),
-        backgroundColor: config.color,
-        borderColor: config.color,
-        borderWidth: 1,
-        fill: true
-      };
-    });
+    const datasets = this.chartConfig.map(config => ({
+      label: config.label,
+      data: this.chartData.map(d => d[config.source][config.key] || 0),
+      backgroundColor: config.color,
+      borderColor: config.border,
+      borderWidth: 1,
+      pointRadius: 0,
+      pointHoverRadius: 2,
+      fill: true
+    }));
 
     const labels = this.chartData.map(d => d.year);
 
     // Create the chart
     const ctx = this.canvasTarget.getContext('2d');
+    const options = (window.FSUtils && FSUtils.createChartOptions) ? FSUtils.createChartOptions({
+      legend: { display: true, position: 'bottom', labels: { usePointStyle: false, padding: 8, font: { size: 12 } } },
+      tooltipLabel: (context) => {
+        const label = context.dataset.label || '';
+        const value = this.formatCurrency(context.parsed.y);
+        return `${label}: ${value}`;
+      },
+      tooltipFooter: (tooltipItems) => {
+        const total = tooltipItems.reduce((sum, item) => sum + item.parsed.y, 0);
+        return `Total: ${this.formatCurrency(total)}`;
+      },
+      yTick: (value) => '$' + (value / 1000).toFixed(0) + 'k',
+      xMaxTicksLimit: 10,
+    }) : {};
+
     this.chart = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: labels,
-        datasets: datasets
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              padding: 15,
-              font: {
-                size: 12
-              }
-            }
-          },
-          tooltip: {
-            mode: 'index',
-            callbacks: {
-              label: (context) => {
-                const label = context.dataset.label || '';
-                const value = this.formatCurrency(context.parsed.y);
-                return `${label}: ${value}`;
-              },
-              footer: (tooltipItems) => {
-                const total = tooltipItems.reduce((sum, item) => sum + item.parsed.y, 0);
-                return `Total: ${this.formatCurrency(total)}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 10
-            }
-          },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            grid: {
-              color: '#e5e7eb',
-              drawBorder: false
-            },
-            ticks: {
-              callback: (value) => {
-                return '$' + (value / 1000).toFixed(0) + 'k';
-              }
-            }
-          }
-        }
-      }
+      data: { labels, datasets },
+      options
     });
   }
 }

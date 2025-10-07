@@ -3,14 +3,17 @@ div.editor-section data-controller="profile"
   div.editor-header
   h2
       | Your Financial Profile
-  span.toggle data-action="click->profile#toggleEditor" ✎ Edit
+  / Toggle edit as accessible button
+  button.toggle type="button" aria-expanded="false" aria-controls="profile-editor-form" data-action="click->profile#toggleEditor" ✎ Edit
 
-  form.editor-form.hidden data-profile-target="form"
+  form#profile-editor-form.editor-form.hidden data-profile-target="form"
     / Accordion UI
     div data-controller="accordion"
       - profile[:members].each_with_index do |member, member_index|
-        div.accordion-header data-action="click->accordion#toggle" = "#{member[:name]}'s Details"
-        div.accordion-panel.hidden
+        - header_id = "member-#{member_index}-header"
+        - panel_id = "member-#{member_index}-panel"
+        button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" = "#{member[:name]}'s Details"
+        div.accordion-panel.hidden id=panel_id role="region" aria-labelledby=header_id
           / Personal Information
           .form-section
             h3 Personal Information
@@ -59,8 +62,10 @@ div.editor-section data-controller="profile"
 
     / Joint & Household Panel
     div data-controller="accordion"
-      div.accordion-header data-action="click->accordion#toggle" Joint & Household
-      div.accordion-panel.hidden
+      - header_id = "joint-header"
+      - panel_id = "joint-panel"
+      button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" Joint & Household
+      div.accordion-panel.hidden id=panel_id role="region" aria-labelledby=header_id
         / Joint Accounts
         .form-section
           h3 Joint Accounts
@@ -151,4 +156,4 @@ div.editor-section data-controller="profile"
       button.button type="button" data-action="click->profile#save" data-profile-target="saveButton" Save Profile & Update Results
       button.button.secondary type="button" data-action="click->profile#resetDefaults" Reset to Defaults
       button.button.secondary type="button" data-action="click->profile#saveAsDefaults" Save as Defaults
-      button.button.secondary.danger type="button" data-action="click->profile#clearServerDefaults" Clear Server Defaults
+      button.button.danger type="button" data-action="click->profile#clearServerDefaults" Clear Server Defaults

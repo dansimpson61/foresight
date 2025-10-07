@@ -2,9 +2,9 @@
 div data-controller="flows"
   h2
     | Flows Applied (per year)
-  span.toggle data-action="click->flows#toggle" (Show Panel)
+  button.toggle type="button" aria-controls="flows-panel" aria-expanded="false" data-action="click->flows#toggle" (Show Panel)
 
-  .accordion-panel.hidden data-flows-target="panel"
+  .accordion-panel.hidden#flows-panel data-flows-target="panel"
     h3 Do Nothing Strategy
     table.data-table
       thead
