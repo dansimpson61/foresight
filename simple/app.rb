@@ -145,6 +145,16 @@ module Foresight
         slim :diagrams, locals: { markdown: content }
       end
 
+      # Tokens & utilities page
+      get '/tokens' do
+        slim :tokens
+      end
+
+      # Back-compat for static file path
+      get '/tokens.html' do
+        redirect to('/tokens')
+      end
+
       # Redirect ICO favicon requests to our SVG icon to avoid 404s
       get '/favicon.ico' do
         redirect to('/favicon.svg')

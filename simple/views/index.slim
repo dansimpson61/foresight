@@ -11,7 +11,7 @@ html
       h1 Simple Foresight: A Radical Act of Simplification
       - if params[:dev] == '1'
         p
-          a.dev-link href="/simple/tokens.html" rel="nofollow" Tokens
+          a.dev-link href="/simple/tokens" rel="nofollow" Tokens
   
     main id="main"
       == render :slim, :'partials/_profile_editor', locals: { profile: profile }
