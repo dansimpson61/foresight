@@ -14,15 +14,13 @@
     // Register all controllers
   application.register("chart", ChartController);
   application.register("viz", VizController);
-  application.register("toggle-panel", TogglePanelController);
     application.register("profile", ProfileController);
     application.register("simulation", SimulationController);
     application.register("results", ResultsController);
     application.register("net-worth-chart", NetWorthChartController);
     application.register("accordion", AccordionController);
     application.register("flows", FlowsController);
-    // Register the new "slim pickins" panel controller
-    application.register("sp-panel", SpPanelController);
+    application.register("slim-togglepanel", SlimTogglepanelController);
   console.log('[Foresight] Stimulus started and controllers registered');
   } catch (e) {
     console.error('[Foresight] Failed to register controllers', e);

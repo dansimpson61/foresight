@@ -7,7 +7,6 @@ require 'securerandom'
 
 # Load the domain model
 require_relative 'lib/helpers/ui_helpers'
-require_relative '../lib/slim_pickins/ui_helpers' # Load the new Slim Pickins helpers
 require_relative 'lib/asset'
 require_relative 'lib/traditional_ira'
 require_relative 'lib/roth_ira'
@@ -68,7 +67,6 @@ module Foresight
   set :session_secret, ENV['SESSION_SECRET'] || SecureRandom.hex(32)
       enable :static
       helpers Foresight::Simple::UIHelpers
-      helpers SlimPickins::UIHelpers
 
       # --- The Application ---
       get '/' do

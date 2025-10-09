@@ -20,7 +20,6 @@ Build software that is technically sound, human-centered, and aesthetically faci
 - Polymorphism: Objects can take on multiple forms and behaviors, allowing flexible and reusable code.
 - Tests as confidence: A tiny, readable test is better than a comment.
 - Joyful ergonomics: Thoughtful naming, graceful error handling, concise logs.
-- Expression over Specification: Trust the platform (CSS for layout, JS for state). Let components arrange themselves through clean markup and smart, modern CSS (e.g., Flexbox, Grid) rather than forcing behavior with complex parameters or imperative JavaScript.
 
 Reference: `Ode to Joy - Ruby and Sinatra.txt` (root).
 
