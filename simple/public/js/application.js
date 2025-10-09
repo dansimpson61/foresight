@@ -14,6 +14,7 @@
     // Register all controllers
   application.register("chart", ChartController);
   application.register("viz", VizController);
+  application.register("toggle-panel", TogglePanelController);
     application.register("profile", ProfileController);
     application.register("simulation", SimulationController);
     application.register("results", ResultsController);

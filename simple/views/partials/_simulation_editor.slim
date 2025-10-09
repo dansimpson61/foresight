@@ -7,7 +7,7 @@ div.editor-section data-controller="simulation"
 
   form#simulation-editor-form.editor-form.hidden data-simulation-target="form"
     .form-section
-      h3 Simulation Settings
+      h3 Run Settings
       .form-grid
         .form-group
           label Years to Simulate
@@ -25,7 +25,7 @@ div.editor-section data-controller="simulation"
           .form-help Annual inflation (e.g., 0.03 = 3%)
 
     .form-section
-      h3 Growth Rate Assumptions
+      h3 Economic Assumptions
       .form-grid
         .form-group
           label Traditional IRA Growth
@@ -48,7 +48,18 @@ div.editor-section data-controller="simulation"
           .form-help Annual return (e.g., 0.01 = 1%)
 
     .form-section
-      h3 Conversion Strategy
+      h3 Retirement Decisions
+      / Social Security claiming ages per member
+      - profile[:members].each_with_index do |member, idx|
+        - source_index = profile[:income_sources].index { |s| s[:type] == :social_security && s[:recipient] == member[:name] }
+        - claiming = source_index ? profile[:income_sources][source_index][:claiming_age] : 67
+        .form-grid
+          .form-group
+            label = "#{member[:name]} SS Claiming Age"
+            input type="number" min="62" max="70" data-simulation-target="ssClaimingAge" data-member-index=idx value=claiming
+            .form-help Age to start collecting SS
+
+      h3 Roth Conversion Strategy
       .form-grid
         .form-group
           label Strategy
@@ -63,6 +74,8 @@ div.editor-section data-controller="simulation"
           - ceiling = (defined?(strategy_params) && strategy_params && strategy_params[:ceiling]) ? strategy_params[:ceiling] : 94300
           input type="number" data-simulation-target="bracketCeiling" value=ceiling
           .form-help Convert up to this taxable income level
+
+    / (Note) SS claiming ages are defined per member above; removed legacy source-index section
 
     .button-row
       button.button type="button" data-action="click->simulation#save" Apply Settings & Re-run

@@ -6,6 +6,7 @@ require 'date'
 require 'securerandom'
 
 # Load the domain model
+require_relative 'lib/helpers/ui_helpers'
 require_relative 'lib/asset'
 require_relative 'lib/traditional_ira'
 require_relative 'lib/roth_ira'
@@ -65,6 +66,7 @@ module Foresight
   enable :sessions
   set :session_secret, ENV['SESSION_SECRET'] || SecureRandom.hex(32)
       enable :static
+      helpers Foresight::Simple::UIHelpers
 
       # --- The Application ---
       get '/' do
@@ -144,6 +146,11 @@ module Foresight
         slim :tokens
       end
 
+      # Blank canvas for experiments
+      get '/playground' do
+        slim :playground
+      end
+
       # Back-compat for static file path
       get '/tokens.html' do
         redirect to('/tokens')
@@ -187,7 +194,7 @@ module Foresight
         end
 
         def format_currency(number)
-          "$#{number.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+          "$#{number.to_s.reverse.gsub(/(\\d{3})(?=\\d)/, '\\1,').reverse}"
         end
       end
     end

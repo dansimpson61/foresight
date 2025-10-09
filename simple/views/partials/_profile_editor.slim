@@ -1,22 +1,21 @@
-/ Profile Editor
+/** Profile Editor **/
 div.editor-section data-controller="profile"
-  div.editor-header
-  h2
-      | Your Financial Profile
-  / Toggle edit as accessible button
-  button.toggle type="button" aria-expanded="false" aria-controls="profile-editor-form" data-action="click->profile#toggleEditor" ✎ Edit
+  .editor-header
+    h2 Your Financial Profile
+    button.toggle type="button" aria-expanded="false" aria-controls="profile-editor-form" data-action="click->profile#toggleEditor" ✎ Edit
 
   form#profile-editor-form.editor-form.hidden data-profile-target="form"
-    / Accordion UI
+    / Members
     div data-controller="accordion"
       - profile[:members].each_with_index do |member, member_index|
         - header_id = "member-#{member_index}-header"
         - panel_id = "member-#{member_index}-panel"
+        - source_index = profile[:income_sources].index { |s| s[:type] == :social_security && s[:recipient] == member[:name] }
+        - ss = source_index ? profile[:income_sources][source_index] : nil
         button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" = "#{member[:name]}'s Details"
         div.accordion-panel.hidden id=panel_id role="region" aria-labelledby=header_id
-          / Personal Information
           .form-section
-            h3 Personal Information
+            h3 Member
             .form-grid
               .form-group
                 label Name
@@ -25,65 +24,17 @@ div.editor-section data-controller="profile"
                 label Date of Birth
                 input type="date" data-profile-target="dateOfBirth" value=member[:date_of_birth] data-member-index=member_index
                 .form-help Current age: #{Time.now.year - Date.parse(member[:date_of_birth]).year}
+              .form-group
+                label Annual PIA
+                input type="number" data-profile-target="piaAnnual" value=(ss ? ss[:pia_annual] : 0) data-member-index=member_index
+                .form-help Primary Insurance Amount (SSA). Claiming age moved to Simulation → Retirement Decisions.
 
-          / Individual Accounts
-          .form-section
-            h3 Individual Accounts
-            - profile[:accounts].each_with_index do |account, account_index|
-              - if account[:owner] == member[:name]
-                .account-entry
-                  h4 = "#{account[:type].to_s.capitalize} Account"
-                  .form-grid
-                    .form-group
-                      label Balance
-                      input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
-                    - if account[:type] == :taxable
-                      .form-group
-                        label Cost Basis Fraction
-                        input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
-                        .form-help e.g., 0.6 = 60%
-
-          / Individual Income Sources
-          .form-section
-            h3 Individual Income
-            - profile[:income_sources].each_with_index do |source, source_index|
-              - if source[:recipient] == member[:name]
-                .income-entry
-                  h4 = "Social Security"
-                  .form-grid
-                    .form-group
-                      label Annual PIA
-                      input type="number" data-profile-target="piaAnnual" value=source[:pia_annual] data-source-index=source_index
-                      .form-help Primary Insurance Amount
-                    .form-group
-                      label Claiming Age
-                      input type="number" min="62" max="70" data-profile-target="claimingAge" value=source[:claiming_age] data-source-index=source_index
-                      .form-help Age to start collecting
-
-    / Joint & Household Panel
+    / Household
     div data-controller="accordion"
-      - header_id = "joint-header"
-      - panel_id = "joint-panel"
-      button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" Joint & Household
+      - header_id = "household-header"
+      - panel_id = "household-panel"
+      button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" Household
       div.accordion-panel.hidden id=panel_id role="region" aria-labelledby=header_id
-        / Joint Accounts
-        .form-section
-          h3 Joint Accounts
-          - profile[:accounts].each_with_index do |account, account_index|
-            - if account[:owner] == 'joint'
-              .account-entry
-                h4 = "#{account[:type].to_s.capitalize} Account"
-                .form-grid
-                  .form-group
-                    label Balance
-                    input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
-                  - if account[:type] == :taxable
-                    .form-group
-                      label Cost Basis Fraction
-                      input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
-                      .form-help e.g., 0.6 = 60%
-
-        / Household Settings
         .form-section
           h3 Household Settings
           .form-grid
@@ -101,56 +52,40 @@ div.editor-section data-controller="profile"
                 option value="mfj" selected=(profile[:household][:filing_status] == 'mfj') Married Filing Jointly
                 option value="single" selected=(profile[:household][:filing_status] == 'single') Single
               .form-help Tax filing status
-            .form-group
-              label Emergency Fund Floor
-              input type="number" data-profile-target="emergencyFundFloor" value=profile[:household][:emergency_fund_floor]
-              .form-help Keep at least this amount in cash
-            .form-group
-              label Withdrawal Hierarchy
-              input type="text" placeholder=":taxable, :traditional, :roth" data-profile-target="withdrawalHierarchy" value=(profile[:household][:withdrawal_hierarchy] ? profile[:household][:withdrawal_hierarchy].map(&:to_s).join(', ') : '')
-              .form-help Comma-separated (e.g., :taxable, :traditional, :roth)
 
-        / All Accounts (Owner Reassignment)
         .form-section
-          h3 All Accounts (Owner Reassignment)
+          h3 Assets
           - owners = (profile[:members].map { |m| m[:name] } + ['joint']).uniq
-          - profile[:accounts].each_with_index do |account, account_index|
-            .account-entry
-              h4 = "#{account[:type].to_s.capitalize} Account"
-              .form-grid
-                .form-group
-                  label Owner
-                  select data-profile-target="accountOwner" data-account-index=account_index
-                    - owners.each do |owner_name|
-                      option value=owner_name selected=(account[:owner] == owner_name) = owner_name
-                .form-group
-                  label Balance
-                  input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
-                - if account[:type] == :taxable
-                  .form-group
-                    label Cost Basis Fraction
-                    input type="number" step="0.01" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
-                    .form-help e.g., 0.6 = 60%
-
-        / All Income Sources (Recipient Reassignment)
-        .form-section
-          h3 All Income Sources (Recipient Reassignment)
-          - recipients = profile[:members].map { |m| m[:name] }
-          - profile[:income_sources].each_with_index do |source, source_index|
-            .income-entry
-              h4 = "Social Security"
-              .form-grid
-                .form-group
-                  label Recipient
-                  select data-profile-target="incomeRecipient" data-source-index=source_index
-                    - recipients.each do |rname|
-                      option value=rname selected=(source[:recipient] == rname) = rname
-                .form-group
-                  label Annual PIA
-                  input type="number" data-profile-target="piaAnnual" value=source[:pia_annual] data-source-index=source_index
-                .form-group
-                  label Claiming Age
-                  input type="number" min="62" max="70" data-profile-target="claimingAge" value=source[:claiming_age] data-source-index=source_index
+          table.data-table
+            thead
+              tr
+                th style="text-align:left" Name
+                th style="text-align:left" Type
+                th style="text-align:left" Owner
+                th Balance
+                th Cost Basis (taxable)
+            tbody
+              - profile[:accounts].each_with_index do |account, account_index|
+                - default_name = account[:name] || "#{account[:type].to_s.capitalize} (#{account[:owner]})"
+                tr
+                  td style="text-align:left"
+                    input type="text" value=default_name data-profile-target="accountName" data-account-index=account_index
+                  td style="text-align:left"
+                    select data-profile-target="accountType" data-account-index=account_index
+                      - [:taxable, :traditional, :roth, :cash].each do |t|
+                        option value=t.to_s selected=(account[:type] == t) = t.to_s
+                  td style="text-align:left"
+                    select data-profile-target="accountOwner" data-account-index=account_index
+                      - owners.each do |owner_name|
+                        option value=owner_name selected=(account[:owner] == owner_name) = owner_name
+                  td
+                    input type="number" data-profile-target="accountBalance" value=account[:balance] data-account-index=account_index
+                  td
+                    - if account[:type] == :taxable
+                      input type="number" step="0.01" placeholder="0.60" data-profile-target="accountCostBasis" value=account[:cost_basis_fraction] data-account-index=account_index
+                      .form-help Cost basis fraction (e.g., 0.60 = 60%)
+                    - else
+                      | —
 
     .button-row
       button.button type="button" data-action="click->profile#save" data-profile-target="saveButton" Save Profile & Update Results

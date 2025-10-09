@@ -28,8 +28,22 @@
     return !targetEl.classList.contains('hidden');
   };
 
+  const withBase = (path) => {
+    try {
+      if (!path) return path;
+      // Absolute URLs (http/https) or already absolute path
+      if (/^https?:\/\//i.test(path) || path.startsWith('/')) return (window.FS_BASE || '') + path;
+      // Relative path -> prefix with base + '/'
+      const base = (window.FS_BASE || '');
+      return base + (path.startsWith('/') ? path : ('/' + path));
+    } catch (_) {
+      return path;
+    }
+  };
+
   const fetchJson = async (url, bodyObj) => {
-    const res = await fetch(url, {
+    const fullUrl = withBase(url);
+    const res = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -125,5 +139,5 @@
     };
   };
 
-  window.FSUtils = { formatCurrency, toggleExpanded, fetchJson, storage, reducedMotion, safeDestroy, pickYearly, createChartOptions };
+  window.FSUtils = { formatCurrency, toggleExpanded, fetchJson, storage, reducedMotion, safeDestroy, pickYearly, createChartOptions, withBase };
 })();

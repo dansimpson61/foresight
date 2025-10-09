@@ -11,7 +11,8 @@ class SimulationController extends Stimulus.Controller {
     "taxableGrowth",
     "cashGrowth",
     "strategy",
-    "bracketCeiling"
+    "bracketCeiling",
+    "ssClaimingAge"
   ]
 
   connect() {
@@ -59,6 +60,16 @@ class SimulationController extends Stimulus.Controller {
       cash: parseFloat(this.cashGrowthTarget.value)
     };
 
+    // Update SS claiming ages (now part of simulation decisions UI)
+    if (this.hasSsClaimingAgeTargets) {
+      this.ssClaimingAgeTargets.forEach(input => {
+        const memberIndex = parseInt(input.dataset.memberIndex, 10);
+        const memberName = baseProfile.members[memberIndex].name;
+        const srcIndex = baseProfile.income_sources.findIndex(s => s.type === 'social_security' && s.recipient === memberName);
+        if (srcIndex >= 0) baseProfile.income_sources[srcIndex].claiming_age = parseInt(input.value, 10);
+      });
+    }
+
     return baseProfile;
   }
 
@@ -71,7 +82,7 @@ class SimulationController extends Stimulus.Controller {
 
       const results = (window.FSUtils && FSUtils.fetchJson)
         ? await FSUtils.fetchJson('/run', { profile, strategy, strategy_params: strategyParams })
-        : await (async () => { const r = await fetch('/run', { method:'POST', headers: { 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify({ profile, strategy, strategy_params: strategyParams }) }); if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`); return r.json(); })();
+        : await (async () => { const u=(window.FSUtils&&FSUtils.withBase)?FSUtils.withBase('/run'):'/run'; const r = await fetch(u, { method:'POST', headers: { 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify({ profile, strategy, strategy_params: strategyParams }) }); if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`); return r.json(); })();
 
       // Dispatch event to update visualizations
       const event = new CustomEvent('simulation:updated', { 
@@ -90,7 +101,8 @@ class SimulationController extends Stimulus.Controller {
       if (window.FSUtils && FSUtils.fetchJson) {
         await FSUtils.fetchJson('/reset_defaults', {});
       } else {
-        const res = await fetch('/reset_defaults', { method: 'POST' });
+        const u=(window.FSUtils&&FSUtils.withBase)?FSUtils.withBase('/reset_defaults'):'/reset_defaults';
+        const res = await fetch(u, { method: 'POST' });
         if (!res.ok) throw new Error('Failed to reset defaults');
       }
       window.location.reload();
@@ -110,7 +122,8 @@ class SimulationController extends Stimulus.Controller {
       if (window.FSUtils && FSUtils.fetchJson) {
         await FSUtils.fetchJson('/save_defaults', { profile, strategy, strategy_params: strategyParams });
       } else {
-        const res = await fetch('/save_defaults', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile, strategy, strategy_params: strategyParams }) });
+        const u=(window.FSUtils&&FSUtils.withBase)?FSUtils.withBase('/save_defaults'):'/save_defaults';
+        const res = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile, strategy, strategy_params: strategyParams }) });
         if (!res.ok) throw new Error('Failed to save defaults');
       }
       alert('Defaults saved for this server.');
@@ -124,7 +137,8 @@ class SimulationController extends Stimulus.Controller {
       if (window.FSUtils && FSUtils.fetchJson) {
         await FSUtils.fetchJson('/clear_defaults', {});
       } else {
-        const res = await fetch('/clear_defaults', { method: 'POST' });
+        const u=(window.FSUtils&&FSUtils.withBase)?FSUtils.withBase('/clear_defaults'):'/clear_defaults';
+        const res = await fetch(u, { method: 'POST' });
         if (!res.ok) throw new Error('Failed to clear server defaults');
       }
       window.location.reload();

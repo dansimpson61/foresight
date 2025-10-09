@@ -34,6 +34,8 @@
 	--radius-1: 4px; --radius-2: 8px; --shadow-1: 0 1px 2px rgba(0,0,0,.04);
 	/* Measure */
 	--line-max: 80ch;
+	/* TogglePanel animation duration */
+	--tp-duration: 200ms;
 	color-scheme: light dark;
 }
 
@@ -109,6 +111,57 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 .viz-badge { margin-left: 0.5rem; padding: 0.15rem 0.5rem; background: #eef2ff; color: #3730a3; border-radius: var(--radius-1); font-size: 0.8rem; }
 
 #net-worth-chart-container { width: 100%; height: 400px; position: relative; }
+
+/* Toggle Panel: CSS-driven hover-open with sticky click */
+.toggle-panel {
+	--tp-collapsed-size-v: 2.75rem;           /* default width when vertical (left/right) */
+	--tp-expanded-size-v: min(360px, 85vw);    /* default width when vertical */
+	--tp-collapsed-size-h: 2.25rem;            /* default height when horizontal (top/bottom) */
+	--tp-expanded-size-h: min(40vh, 480px);    /* default height when horizontal */
+	background: var(--paper-50);
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-1);
+	display: flex;
+	overflow: hidden;
+	z-index: 30;
+	transition: width var(--tp-duration, 200ms) ease, height var(--tp-duration, 200ms) ease;
+}
+.toggle-panel.is-vertical { width: var(--tp-collapsed-size-v); }
+.toggle-panel.is-horizontal { height: var(--tp-collapsed-size-h); }
+/* Open on hover or when sticky */
+.toggle-panel.is-vertical:hover,
+.toggle-panel.is-vertical.is-sticky { width: var(--tp-expanded-size-v); }
+.toggle-panel.is-horizontal:hover,
+.toggle-panel.is-horizontal.is-sticky { height: var(--tp-expanded-size-h); }
+.toggle-panel__content { padding: var(--sp-12); overflow: auto; flex: 1 1 auto; }
+.toggle-panel__handle { position: absolute; background: #fff; border: none; border-radius: var(--radius-1); padding: .35rem .55rem; cursor: pointer; color: var(--ink-700); }
+/* Upper-left label, elegant and visible even when collapsed */
+.toggle-panel__label { position: absolute; top: .35rem; left: .5rem; font-size: var(--fs-12); color: var(--muted); pointer-events: none; display: inline-flex; align-items: center; gap: .35rem; }
+.toggle-panel__icon { display: inline-block; line-height: 1; }
+.toggle-panel.is-icons-only .toggle-panel__text { display: none; }
+/* Hide content when collapsed (only label/handle visible) */
+.toggle-panel:not(.is-sticky):not(:hover) .toggle-panel__content { display: none; }
+/* Nested panels should sit above parent content */
+.toggle-panel .toggle-panel { z-index: 40; }
+.toggle-panel .toggle-panel.is-horizontal { background: #fff; border-color: var(--border); }
+/* Handle placement for edges */
+.toggle-panel[data-toggle-panel-position-value="left"] .toggle-panel__handle { right: .5rem; top: .5rem; }
+.toggle-panel[data-toggle-panel-position-value="right"] .toggle-panel__handle { left: .5rem; top: .5rem; }
+.toggle-panel[data-toggle-panel-position-value="top"] .toggle-panel__handle { right: .5rem; bottom: .5rem; }
+.toggle-panel[data-toggle-panel-position-value="bottom"] .toggle-panel__handle { right: .5rem; top: .5rem; }
+
+/* Animate padding on elements that panels push/compress */
+.tp-animate-padding {
+	transition: padding var(--tp-duration, 200ms) ease;
+}
+
+/* Animate absolute inset changes for nested content compression */
+.tp-animate-inset {
+	transition: top var(--tp-duration, 200ms) ease,
+	            right var(--tp-duration, 200ms) ease,
+	            bottom var(--tp-duration, 200ms) ease,
+	            left var(--tp-duration, 200ms) ease;
+}
 
 /* Utilities */
 .stack > * + * { margin-top: var(--sp-8); }

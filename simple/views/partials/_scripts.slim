@@ -2,9 +2,16 @@
 - base = request.script_name
 script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
 script src="#{base}/js/stimulus.umd.js"
+/
+	Expose the mount base ("/simple" when mounted via config.multi.ru, otherwise "")
+	so client fetch calls can work in both modes.
+script
+	|
+		window.FS_BASE = #{base.inspect};
 script src="#{base}/js/utils.js"
 script src="#{base}/js/chart_controller.js"
 script src="#{base}/js/viz_controller.js"
+script src="#{base}/js/toggle_panel_controller.js"
 script src="#{base}/js/profile_controller.js"
 script src="#{base}/js/simulation_controller.js"
 script src="#{base}/js/results_controller.js"
