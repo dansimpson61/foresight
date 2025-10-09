@@ -20,9 +20,11 @@ module SlimPickins
         label: label,
         icon: icon
       }
-      # Sinatra will find the `togglepanel.slim` template in one of the
-      # configured `views` directories.
-      slim :togglepanel, locals: locals, &block
+      # Render the template using an explicit, unambiguous path.
+      # This makes the component self-contained and avoids conflicts
+      # with the main application's view paths.
+      views_dir = File.expand_path('views', File.dirname(__FILE__))
+      slim :togglepanel, views_directory: views_dir, locals: locals, &block
     end
 
     # Convenient aliases for each position.
