@@ -1,8 +1,8 @@
 {
   "profile": {
-    "start_year": 2025,
+    "start_year": 2024,
     "years_to_simulate": 30,
-    "inflation_rate": 0,
+    "inflation_rate": 0.0,
     "growth_assumptions": {
       "traditional": 0.04,
       "roth": 0.05,
@@ -15,35 +15,31 @@
       "annual_expenses": 100000,
       "emergency_fund_floor": 50000,
       "withdrawal_hierarchy": [
-        "traditional",
         "taxable",
+        "traditional",
         "roth"
       ]
     },
     "members": [
       {
-        "name": "dan",
-        "date_of_birth": "1961-11-01"
-      },
-      {
-        "name": "norine",
-        "date_of_birth": "1967-04-15"
+        "name": "Pat",
+        "date_of_birth": "1964-05-01"
       }
     ],
     "accounts": [
       {
         "type": "traditional",
-        "owner": "dan",
+        "owner": "Pat",
         "balance": 1000000
       },
       {
         "type": "traditional",
-        "owner": "dan",
+        "owner": "Sam",
         "balance": 300000
       },
       {
         "type": "roth",
-        "owner": "dan",
+        "owner": "Pat",
         "balance": 250000
       },
       {
@@ -61,15 +57,9 @@
     "income_sources": [
       {
         "type": "social_security",
-        "recipient": "dan",
+        "recipient": "Pat",
         "pia_annual": 40000,
         "claiming_age": 70
-      },
-      {
-        "type": "social_security",
-        "recipient": "dan",
-        "pia_annual": 28000,
-        "claiming_age": 68
       }
     ]
   },
