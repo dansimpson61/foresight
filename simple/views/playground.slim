@@ -1,74 +1,52 @@
+/!
+  This new playground demonstrates the "Expression over Specification" doctrine.
+  Notice the simplicity:
+  1. No more `push`, `offset`, or `nested` parameters. Layout is handled by CSS.
+  2. The structure is natural HTML. Panels are siblings or children of other panels.
+  3. The helpers are clean and expressive. They declare *what* a component is, not *how* it should behave.
+
 doctype html
 html
   head
-    title Playground — Simple Foresight
+    title Playground — Slim Pickins
     - base = request.script_name
     link rel="icon" type="image/svg+xml" href="#{base}/favicon.svg"
+    / We will create a new CSS file for our 'slim-pickins' components
+    link rel="stylesheet" href="#{base}/css/slim-pickins.css"
     link rel="stylesheet" href="#{base}/css/app.css"
   body
-    a.sr-only href="#main" Skip to main content
-    header
-      h1 Playground
-      p.muted A blank canvas to try ideas safely. No persistence; refresh to reset.
-    main#main
-      .editor-form.pad.border.fill-50
-        h2 Minimal Canvas
-        p This page intentionally starts empty. Add markup here or open dev tools to experiment with controllers.
-        hr
-        .stack
-          button.button type="button" data-action="click->demo#ping" Try a ping
-          p.muted Tip: Inspect the page to see window.FS_BASE and controllers.
-      / Edge tools: one left panel that introduces two top editor panels and one bottom dev panel
-      .toggle-panel-example
-        == toggleleft label: "Tools", icon: "🧰", push: "header, #main" do
-          .stack
-            p Use the top edge panels to access editors, and the bottom panel for dev helpers.
-            ul
-              li Profiles Editor (top)
-              li Simulation Editor (top)
-              li Dev Helpers (bottom)
+    / The page layout is now controlled by a simple CSS class.
+    / This container will use Flexbox or Grid to manage its children.
+    .sp-container
+      / The main content area is just a sibling to the panel.
+      / The `sp-content` class will ensure it grows and shrinks fluidly.
+      main.sp-content#main
+        h1 Playground
+        p.muted This content will automatically and elegantly adapt when you open the panels.
 
-          / Two top-anchored panels (profiles and simulation)
-          == toggletop label: "Profiles", nested: true, expanded: "30vh", collapsed: "2.25rem", push: nil, offset: "0" do
-            .stack
-              h3 Profiles Editor
-              p Open the main app to edit members, household, and assets.
-              - base = request.script_name
-              p
-                a.button href="#{base}/" Return to App
-                |  
-                a.dev-link href="#{base}/#" rel="nofollow" aria-disabled="true" title="Open 'Edit' on the app page to reveal the profile form" Profile editor is on the app page
+      / Here is the new, expressive togglepanel.
+      / It's a simple helper call. All the complexity is gone.
+      == toggleleft label: "Tools", icon: "🧰" do
+        p This is the primary tool panel. It contains other nested panels.
 
-          == toggletop label: "Simulation", nested: true, expanded: "30vh", collapsed: "2.25rem", push: nil, offset: "2.25rem" do
-            .stack
-              h3 Simulation Editor
-              p Adjust run settings, economic assumptions, and retirement decisions.
-              - base = request.script_name
-              p
-                a.button href="#{base}/" Return to App
-                |  
-                a.dev-link href="#{base}/#" rel="nofollow" aria-disabled="true" title="Open 'Edit' on the app page to reveal the simulation form" Simulation editor is on the app page
+        / Nesting is now natural. This `toggletop` is a child of the `toggleleft` panel.
+        / Its layout will be handled by CSS within its parent.
+        == toggletop label: "Editors" do
+          h3 Editor Panel
+          p.muted Content for the editors would go here.
 
-          / Bottom-anchored panel for dev helpers
-          == togglebottom label: "Dev", nested: true do
-            - base = request.script_name
-            .stack
-              h3 Developer Helpers
-              ul
-                li: a href="#{base}/tokens" Tokens
-                li: a href="#{base}/diagrams" Diagrams
-                li: a href="#{base}/" Return to App
-    / Optional scripts: load Stimulus and a tiny demo controller
+        / This is a sibling to the top panel, demonstrating natural flow.
+        .sp-panel-content
+          h3 Panel Content
+          p This is the main content area of the left panel, sitting between the nested top and bottom panels.
+
+        == togglebottom label: "Dev" do
+          h3 Developer Panel
+          p.muted Content for the developer helpers would go here.
+
     == render :slim, :'partials/_scripts'
     script
       |
-        (function(){
-          if (!window.Stimulus || !Stimulus.Application) return;
-          const app = Stimulus.Application.start();
-          class DemoController extends Stimulus.Controller {
-            ping(){ alert('pong'); }
-          }
-          app.register('demo', DemoController);
-          // Attach controller to body for quick binding
-          document.body.setAttribute('data-controller', 'demo');
-        })();
+        // The new controller will be tiny.
+        // It will just toggle a class, and CSS will do the rest.
+        // We will build this in the next step.

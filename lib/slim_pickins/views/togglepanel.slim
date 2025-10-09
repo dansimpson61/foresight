@@ -1,0 +1,21 @@
+/!
+  slim_pickins/views/togglepanel.slim
+  The clean, semantic markup for our new togglepanel.
+  This view is intentionally simple. All layout and styling will be
+  handled by an external CSS file, and interactivity by a tiny Stimulus controller.
+
+/ The root element is a semantic <aside> tag.
+/ The controller is named `sp-panel` to avoid conflicts.
+/ The `position` is the only data value needed for the controller's logic.
+aside.sp-panel data-controller="sp-panel" data-sp-panel-position-value=position
+  / The dedicated handle/label element, as requested.
+  / This element will be clickable to toggle the panel's state.
+  button.sp-panel__label type="button" data-action="click->sp-panel#toggle"
+    - if icon
+      span.sp-panel__icon aria-hidden="true" = icon
+    - if label
+      span.sp-panel__text = label
+
+  / The content of the panel, yielded from the block in the helper.
+  .sp-panel__content
+    == yield

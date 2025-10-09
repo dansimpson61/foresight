@@ -7,7 +7,8 @@ Use this before opening a PR. Keep it tiny and joyful.
 - Prefer editing the `simple/` app first; keep scope minimal.
 - Write or update one small test under `simple/spec/` if behavior changes.
 - Keep names intention-revealing; avoid cleverness.
-- Keep JS minimal; favor server-rendered Slim.
+- Keep JS minimal; let it manage state while CSS handles layout.
+- Favor server-rendered Slim.
 - Update docs when public behavior changes.
 
 ## Don’t

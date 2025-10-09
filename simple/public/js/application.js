@@ -21,6 +21,8 @@
     application.register("net-worth-chart", NetWorthChartController);
     application.register("accordion", AccordionController);
     application.register("flows", FlowsController);
+    // Register the new "slim pickins" panel controller
+    application.register("sp-panel", SpPanelController);
   console.log('[Foresight] Stimulus started and controllers registered');
   } catch (e) {
     console.error('[Foresight] Failed to register controllers', e);
