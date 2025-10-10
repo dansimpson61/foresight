@@ -21,7 +21,7 @@
 - style_attr = style_parts.any? ? style_parts.join(' ') : nil
 
 / Markup
-.div data-controller="toggle-panel" data-toggle-panel-position-value=pos data-toggle-panel-label-value=lbl data-toggle-panel-nested-value=(defined?(nested) && nested ? 'true' : 'false') data-toggle-panel-push-selector-value=(defined?(push) && push ? push : nil) data-toggle-panel-offset-value=(defined?(offset) && offset ? offset : nil) data-toggle-panel-icon-value=(icon_val) data-toggle-panel-icons-only-value=(icons_only_val.nil? ? nil : (icons_only_val ? 'true' : 'false')) style=style_attr
+div data-controller="toggle-panel" data-toggle-panel-position-value=pos data-toggle-panel-label-value=lbl data-toggle-panel-nested-value=(defined?(nested) && nested ? 'true' : 'false') data-toggle-panel-push-selector-value=(defined?(push) && push ? push : nil) data-toggle-panel-offset-value=(defined?(offset) && offset ? offset : nil) data-toggle-panel-icon-value=(icon_val) data-toggle-panel-icons-only-value=(icons_only_val.nil? ? nil : (icons_only_val ? 'true' : 'false')) style=style_attr
   - if has_block
     == yield
   - elsif content
