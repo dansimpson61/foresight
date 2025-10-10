@@ -41,7 +41,39 @@
 
 /* Base */
 html { font: 400 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; color: var(--ink-900); background: var(--paper-0); }
-body { max-width: 1200px; margin: var(--sp-24) auto; padding: 0 var(--sp-16); }
+
+/* Grid layout for natural panel flow */
+body { 
+  display: grid;
+  grid-template-areas: 
+    "top top top"
+    "left main right"
+    "bottom bottom bottom";
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: auto 1fr auto;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Panels flow naturally in their grid areas */
+.toggle-panel[data-toggle-panel-position-value="left"] { grid-area: left; }
+.toggle-panel[data-toggle-panel-position-value="right"] { grid-area: right; }
+.toggle-panel[data-toggle-panel-position-value="top"] { grid-area: top; }
+.toggle-panel[data-toggle-panel-position-value="bottom"] { grid-area: bottom; }
+
+/* Page container takes main grid area */
+.page-container { 
+  grid-area: main;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-24) var(--sp-16);
+  width: 100%;
+  overflow: auto;
+}
+
+/* Page structure */
+header { margin-bottom: var(--sp-24); }
+main { margin-bottom: var(--sp-32); }
 
 h1, h2, h3 { color: var(--ink-900); }
 h1 { font-size: var(--fs-32); line-height: 1.2; margin: 0 0 var(--sp-16); }
@@ -112,7 +144,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 
 #net-worth-chart-container { width: 100%; height: 400px; position: relative; }
 
-/* Toggle Panel: CSS-driven hover-open with sticky click */
+/* Toggle Panel: CSS-driven hover-open with sticky click, grid-flow layout */
 .toggle-panel {
 	--tp-collapsed-size-v: 2.75rem;           /* default width when vertical (left/right) */
 	--tp-expanded-size-v: min(360px, 85vw);    /* default width when vertical */
@@ -125,6 +157,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 	overflow: hidden;
 	z-index: 30;
 	transition: width var(--tp-duration, 200ms) ease, height var(--tp-duration, 200ms) ease;
+	/* Natural flow in grid - no fixed positioning needed */
+	position: relative;
 }
 .toggle-panel.is-vertical { width: var(--tp-collapsed-size-v); }
 .toggle-panel.is-horizontal { height: var(--tp-collapsed-size-h); }
@@ -138,7 +172,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 /* Upper-left label, elegant and visible even when collapsed */
 .toggle-panel__label { position: absolute; top: .35rem; left: .5rem; font-size: var(--fs-12); color: var(--muted); pointer-events: none; display: inline-flex; align-items: center; gap: .35rem; }
 .toggle-panel__icon { display: inline-block; line-height: 1; }
+
+/* Vertical panels: show only icons when collapsed, text when expanded */
+.toggle-panel.is-vertical:not(:hover):not(.is-sticky) .toggle-panel__text { display: none; }
+
+/* Explicitly set icons-only mode (backwards compatibility) */
 .toggle-panel.is-icons-only .toggle-panel__text { display: none; }
+
 /* Hide content when collapsed (only label/handle visible) */
 .toggle-panel:not(.is-sticky):not(:hover) .toggle-panel__content { display: none; }
 /* Nested panels should sit above parent content */

@@ -1,4 +1,4 @@
-// A lightweight edge-anchored toggle panel
+// A lightweight edge-anchored toggle panel with CSS Grid natural flow
 // Usage (left panel with defaults):
 // <div data-controller="toggle-panel" data-toggle-panel-position-value="left">
 //   ...your content...
@@ -14,7 +14,6 @@ class TogglePanelController extends Stimulus.Controller {
     expandedSize: String,
     label: { type: String, default: 'Panel' },
     nested: { type: Boolean, default: false },
-    pushSelector: String,
     offset: String,
     icon: String,
     iconsOnly: { type: Boolean, default: false }
@@ -79,18 +78,21 @@ class TogglePanelController extends Stimulus.Controller {
     this.element.classList.add('toggle-panel');
     this.element.setAttribute('role', 'region');
     this.element.setAttribute('aria-label', this.labelValue);
-    // Positioning: viewport-fixed by default; absolute inside parent when nested
-    this.element.style.position = this.nestedValue ? 'absolute' : 'fixed';
-    this._applyAnchors();
+    
+    // Positioning: relative for grid flow by default; absolute inside parent when nested
+    this.element.style.position = this.nestedValue ? 'absolute' : 'relative';
+    if (this.nestedValue) {
+      this._applyAnchors();
+    }
 
     // Orientation class for CSS sizing
-  const vertical = this._isVertical();
-  this.element.classList.toggle('is-vertical', vertical);
-  this.element.classList.toggle('is-horizontal', !vertical);
+    const vertical = this._isVertical();
+    this.element.classList.toggle('is-vertical', vertical);
+    this.element.classList.toggle('is-horizontal', !vertical);
 
-  // Icons-only default for vertical panels unless explicitly overridden
-  const iconsOnly = this.hasIconsOnlyValue ? this.iconsOnlyValue : vertical;
-  this.element.classList.toggle('is-icons-only', !!iconsOnly);
+    // Icons-only default for vertical panels unless explicitly overridden
+    const iconsOnly = this.hasIconsOnlyValue ? this.iconsOnlyValue : vertical;
+    this.element.classList.toggle('is-icons-only', !!iconsOnly);
 
     // If nested, make sure parent is positioned for absolute anchoring
     if (this.nestedValue) {
@@ -118,23 +120,20 @@ class TogglePanelController extends Stimulus.Controller {
     this._onPanelClick = () => this.toggle();
     this.element.addEventListener('click', this._onPanelClick);
 
-    // Hover handling to apply offsets while hovered (when not sticky)
-    this._onEnter = () => { if (!this.sticky) { this._applyOffset(true); this._updateNestedPositions(); } };
-    this._onLeave = () => { if (!this.sticky) { this._applyOffset(false); this._updateNestedPositions(); } };
-    this.element.addEventListener('mouseenter', this._onEnter);
-    this.element.addEventListener('mouseleave', this._onLeave);
-
-    // Establish baseline layout for nested groups so collapsed bars don't cover content
-    this._applyOffset(false);
-    this._updateNestedPositions();
+    // Update nested positions on hover if nested
+    if (this.nestedValue) {
+      this._onEnter = () => this._updateNestedPositions();
+      this._onLeave = () => this._updateNestedPositions();
+      this.element.addEventListener('mouseenter', this._onEnter);
+      this.element.addEventListener('mouseleave', this._onLeave);
+      this._updateNestedPositions();
+    }
   }
 
   disconnect() {
     if (this._onPanelClick) this.element.removeEventListener('click', this._onPanelClick);
     if (this._onEnter) this.element.removeEventListener('mouseenter', this._onEnter);
     if (this._onLeave) this.element.removeEventListener('mouseleave', this._onLeave);
-    // Remove any offsets we applied
-    this._applyOffset(false);
   }
 
   toggle() {
@@ -142,8 +141,9 @@ class TogglePanelController extends Stimulus.Controller {
     this.element.classList.toggle('is-sticky', this.sticky);
     this._updateA11y();
     this._updateHandleIcon();
-    this._applyOffset(this.sticky);
-    this._updateNestedPositions();
+    if (this.nestedValue) {
+      this._updateNestedPositions();
+    }
   }
 
   // --- Internals ---
@@ -188,33 +188,10 @@ class TogglePanelController extends Stimulus.Controller {
     if (this.hasHandleTarget) this.handleTarget.textContent = icon;
   }
 
-  _getPushTargets() {
-    // 1) Explicit selector takes precedence
-    if (this.hasPushSelectorValue && this.pushSelectorValue) {
-      try {
-        const list = Array.from(document.querySelectorAll(this.pushSelectorValue));
-        if (list.length) return list;
-      } catch (_) { /* ignore */ }
-    }
-    // 2) Nested panels push their immediate parent content area if available
-    if (this.nestedValue) {
-      const parentPanel = this.element.parentElement;
-      if (parentPanel) {
-        // Prefer a content wrapper inside the parent panel
-        const el = parentPanel.querySelector(':scope > .toggle-panel__content') || parentPanel;
-        return el ? [el] : [];
-      }
-    }
-    // 3) Default to main content if present, else body
-    const def = document.querySelector('main') || document.body;
-    return def ? [def] : [];
-  }
-
   _expandedSize() {
     const cs = getComputedStyle(this.element);
     const vertical = (this.positionValue === 'left' || this.positionValue === 'right');
     const varName = vertical ? '--tp-expanded-size-v' : '--tp-expanded-size-h';
-    // Fallback to inline values if set
     let val = cs.getPropertyValue(varName).trim();
     if (!val) {
       val = vertical ? (this.hasExpandedSizeValue ? this.expandedSizeValue : 'min(360px, 85vw)')
@@ -235,29 +212,13 @@ class TogglePanelController extends Stimulus.Controller {
     return val || '0px';
   }
 
-  _applyOffset(on) {
-    // Nested panels coordinate layout via content insets to avoid overlaying content
-    if (this.nestedValue) { this._applyNestedLayout(); return; }
-
-    const targets = this._getPushTargets();
-    if (!targets.length) return;
-    const value = on ? this._expandedSize() : '';
-    const pos = this.positionValue;
-    targets.forEach((target) => {
-      this._ensurePaddingTransition(target);
-      if (pos === 'left') target.style.paddingLeft = value;
-      else if (pos === 'right') target.style.paddingRight = value;
-      else if (pos === 'top') target.style.paddingTop = value;
-      else target.style.paddingBottom = value;
-    });
-  }
-
   _applyNestedLayout() {
     const parent = this.element.parentElement;
     if (!parent) return;
-  const target = parent.querySelector(':scope > .toggle-panel__content');
-  if (!target) return; // parent content not ready yet; skip
-    // Ensure positioning and transitions
+    const target = parent.querySelector(':scope > .toggle-panel__content');
+    if (!target) return;
+    
+    // Ensure positioning
     const cs = window.getComputedStyle(parent);
     if (cs.position === 'static') parent.style.position = 'relative';
     if (getComputedStyle(target).position !== 'absolute') target.style.position = 'absolute';
@@ -265,6 +226,7 @@ class TogglePanelController extends Stimulus.Controller {
 
     const parentRect = parent.getBoundingClientRect();
     const inset = { top: 0, bottom: 0, left: 0, right: 0 };
+    
     ['top','bottom','left','right'].forEach((edge) => {
       const selector = `:scope > [data-controller~="toggle-panel"][data-toggle-panel-nested-value="true"][data-toggle-panel-position-value="${edge}"]`;
       const items = Array.from(parent.querySelectorAll(selector));
@@ -277,15 +239,11 @@ class TogglePanelController extends Stimulus.Controller {
       });
     });
 
-    // Apply as absolute insets so the content area visibly compresses
+    // Apply as absolute insets
     target.style.top = inset.top ? `${Math.round(inset.top)}px` : '0';
     target.style.bottom = inset.bottom ? `${Math.round(inset.bottom)}px` : '0';
     target.style.left = inset.left ? `${Math.round(inset.left)}px` : '0';
     target.style.right = inset.right ? `${Math.round(inset.right)}px` : '0';
-  }
-
-  _ensurePaddingTransition(target) {
-    if (!target.classList.contains('tp-animate-padding')) target.classList.add('tp-animate-padding');
   }
 
   _ensureInsetTransition(target) {
