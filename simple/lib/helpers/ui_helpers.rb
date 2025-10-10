@@ -11,16 +11,14 @@ module Foresight
       #   label: "Tools"                      # visible label in panel
       #   collapsed: "2rem", expanded: "30vh" # per-instance size overrides
       #   nested: true                         # anchor inside parent panel
-      #   push: "#main"                        # CSS selector of element to push/compress
       #   offset: "2rem"                       # shift from the anchored edge (nested stacking)
-      def togglepanel(position = :left, content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, push: nil, offset: nil, icon: nil, icons_only: nil, &block)
+      def togglepanel(position = :left, content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, offset: nil, icon: nil, icons_only: nil, &block)
         locals = {
           position: (position || :left).to_s,
           label: label,
           collapsed: collapsed,
           expanded: expanded,
           nested: nested,
-          push: push,
           offset: offset,
           icon: icon,
           icons_only: icons_only,
@@ -36,20 +34,20 @@ module Foresight
       #   == togglebottom(label: "Bottom") do
       #        p Content
       #      end
-      def toggletop(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, push: nil, offset: nil, icon: nil, icons_only: nil, &block)
-        togglepanel(:top, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, push: push, offset: offset, icon: icon, icons_only: icons_only, &block)
+      def toggletop(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, offset: nil, icon: nil, icons_only: nil, &block)
+        togglepanel(:top, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, offset: offset, icon: icon, icons_only: icons_only, &block)
       end
 
-      def togglebottom(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, push: nil, offset: nil, icon: nil, icons_only: nil, &block)
-        togglepanel(:bottom, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, push: push, offset: offset, icon: icon, icons_only: icons_only, &block)
+      def togglebottom(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, offset: nil, icon: nil, icons_only: nil, &block)
+        togglepanel(:bottom, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, offset: offset, icon: icon, icons_only: icons_only, &block)
       end
 
-      def toggleleft(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, push: nil, offset: nil, icon: nil, icons_only: nil, &block)
-        togglepanel(:left, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, push: push, offset: offset, icon: icon, icons_only: icons_only, &block)
+      def toggleleft(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, offset: nil, icon: nil, icons_only: nil, &block)
+        togglepanel(:left, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, offset: offset, icon: icon, icons_only: icons_only, &block)
       end
 
-      def toggleright(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, push: nil, offset: nil, icon: nil, icons_only: nil, &block)
-        togglepanel(:right, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, push: push, offset: offset, icon: icon, icons_only: icons_only, &block)
+      def toggleright(content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, offset: nil, icon: nil, icons_only: nil, &block)
+        togglepanel(:right, content, label: label, collapsed: collapsed, expanded: expanded, nested: nested, offset: offset, icon: icon, icons_only: icons_only, &block)
       end
     end
   end

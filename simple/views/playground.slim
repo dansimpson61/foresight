@@ -1,74 +1,211 @@
 doctype html
-html
+html lang="en"
   head
-    title Playground — Simple Foresight
+    meta charset="utf-8"
+    meta name="viewport" content="width=device-width, initial-scale=1"
+    title Toggle Panel Playground — Simple Foresight
     - base = request.script_name
     link rel="icon" type="image/svg+xml" href="#{base}/favicon.svg"
     link rel="stylesheet" href="#{base}/css/app.css"
+  
   body
     a.sr-only href="#main" Skip to main content
-    header
-      h1 Playground
-      p.muted A blank canvas to try ideas safely. No persistence; refresh to reset.
-    main#main
-      .editor-form.pad.border.fill-50
-        h2 Minimal Canvas
-        p This page intentionally starts empty. Add markup here or open dev tools to experiment with controllers.
+    
+    / LEFT PANEL: Navigation & Tools
+    == toggleleft label: "Navigation", icon: "☰" do
+      .stack
+        h2 Navigation & Tools
+        p.muted Primary workspace controls
+        
+        nav.stack
+          h3 Pages
+          ul.stack
+            li: a.button href="#{base}/" Home
+            li: a.button href="#{base}/playground" Playground (you are here)
+            li: a.button href="#{base}/tokens" Tokens
+            li: a.button href="#{base}/diagrams" Diagrams
+        
         hr
+        
         .stack
-          button.button type="button" data-action="click->demo#ping" Try a ping
-          p.muted Tip: Inspect the page to see window.FS_BASE and controllers.
-      / Edge tools: one left panel that introduces two top editor panels and one bottom dev panel
-      .toggle-panel-example
-        == toggleleft label: "Tools", icon: "🧰", push: "header, #main" do
+          h3 Quick Actions
+          button.button type="button" onclick="alert('Action executed!')" 
+            | ⚡ Execute Action
+          button.button type="button" onclick="console.log('Logged to console')" 
+            | 📝 Log Message
+          button.button type="button" onclick="window.location.reload()" 
+            | 🔄 Reload Page
+    
+    / Main content container - flows naturally in grid
+    .page-container
+      header
+        h1 Toggle Panel Playground
+        p.muted 
+          | A living demonstration of edge-anchored panels. 
+          | Hover to preview, click to stick.
+      
+      main#main
+        / Introduction
+        .pad.border.fill-50.stack
+          h2 Welcome to the Panel Playground
+          p 
+            | This page demonstrates the <strong>togglepanel</strong> component—a 
+            | CSS-first, progressively enhanced UI pattern for edge-anchored panels.
+          
+          .cluster
+            p.muted Philosophy: Hover reveals, click persists.
+          p.muted Tech: Slim helpers → Stimulus → CSS Grid natural flow
+        
+        hr
+        
+        h3 Try the Panels
+        ul
+          li 
+            strong Left Panel: 
+            | Primary navigation and tools
+          li 
+            strong Right Panel: 
+            | Context-sensitive help and settings
+          li 
+            strong Top Panel: 
+            | Search and filters
+          li 
+            strong Bottom Panel: 
+            | Developer tools and diagnostics
+        
+        .cluster
+          a.button href="#{base}/" ← Back to App
+          a.button href="#{base}/tokens" Design Tokens
+          a.button href="#{base}/diagrams" Object Diagrams
+    
+    / RIGHT PANEL: Help & Settings
+    == toggleright label: "Help", icon: "❓" do
+      .stack
+        h2 Help & Reference
+        p.muted Context-sensitive assistance
+        
+        .stack
+          h3 About Toggle Panels
+          p 
+            | Toggle panels are edge-anchored containers that expand on hover 
+            | and persist when clicked.
+          
+          dl
+            dt Hover
+            dd Panel expands temporarily (CSS <code>:hover</code>)
+            
+            dt Click
+            dd Panel toggles sticky state (JS manages class)
+            
+            dt Nested
+            dd Panels can contain other panels
+        
+        hr
+        
+        .stack
+          h3 Keyboard Shortcuts
+          dl
+            dt Tab
+            dd Navigate to panel handle
+            
+            dt Enter / Space
+            dd Toggle sticky state
+            
+            dt Esc
+            dd Close panel (if implemented)
+        
+        hr
+        
+        p.muted
+          | For full documentation, see 
+          code togglepanel_reference.md
+
+    / TOP PANEL: Search & Filters
+    == toggletop label: "Search & Filters", icon: "🔍" do
+      .stack
+        h2 Search & Filters
+        p.muted Find and filter content
+        
+        form.stack
           .stack
-            p Use the top edge panels to access editors, and the bottom panel for dev helpers.
-            ul
-              li Profiles Editor (top)
-              li Simulation Editor (top)
-              li Dev Helpers (bottom)
+            label for="search-query" Search
+            input#search-query type="search" placeholder="Type to search..." 
+                  style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-1);"
+          
+          .stack
+            label Filter by Type
+            .cluster
+              label style="display: inline-flex; gap: 0.35rem;"
+                input type="checkbox" name="filter" value="panels"
+                | Panels
+              label style="display: inline-flex; gap: 0.35rem;"
+                input type="checkbox" name="filter" value="controls"
+                | Controls
+              label style="display: inline-flex; gap: 0.35rem;"
+                input type="checkbox" name="filter" value="data"
+                | Data
+          
+          button.button type="submit" Apply Filters
 
-          / Two top-anchored panels (profiles and simulation)
-          == toggletop label: "Profiles", nested: true, expanded: "30vh", collapsed: "2.25rem", push: nil, offset: "0" do
-            .stack
-              h3 Profiles Editor
-              p Open the main app to edit members, household, and assets.
-              - base = request.script_name
-              p
-                a.button href="#{base}/" Return to App
-                |
-                a.dev-link href="#{base}/#" rel="nofollow" aria-disabled="true" title="Open 'Edit' on the app page to reveal the profile form" Profile editor is on the app page
+    / BOTTOM PANEL: Developer Tools
+    == togglebottom label: "Dev Tools", icon: "🛠" do
+      .stack
+        h2 Developer Tools
+        p.muted Diagnostics and debugging helpers
+        
+        .stack
+          h3 Panel State
+          pre style="background: var(--paper-50); padding: var(--sp-12); border: 1px solid var(--border); border-radius: var(--radius-1); overflow: auto;"
+            code
+              |
+                {
+                  "panels": {
+                    "left": { "position": "left", "sticky": false },
+                    "right": { "position": "right", "sticky": false },
+                    "top": { "position": "top", "sticky": false },
+                    "bottom": { "position": "bottom", "sticky": false }
+                  },
+                  "viewport": {
+                    "width": window.innerWidth + "px",
+                    "height": window.innerHeight + "px"
+                  }
+                }
+        
+        hr
+        
+        .cluster
+          button.button type="button" onclick="console.clear()" Clear Console
+          button.button type="button" onclick="console.table([{panel:'left',state:'ready'},{panel:'right',state:'ready'},{panel:'top',state:'ready'},{panel:'bottom',state:'ready'}])" 
+            | Log Panel Status
+          button.button type="button" onclick="alert(document.querySelectorAll('[data-controller~=toggle-panel]').length + ' panels found')" 
+            | Count Panels
 
-          == toggletop label: "Simulation", nested: true, expanded: "30vh", collapsed: "2.25rem", push: nil, offset: "2.25rem" do
-            .stack
-              h3 Simulation Editor
-              p Adjust run settings, economic assumptions, and retirement decisions.
-              - base = request.script_name
-              p
-                a.button href="#{base}/" Return to App
-                |
-                a.dev-link href="#{base}/#" rel="nofollow" aria-disabled="true" title="Open 'Edit' on the app page to reveal the simulation form" Simulation editor is on the app page
-
-          / Bottom-anchored panel for dev helpers
-          == togglebottom label: "Dev", nested: true do
-            - base = request.script_name
-            .stack
-              h3 Developer Helpers
-              ul
-                li: a href="#{base}/tokens" Tokens
-                li: a href="#{base}/diagrams" Diagrams
-                li: a href="#{base}/" Return to App
-    / Optional scripts: load Stimulus and a tiny demo controller
+    / Load scripts
     == render :slim, :'partials/_scripts'
+    
+    / Optional: Demo controller for playground interactions
     script
       |
         (function(){
           if (!window.Stimulus || !Stimulus.Application) return;
           const app = Stimulus.Application.start();
-          class DemoController extends Stimulus.Controller {
-            ping(){ alert('pong'); }
+          
+          // Simple demo controller for playground
+          class PlaygroundController extends Stimulus.Controller {
+            connect() {
+              console.log('[Playground] Ready. Try the edge panels!');
+            }
+            
+            ping() {
+              alert('Pong! Playground is interactive.');
+            }
           }
-          app.register('demo', DemoController);
-          // Attach controller to body for quick binding
-          document.body.setAttribute('data-controller', 'demo');
+          
+          // Register if not already registered
+          try {
+            app.register('playground', PlaygroundController);
+            document.body.setAttribute('data-controller', 'playground');
+          } catch(e) {
+            // Already registered, skip
+          }
         })();
