@@ -1,0 +1,32 @@
+/ Profile Editor Panel
+/ Uses <details> and <summary> for a native, JS-free accordion,
+/ following the "Ode to Joy" philosophy.
+details.editor-section open=true
+  summary.editor-header
+    h2.cluster style="display:inline-flex; margin:0;"
+      | Edit Financial Profile
+  .editor-form.pad-lg
+    form.form-grid
+      .form-section
+        h3 Members
+        .form-group
+          label for="member-name" Name
+          input#member-name type="text" value="Alex"
+        .form-group
+          label for="member-birth-year" Birth Year
+          input#member-birth-year type="number" value="1980"
+
+      .form-section
+        h3 Assumptions
+        .form-group
+          label for="inflation-rate" Inflation Rate (%)
+          input#inflation-rate type="number" value="2.5"
+        .form-grop
+          label for="investment-growth" Investment Growth (%)
+          input#investment-growth type="number" value="5.0"
+
+      / ... other form sections would go here ...
+
+    .cluster style="margin-top: 1.5rem;"
+      button.button type="submit" Run Simulation
+      button.button.secondary type="button" Reset to Default

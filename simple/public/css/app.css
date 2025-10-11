@@ -96,18 +96,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 
 #chart-container { width: 100%; height: 400px; position: relative; }
 
-.toggle { font-size: 0.9rem; font-weight: normal; color: var(--accent-600); cursor: pointer; margin-left: 0.5rem; }
-.toggle:hover { text-decoration: underline; }
-
 .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
-.data-table.hidden { display: none; }
 .data-table th, .data-table td { border: 1px solid var(--border); padding: 0.5rem; text-align: right; }
 .data-table th { background-color: var(--paper-100); font-weight: bold; }
 
 .editor-section { margin-bottom: 2rem; }
 .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.editor-header { cursor: pointer; }
+.editor-header:hover { background-color: var(--paper-50); }
 .editor-form { padding: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-2); background-color: var(--paper-50); }
-.editor-form.hidden { display: none; }
+/* Hide the form when the <details> element is not open */
+details:not([open]) > .editor-form { display: none; }
 
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
 .form-section { margin-bottom: 2rem; }
@@ -136,9 +135,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 .account-entry h4, .income-entry h4 { font-size: 1rem; margin-bottom: 1rem; color: #666; }
 
 .accordion-header { cursor: pointer; padding: 1rem; background-color: #f8f8f8; border: 1px solid var(--border); border-radius: var(--radius-1); margin-top: 1rem; font-weight: 600; }
-.accordion-header:hover { background-color: #f0f0f0; }
-.accordion-panel { padding: 1.5rem; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-1) var(--radius-1); }
-.accordion-panel.hidden { display: none; }
+.accordion-header:hover, details[open] > summary.accordion-header { background-color: #f0f0f0; }
+.accordion-panel__content { padding: 1.5rem; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-1) var(--radius-1); }
+
+/* Native <details> accordion styling */
+details.accordion-panel { margin-top: 1rem; }
+details.accordion-panel > summary { list-style: none; /* Hide default marker */ }
+details.accordion-panel > summary::-webkit-details-marker { display: none; /* Hide default marker for Safari */ }
 
 .viz-badge { margin-left: 0.5rem; padding: 0.15rem 0.5rem; background: #eef2ff; color: #3730a3; border-radius: var(--radius-1); font-size: 0.8rem; }
 
@@ -176,9 +179,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 /* Vertical panels: show only icons when collapsed, text when expanded */
 .toggle-panel.is-vertical:not(:hover):not(.is-sticky) .toggle-panel__text { display: none; }
 
-/* Explicitly set icons-only mode (backwards compatibility) */
-.toggle-panel.is-icons-only .toggle-panel__text { display: none; }
-
 /* Hide content when collapsed (only label/handle visible) */
 .toggle-panel:not(.is-sticky):not(:hover) .toggle-panel__content { display: none; }
 /* Nested panels should sit above parent content */
@@ -189,19 +189,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-24) 0; 
 .toggle-panel[data-toggle-panel-position-value="right"] .toggle-panel__handle { left: .5rem; top: .5rem; }
 .toggle-panel[data-toggle-panel-position-value="top"] .toggle-panel__handle { right: .5rem; bottom: .5rem; }
 .toggle-panel[data-toggle-panel-position-value="bottom"] .toggle-panel__handle { right: .5rem; top: .5rem; }
-
-/* Animate padding on elements that panels push/compress */
-.tp-animate-padding {
-	transition: padding var(--tp-duration, 200ms) ease;
-}
-
-/* Animate absolute inset changes for nested content compression */
-.tp-animate-inset {
-	transition: top var(--tp-duration, 200ms) ease,
-	            right var(--tp-duration, 200ms) ease,
-	            bottom var(--tp-duration, 200ms) ease,
-	            left var(--tp-duration, 200ms) ease;
-}
 
 /* Utilities */
 .stack > * + * { margin-top: var(--sp-8); }

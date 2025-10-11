@@ -1,10 +1,11 @@
 / Flows Debug Panel
-div data-controller="flows"
-  h2
-    | Flows Applied (per year)
-  button.toggle type="button" aria-controls="flows-panel" aria-expanded="false" data-action="click->flows#toggle" (Show Panel)
-
-  .accordion-panel.hidden#flows-panel data-flows-target="panel"
+/ Using <details> and <summary> for a native, JS-free accordion.
+/ This is a prime example of the "Ode to Joy" philosophy: HTML-first, minimal, and robust.
+details.accordion-panel
+  summary.accordion-header
+    h2.cluster style="display:inline-flex; margin:0;"
+      | Flows Applied (per year)
+  .accordion-panel__content.pad
     h3 Do Nothing Strategy
     table.data-table
       thead

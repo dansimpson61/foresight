@@ -1,44 +1,41 @@
-doctype html
-html
-  head
-    title Simple Foresight
-    link rel="icon" type="image/svg+xml" href="/favicon.svg"
-    - base = request.script_name
-    link rel="stylesheet" href="#{base}/css/app.css"
-  body
-    a.sr-only href="#main" Skip to main content
-    header
-      h1 Simple Foresight: A Radical Act of Simplification
-      - if params[:dev] == '1'
-        p
-          - base = request.script_name
-          a.dev-link href="#{base}/tokens" rel="nofollow" Tokens
-          |  · 
-          a.dev-link href="#{base}/playground" rel="nofollow" Playground
-  
-    main id="main"
-      == render :slim, :'partials/_profile_editor', locals: { profile: profile }
+h1.page-title Simple Foresight
 
-      hr
+.layout-container
+  / Editor Panel
+  div data-controller="profile-editor" action="/simple/run"
+    form.form-grid data-action="submit->profile-editor#run" data-profile-editor-chart-outlet="#main-chart-container"
+      .form-section
+        h3 Members
+        .form-group
+          label for="member-name" Name
+          input#member-name name="members[0][name]" type="text" value="Alex"
+        .form-group
+          label for="member-birth-year" Birth Year
+          input#member-birth-year name="members[0][birth_year]" type="number" value="1980"
 
-      == render :slim, :'partials/_simulation_editor', locals: { profile: profile, strategy: strategy, strategy_params: strategy_params }
+      .form-section
+        h3 Assumptions
+        .form-group
+          label for="inflation-rate" Inflation Rate (%)
+          input#inflation-rate name="inflation_rate" type="number" value=@profile['inflation_rate'] step="0.01"
+        .form-group
+          label for="investment-growth" Investment Growth (%)
+          input#investment-growth name="investment_growth" type="number" value=@profile['investment_growth'] step="0.01"
 
-      == render :slim, :'partials/_limitations_note'
+      .cluster style="margin-top: 1.5rem;"
+        button.button type="submit" Run Simulation
 
-      hr
+  / Chart Panel
+  .chart-container#main-chart-container data-controller="chart" data-chart-results-value=@results.to_json
+    canvas
 
-      == render :slim, :'partials/_results_grid', locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
+  / Flows Panel
+  == slim :"partials/_flows_panel", locals: { results: @results }
 
-      == render :slim, :'partials/_viz_controls'
-
-      == render :slim, :'partials/_chart_visualization', locals: { fill_bracket_results: fill_bracket_results }
-
-      hr
-
-      == render :slim, :'partials/_flows_panel', locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
-
-      == render :slim, :'partials/_net_worth_chart'
-
-      == render :slim, :'partials/_data_scripts', locals: { profile: profile, do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
-
-      == render :slim, :'partials/_scripts'
+css:
+  .layout-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+  }
+  .chart-container { height: 400px; }
