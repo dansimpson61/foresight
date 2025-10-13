@@ -73,6 +73,78 @@ html lang="en"
             strong Bottom Panel: 
             | Developer tools and diagnostics
         
+        hr
+        
+        / Nested Panel Test Cases
+        h3 Nested Panels Test Suite
+        p.muted Testing recursive CSS Grid nesting patterns
+        
+        / Test 1: Single nested panel
+        .pad.border.fill-50.stack
+          h4 Test 1: Single Nested Panel
+          p A panel containing another panel
+          
+          == toggleleft label: "Outer Panel", expanded: "30vw" do
+            .stack
+              p.muted This is the outer panel content
+              
+              == toggleright label: "Inner Panel", expanded: "15vw" do
+                .stack
+                  h5 Nested Inside!
+                  p This panel is nested within another panel using recursive CSS Grid.
+                  p No JavaScript positioning required.
+              
+              p More outer content here
+        
+        / Test 2: Multiple nested panels
+        .pad.border.fill-50.stack
+          h4 Test 2: Multiple Nested Panels
+          p A panel containing multiple child panels
+          
+          == toggleleft label: "Container", expanded: "35vw" do
+            .stack
+              h5 Container Panel
+              p This panel contains multiple nested panels
+              
+              == toggletop label: "Top", expanded: "8rem" do
+                p Nested top panel content
+              
+              == toggleleft label: "Left", expanded: "10rem" do
+                p Nested left panel content
+              
+              .content.pad
+                p Main content area in the center
+              
+              == toggleright label: "Right", expanded: "10rem" do
+                p Nested right panel content
+              
+              p Footer content
+        
+        / Test 3: Deep nesting (3 levels)
+        .pad.border.fill-50.stack
+          h4 Test 3: Deep Nesting (3 Levels)
+          p Testing recursive grid at depth
+          
+          == toggleleft label: "Level 1", expanded: "40vw" do
+            .stack
+              h5 Level 1
+              p Outermost panel
+              
+              == toggleleft label: "Level 2", expanded: "25vw" do
+                .stack
+                  h5 Level 2
+                  p Middle panel
+                  
+                  == toggleleft label: "Level 3", expanded: "15vw" do
+                    .stack
+                      h5 Level 3
+                      p Innermost panel - three levels deep!
+                      p All positioned by CSS Grid recursion.
+                  
+                  p Back to level 2
+              
+              p Back to level 1
+        
         .cluster
           a.button href="#{base}/" ← Back to App
           a.button href="#{base}/tokens" Design Tokens

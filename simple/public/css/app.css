@@ -170,7 +170,35 @@ details.accordion-panel > summary::-webkit-details-marker { display: none; /* Hi
 .toggle-panel.is-vertical.is-sticky { width: var(--tp-expanded-size-v); }
 .toggle-panel.is-horizontal:hover,
 .toggle-panel.is-horizontal.is-sticky { height: var(--tp-expanded-size-h); }
-.toggle-panel__content { padding: var(--sp-12); overflow: auto; flex: 1 1 auto; }
+
+/* Panel content - supports nested panels via recursive grid */
+.toggle-panel__content { 
+  padding: var(--sp-12); 
+  overflow: auto; 
+  flex: 1 1 auto;
+  /* Recursive grid for nested panels - same pattern as body */
+  display: grid;
+  grid-template-areas: 
+    "n-top n-top n-top"
+    "n-left n-main n-right"
+    "n-bottom n-bottom n-bottom";
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: auto 1fr auto;
+  min-height: 0;
+}
+
+/* Nested panels flow to their grid areas */
+.toggle-panel__content > .toggle-panel[data-toggle-panel-position-value="left"] { grid-area: n-left; }
+.toggle-panel__content > .toggle-panel[data-toggle-panel-position-value="right"] { grid-area: n-right; }
+.toggle-panel__content > .toggle-panel[data-toggle-panel-position-value="top"] { grid-area: n-top; }
+.toggle-panel__content > .toggle-panel[data-toggle-panel-position-value="bottom"] { grid-area: n-bottom; }
+
+/* All other content (non-panels) flows to main area */
+.toggle-panel__content > *:not(.toggle-panel) { 
+  grid-area: n-main;
+  min-height: 0;
+}
+
 .toggle-panel__handle { position: absolute; background: #fff; border: none; border-radius: var(--radius-1); padding: .35rem .55rem; cursor: pointer; color: var(--ink-700); }
 /* Upper-left label, elegant and visible even when collapsed */
 .toggle-panel__label { position: absolute; top: .35rem; left: .5rem; font-size: var(--fs-12); color: var(--muted); pointer-events: none; display: inline-flex; align-items: center; gap: .35rem; }

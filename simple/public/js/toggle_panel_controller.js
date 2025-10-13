@@ -1,12 +1,20 @@
 // A lightweight edge-anchored toggle panel with CSS Grid natural flow
-// Usage (left panel with defaults):
+// Supports recursive nesting - panel content areas are grid containers too!
+// Usage (basic):
 // <div data-controller="toggle-panel" data-toggle-panel-position-value="left">
 //   ...your content...
+// </div>
+// Usage (nested):
+// <div data-controller="toggle-panel" ...>
+//   <div data-controller="toggle-panel" ...>Nested panel</div>
+//   <div>Main content flows naturally</div>
 // </div>
 // Optional values:
 //   data-toggle-panel-collapsed-size-value="2.5rem"
 //   data-toggle-panel-expanded-size-value="min(360px, 85vw)"
 //   data-toggle-panel-label-value="Tools"
+//   data-toggle-panel-icon-value="☰"
+//   data-toggle-panel-icons-only-value="true"
 class TogglePanelController extends Stimulus.Controller {
   static values = {
     position: { type: String, default: 'left' },
@@ -79,11 +87,8 @@ class TogglePanelController extends Stimulus.Controller {
     this.element.setAttribute('role', 'region');
     this.element.setAttribute('aria-label', this.labelValue);
     
-    // Positioning: relative for grid flow by default; absolute inside parent when nested
-    this.element.style.position = this.nestedValue ? 'absolute' : 'relative';
-    if (this.nestedValue) {
-      this._applyAnchors();
-    }
+    // Positioning: relative for grid flow (both top-level and nested)
+    this.element.style.position = 'relative';
 
     // Orientation class for CSS sizing
     const vertical = this._isVertical();
@@ -93,15 +98,6 @@ class TogglePanelController extends Stimulus.Controller {
     // Icons-only default for vertical panels unless explicitly overridden
     const iconsOnly = this.hasIconsOnlyValue ? this.iconsOnlyValue : vertical;
     this.element.classList.toggle('is-icons-only', !!iconsOnly);
-
-    // If nested, make sure parent is positioned for absolute anchoring
-    if (this.nestedValue) {
-      const parent = this.element.parentElement;
-      if (parent) {
-        const cs = window.getComputedStyle(parent);
-        if (cs.position === 'static') parent.style.position = 'relative';
-      }
-    }
 
     // Apply instance size variables if provided (CSS controls default behavior)
     if (this.hasCollapsedSizeValue) {
@@ -119,21 +115,10 @@ class TogglePanelController extends Stimulus.Controller {
     // Click anywhere in the panel toggles sticky
     this._onPanelClick = () => this.toggle();
     this.element.addEventListener('click', this._onPanelClick);
-
-    // Update nested positions on hover if nested
-    if (this.nestedValue) {
-      this._onEnter = () => this._updateNestedPositions();
-      this._onLeave = () => this._updateNestedPositions();
-      this.element.addEventListener('mouseenter', this._onEnter);
-      this.element.addEventListener('mouseleave', this._onLeave);
-      this._updateNestedPositions();
-    }
   }
 
   disconnect() {
     if (this._onPanelClick) this.element.removeEventListener('click', this._onPanelClick);
-    if (this._onEnter) this.element.removeEventListener('mouseenter', this._onEnter);
-    if (this._onLeave) this.element.removeEventListener('mouseleave', this._onLeave);
   }
 
   toggle() {
@@ -141,39 +126,9 @@ class TogglePanelController extends Stimulus.Controller {
     this.element.classList.toggle('is-sticky', this.sticky);
     this._updateA11y();
     this._updateHandleIcon();
-    if (this.nestedValue) {
-      this._updateNestedPositions();
-    }
   }
 
   // --- Internals ---
-  _applyAnchors() {
-    const s = this.element.style;
-    s.top = s.right = s.bottom = s.left = '';
-    if (this.positionValue === 'left') { s.left = '0'; s.top = '0'; s.bottom = '0'; }
-    else if (this.positionValue === 'right') { s.right = '0'; s.top = '0'; s.bottom = '0'; }
-    else if (this.positionValue === 'top') { s.top = '0'; s.left = '0'; s.right = '0'; }
-    else { s.bottom = '0'; s.left = '0'; s.right = '0'; }
-
-    // Apply cross-panel offset when provided (useful for stacking nested panels)
-    if (this.nestedValue && this.hasOffsetValue) {
-      const v = this.offsetValue;
-      if (this.positionValue === 'top') s.top = v;
-      else if (this.positionValue === 'bottom') s.bottom = v;
-      else if (this.positionValue === 'left') s.left = v;
-      else if (this.positionValue === 'right') s.right = v;
-    }
-
-    // Cross-axis full size (main dimension handled in CSS)
-    if (this.positionValue === 'left' || this.positionValue === 'right') {
-      s.height = this.nestedValue ? '100%' : '100vh';
-      s.width = '';
-    } else {
-      s.width = this.nestedValue ? '100%' : '100vw';
-      s.height = '';
-    }
-  }
-
   _updateA11y() {
     if (this.hasHandleTarget) this.handleTarget.setAttribute('aria-expanded', String(this.sticky));
   }
@@ -210,106 +165,6 @@ class TogglePanelController extends Stimulus.Controller {
                      : (this.hasCollapsedSizeValue ? this.collapsedSizeValue : '2.25rem');
     }
     return val || '0px';
-  }
-
-  _applyNestedLayout() {
-    const parent = this.element.parentElement;
-    if (!parent) return;
-    const target = parent.querySelector(':scope > .toggle-panel__content');
-    if (!target) return;
-    
-    // Ensure positioning
-    const cs = window.getComputedStyle(parent);
-    if (cs.position === 'static') parent.style.position = 'relative';
-    if (getComputedStyle(target).position !== 'absolute') target.style.position = 'absolute';
-    this._ensureInsetTransition(target);
-
-    const parentRect = parent.getBoundingClientRect();
-    const inset = { top: 0, bottom: 0, left: 0, right: 0 };
-    
-    ['top','bottom','left','right'].forEach((edge) => {
-      const selector = `:scope > [data-controller~="toggle-panel"][data-toggle-panel-nested-value="true"][data-toggle-panel-position-value="${edge}"]`;
-      const items = Array.from(parent.querySelectorAll(selector));
-      items.forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (edge === 'top') inset.top = Math.max(inset.top, r.bottom - parentRect.top);
-        else if (edge === 'bottom') inset.bottom = Math.max(inset.bottom, parentRect.bottom - r.top);
-        else if (edge === 'left') inset.left = Math.max(inset.left, r.right - parentRect.left);
-        else inset.right = Math.max(inset.right, parentRect.right - r.left);
-      });
-    });
-
-    // Apply as absolute insets
-    target.style.top = inset.top ? `${Math.round(inset.top)}px` : '0';
-    target.style.bottom = inset.bottom ? `${Math.round(inset.bottom)}px` : '0';
-    target.style.left = inset.left ? `${Math.round(inset.left)}px` : '0';
-    target.style.right = inset.right ? `${Math.round(inset.right)}px` : '0';
-  }
-
-  _ensureInsetTransition(target) {
-    if (!target.classList.contains('tp-animate-inset')) target.classList.add('tp-animate-inset');
-  }
-
-  _getPanelSizeParts(el) {
-    const pos = el.getAttribute('data-toggle-panel-position-value') || 'left';
-    const vertical = (pos === 'left' || pos === 'right');
-    const cs = getComputedStyle(el);
-    const varCollapsed = vertical ? '--tp-collapsed-size-v' : '--tp-collapsed-size-h';
-    const varExpanded  = vertical ? '--tp-expanded-size-v'  : '--tp-expanded-size-h';
-    let collapsed = cs.getPropertyValue(varCollapsed).trim();
-    let expanded  = cs.getPropertyValue(varExpanded).trim();
-    if (!collapsed) collapsed = vertical ? '2.75rem' : '2.25rem';
-    if (!expanded)  expanded  = vertical ? 'min(360px, 85vw)' : 'min(40vh, 480px)';
-    return { collapsed, expanded };
-  }
-
-  _isExpandedNow(el) {
-    return el.classList.contains('is-sticky') || el.matches(':hover');
-  }
-
-  _updateNestedPositions() {
-    if (!this.nestedValue) return;
-    const parent = this.element.parentElement;
-    if (!parent) return;
-    ['top','bottom','left','right'].forEach((edge) => {
-      const selector = `:scope > [data-controller~="toggle-panel"][data-toggle-panel-nested-value="true"][data-toggle-panel-position-value="${edge}"]`;
-      const list = Array.from(parent.querySelectorAll(selector));
-      if (list.length === 0) return;
-
-      // Sort by numeric offset if possible, else DOM order
-      const withOffsets = list.map(el => ({
-        el,
-        offset: el.getAttribute('data-toggle-panel-offset-value') || '0'
-      }));
-      const toPx = (v) => {
-        // simple parse for rem/px values; else NaN to fallback to DOM order
-        if (!v) return 0;
-        if (v.endsWith('px')) return parseFloat(v);
-        if (v.endsWith('rem')) return parseFloat(v) * parseFloat(getComputedStyle(document.documentElement).fontSize || '16');
-        const n = parseFloat(v);
-        return isNaN(n) ? NaN : n;
-      };
-      const allNumeric = withOffsets.every(o => !isNaN(toPx(o.offset)));
-      const ordered = allNumeric ? withOffsets.sort((a,b)=>toPx(a.offset)-toPx(b.offset)) : withOffsets;
-
-      let prefixParts = [];
-      ordered.forEach((item, idx) => {
-        const { el, offset } = item;
-        const sizes = this._getPanelSizeParts(el);
-        const sizeNow = this._isExpandedNow(el) ? sizes.expanded : sizes.collapsed;
-        const sumParts = [];
-        if (offset && offset !== '0') sumParts.push(offset);
-        if (idx > 0) sumParts.push(...prefixParts);
-        const sumExpr = sumParts.length === 0 ? (edge==='top'||edge==='left' ? '0' : '0') : (sumParts.length === 1 ? sumParts[0] : `calc(${sumParts.join(' + ')})`);
-        // Apply position
-        if (edge === 'top') { el.style.top = sumExpr; el.style.bottom = ''; }
-        else if (edge === 'bottom') { el.style.bottom = sumExpr; el.style.top = ''; }
-        else if (edge === 'left') { el.style.left = sumExpr; el.style.right = ''; }
-        else { el.style.right = sumExpr; el.style.left = ''; }
-        // Update prefix for next sibling
-        prefixParts.push(sizeNow);
-      });
-    });
   }
 
   _isVertical() {

@@ -7,11 +7,18 @@ module Foresight
       #   == togglepanel(:top, label: "Tools", collapsed: "2rem", expanded: "50vh") do
       #        p Inside content
       #      end
+      # 
+      # Nesting: Panels automatically support nesting using CSS Grid
+      #   == toggleleft label: "Outer" do
+      #     == toggleright label: "Inner"
+      #       p Nested content
+      #     p Main content
+      # 
       # Options:
       #   label: "Tools"                      # visible label in panel
       #   collapsed: "2rem", expanded: "30vh" # per-instance size overrides
-      #   nested: true                         # anchor inside parent panel
-      #   offset: "2rem"                       # shift from the anchored edge (nested stacking)
+      #   nested: true                        # DEPRECATED: handled automatically by CSS Grid
+      #   offset: "2rem"                      # DEPRECATED: handled automatically by CSS Grid
       def togglepanel(position = :left, content = nil, label: nil, collapsed: nil, expanded: nil, nested: nil, offset: nil, icon: nil, icons_only: nil, &block)
         locals = {
           position: (position || :left).to_s,

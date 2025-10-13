@@ -1,41 +1,57 @@
-h1.page-title Simple Foresight
+doctype html
+html lang="en"
+  head
+    meta charset="utf-8"
+    meta name="viewport" content="width=device-width, initial-scale=1"
+    title Simple Foresight
+    - base = request.script_name
+    link rel="icon" type="image/svg+xml" href="#{base}/favicon.svg"
+    link rel="stylesheet" href="#{base}/css/app.css"
+    style
+      | .layout-container { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; margin: 2rem; }
+      | .chart-container { height: 400px; }
+      | .form-section { margin-bottom: 1.5rem; }
+      | .form-group { margin-bottom: 1rem; }
+      | .form-group label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+      | .form-group input { width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-1); }
+  
+  body
+    header
+      h1 Simple Foresight
+      p.muted Financial planning with clarity and intention
+    
+    .layout-container
+      / Editor Panel
+      div
+        form action="#{base}/run" method="get"
+          .form-section
+            h3 Members
+            .form-group
+              label for="member-name" Name
+              input#member-name name="members[0][name]" type="text" value="Alex"
+            .form-group
+              label for="member-birth-year" Birth Year
+              input#member-birth-year name="members[0][birth_year]" type="number" value="1980"
 
-.layout-container
-  / Editor Panel
-  div data-controller="profile-editor" action="/simple/run"
-    form.form-grid data-action="submit->profile-editor#run" data-profile-editor-chart-outlet="#main-chart-container"
-      .form-section
-        h3 Members
-        .form-group
-          label for="member-name" Name
-          input#member-name name="members[0][name]" type="text" value="Alex"
-        .form-group
-          label for="member-birth-year" Birth Year
-          input#member-birth-year name="members[0][birth_year]" type="number" value="1980"
+          .form-section
+            h3 Assumptions
+            .form-group
+              label for="inflation-rate" Inflation Rate (%)
+              input#inflation-rate name="inflation_rate" type="number" value=profile[:inflation_rate] step="0.01"
+            .form-group
+              label for="investment-growth" Investment Growth (%)
+              input#investment-growth name="investment_growth" type="number" value=profile[:investment_growth] step="0.01"
 
-      .form-section
-        h3 Assumptions
-        .form-group
-          label for="inflation-rate" Inflation Rate (%)
-          input#inflation-rate name="inflation_rate" type="number" value=@profile['inflation_rate'] step="0.01"
-        .form-group
-          label for="investment-growth" Investment Growth (%)
-          input#investment-growth name="investment_growth" type="number" value=@profile['investment_growth'] step="0.01"
+          .cluster style="margin-top: 1.5rem;"
+            button.button type="submit" Run Simulation
 
-      .cluster style="margin-top: 1.5rem;"
-        button.button type="submit" Run Simulation
+      / Chart Panel
+      .chart-container#main-chart-container data-controller="chart" data-chart-results-value=fill_bracket_results.to_json
+        canvas
 
-  / Chart Panel
-  .chart-container#main-chart-container data-controller="chart" data-chart-results-value=@results.to_json
-    canvas
-
-  / Flows Panel
-  == slim :"partials/_flows_panel", locals: { results: @results }
-
-css:
-  .layout-container {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 2rem;
-  }
-  .chart-container { height: 400px; }
+    / Flows Panel (full width below)
+    div style="margin: 2rem;"
+      == slim :"partials/_flows_panel", locals: { do_nothing_results: do_nothing_results, fill_bracket_results: fill_bracket_results }
+    
+    / Load scripts
+    == render :slim, :'partials/_scripts'
