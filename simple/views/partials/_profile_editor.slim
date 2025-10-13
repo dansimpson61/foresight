@@ -5,15 +5,13 @@ div.editor-section data-controller="profile"
     button.toggle type="button" aria-expanded="false" aria-controls="profile-editor-form" data-action="click->profile#toggleEditor" ✎ Edit
 
   form#profile-editor-form.editor-form.hidden data-profile-target="form"
-    / Members
-    div data-controller="accordion"
-      - profile[:members].each_with_index do |member, member_index|
-        - header_id = "member-#{member_index}-header"
-        - panel_id = "member-#{member_index}-panel"
-        - source_index = profile[:income_sources].index { |s| s[:type] == :social_security && s[:recipient] == member[:name] }
-        - ss = source_index ? profile[:income_sources][source_index] : nil
-        button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" = "#{member[:name]}'s Details"
-        div.accordion-panel.hidden id=panel_id role="region" aria-labelledby=header_id
+    / Members - Native <details> accordion (no JS needed)
+    - profile[:members].each_with_index do |member, member_index|
+      - source_index = profile[:income_sources].index { |s| s[:type] == :social_security && s[:recipient] == member[:name] }
+      - ss = source_index ? profile[:income_sources][source_index] : nil
+      details.accordion-panel
+        summary.accordion-header = "#{member[:name]}'s Details"
+        .accordion-panel__content
           .form-section
             h3 Member
             .form-grid
@@ -29,12 +27,10 @@ div.editor-section data-controller="profile"
                 input type="number" data-profile-target="piaAnnual" value=(ss ? ss[:pia_annual] : 0) data-member-index=member_index
                 .form-help Primary Insurance Amount (SSA). Claiming age moved to Simulation → Retirement Decisions.
 
-    / Household
-    div data-controller="accordion"
-      - header_id = "household-header"
-      - panel_id = "household-panel"
-      button.accordion-header type="button" id=header_id aria-controls=panel_id aria-expanded="false" data-action="click->accordion#toggle" Household
-      div.accordion-panel.hidden id=panel_id role="region" aria-labelledby=header_id
+    / Household - Native <details> accordion (no JS needed)
+    details.accordion-panel
+      summary.accordion-header Household
+      .accordion-panel__content
         .form-section
           h3 Household Settings
           .form-grid

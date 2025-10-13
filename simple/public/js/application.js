@@ -12,16 +12,13 @@
 
   try {
     // Register all controllers
-  application.register("chart", ChartController);
-  application.register("viz", VizController);
+    application.register("chart", ChartController);
+    application.register("viz", VizController);
     application.register("profile", ProfileController);
     application.register("simulation", SimulationController);
     application.register("results", ResultsController);
-    application.register("net-worth-chart", NetWorthChartController);
-    application.register("accordion", AccordionController);
-    application.register("flows", FlowsController);
     application.register("toggle-panel", TogglePanelController);
-  console.log('[Foresight] Stimulus started and controllers registered');
+    console.log('[Foresight] Stimulus started and controllers registered');
   } catch (e) {
     console.error('[Foresight] Failed to register controllers', e);
   }

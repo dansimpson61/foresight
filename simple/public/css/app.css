@@ -165,10 +165,8 @@ details.accordion-panel > summary::-webkit-details-marker { display: none; /* Hi
 }
 .toggle-panel.is-vertical { width: var(--tp-collapsed-size-v); }
 .toggle-panel.is-horizontal { height: var(--tp-collapsed-size-h); }
-/* Open on hover or when sticky */
-.toggle-panel.is-vertical:hover,
+/* Open only when sticky (clicked) */
 .toggle-panel.is-vertical.is-sticky { width: var(--tp-expanded-size-v); }
-.toggle-panel.is-horizontal:hover,
 .toggle-panel.is-horizontal.is-sticky { height: var(--tp-expanded-size-h); }
 
 /* Panel content - supports nested panels via recursive grid */
@@ -205,10 +203,10 @@ details.accordion-panel > summary::-webkit-details-marker { display: none; /* Hi
 .toggle-panel__icon { display: inline-block; line-height: 1; }
 
 /* Vertical panels: show only icons when collapsed, text when expanded */
-.toggle-panel.is-vertical:not(:hover):not(.is-sticky) .toggle-panel__text { display: none; }
+.toggle-panel.is-vertical:not(.is-sticky) .toggle-panel__text { display: none; }
 
 /* Hide content when collapsed (only label/handle visible) */
-.toggle-panel:not(.is-sticky):not(:hover) .toggle-panel__content { display: none; }
+.toggle-panel:not(.is-sticky) .toggle-panel__content { display: none !important; }
 /* Nested panels should sit above parent content */
 .toggle-panel .toggle-panel { z-index: 40; }
 .toggle-panel .toggle-panel.is-horizontal { background: #fff; border-color: var(--border); }
